@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { GlobalHeader } from "@/components/layout/GlobalNav";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs } from "@/components/ui/tabs";
 import { useBookmarks } from "@/hooks/useBookmarks";
@@ -11,7 +11,6 @@ import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
 import type { LeaderboardDto } from "@/lib/api/leaderboard";
 import { formatClockShort, formatDuration, formatKm } from "@/lib/format";
 import { cn } from "@/lib/utils/cn";
-import { LiveStatusBar } from "./LiveStatusBar";
 import { PreRaceNotice } from "./PreRaceNotice";
 import { StatusPill } from "./StatusPill";
 
@@ -47,24 +46,22 @@ export function Leaderboard() {
 
   return (
     <main className="mx-auto w-full max-w-[430px] pb-10">
-      <GlobalHeader year={race?.year} />
-      <header className="flex items-baseline justify-between px-4 pt-1 pb-2">
-        <h1 className="font-bold text-[20px] tracking-tight">総合トップ</h1>
-        {bibs.length > 0 ? (
-          <Link
-            href="/bookmarks"
-            className="rounded font-semibold text-[12px] text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            ブックマーク {bibs.length} 人 ›
-          </Link>
-        ) : null}
-      </header>
-
-      <LiveStatusBar
+      <PageHeader
+        title="総合トップ"
         race={race}
         lastPolledAt={lastPolledAt}
         error={error}
         intervalMs={intervalMs}
+        action={
+          bibs.length > 0 ? (
+            <Link
+              href="/bookmarks"
+              className="rounded font-semibold text-[12px] text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              ブックマーク {bibs.length} 人 ›
+            </Link>
+          ) : null
+        }
       />
 
       <div className="px-3 pt-2.5 empty:hidden">

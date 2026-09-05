@@ -1,5 +1,6 @@
 import type { Division } from "@/config/races";
 import type { ComputedAthlete, ComputedSnapshot } from "@/lib/compute/snapshot";
+import { formatBikeSpeed, formatDuration, formatRunPace, formatSwimPace } from "@/lib/format";
 import type {
   AthleteDetailDto,
   AthleteSummaryDto,
@@ -126,14 +127,36 @@ function toSplits(computed: ComputedAthlete): SplitDto[] {
   }));
 }
 
+const DISCIPLINE_LABELS: Record<string, string> = {
+  swim: "スイム",
+  bike: "バイク",
+  run: "ラン",
+};
+
+function paceOf(discipline: string, timeMs: number, km: number): string {
+  if (discipline === "swim") return formatSwimPace(timeMs, km);
+  if (discipline === "bike") return formatBikeSpeed(timeMs, km);
+  return formatRunPace(timeMs, km);
+}
+
 function toPastResults(computed: ComputedAthlete): PastResultDto[] {
   return computed.pastResults.map((r) => ({
     year: r.year,
     division: r.division,
-    totalText: r.totalText ?? "",
+    totalText: r.totalText ?? formatDuration(r.totalMs),
+    totalMs: r.totalMs,
     divisionRank: r.divisionRank,
     ageRank: r.ageRank,
     ageGroupId: r.ageGroupId,
+    disciplines: r.disciplines.map((d) => ({
+      discipline: d.discipline,
+      label: DISCIPLINE_LABELS[d.discipline] ?? d.discipline,
+      timeMs: d.timeMs,
+      km: d.km,
+      paceText: paceOf(d.discipline, d.timeMs, d.km),
+      divisionRank: d.divisionRank,
+      ageRank: d.ageRank,
+    })),
   }));
 }
 

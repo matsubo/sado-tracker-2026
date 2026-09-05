@@ -384,3 +384,34 @@ describe("the difference column", () => {
     expect(page.diffBasis).toBeNull();
   });
 });
+
+describe("past results", () => {
+  it("never reports a physically impossible pace", () => {
+    // A championship entry filed under the long course produced 71 km/h on
+    // the bike, because middle-distance times were divided by 190 km.
+    let checked = 0;
+    for (const computed of snapshot.athletes.values()) {
+      for (const result of computed.pastResults) {
+        for (const leg of result.disciplines) {
+          const hours = leg.timeMs / 3_600_000;
+          if (hours <= 0) continue;
+          const kmh = leg.km / hours;
+          checked += 1;
+          if (leg.discipline === "bike") expect(kmh).toBeLessThan(50);
+          if (leg.discipline === "run") expect(kmh).toBeLessThan(22);
+          if (leg.discipline === "swim") expect(kmh).toBeLessThan(8);
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(50);
+  });
+
+  it("carries the distance raced that year alongside each time", () => {
+    const withHistory = [...snapshot.athletes.values()].find(
+      (computed) => computed.pastResults.length > 0,
+    );
+    const legs = withHistory?.pastResults[0]?.disciplines ?? [];
+    expect(legs.length).toBeGreaterThan(0);
+    for (const leg of legs) expect(leg.km).toBeGreaterThan(0);
+  });
+});

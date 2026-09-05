@@ -88,13 +88,26 @@ export interface PredictionDto {
   };
 }
 
+export interface PastDisciplineDto {
+  readonly discipline: Discipline;
+  readonly label: string;
+  readonly timeMs: number;
+  /** Distance raced that year; the course has not always been the same. */
+  readonly km: number;
+  readonly paceText: string;
+  readonly divisionRank: RankDto | null;
+  readonly ageRank: RankDto | null;
+}
+
 export interface PastResultDto {
   readonly year: number;
   readonly division: Division;
   readonly totalText: string;
+  readonly totalMs: number;
   readonly divisionRank: RankDto;
   readonly ageRank: RankDto | null;
   readonly ageGroupId: string | null;
+  readonly disciplines: readonly PastDisciplineDto[];
 }
 
 /** The shape used by friend cards and search results. */

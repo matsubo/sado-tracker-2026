@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { GlobalHeader } from "@/components/layout/GlobalNav";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { RankingTable } from "@/components/tracker/RankingTable";
 import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
@@ -10,7 +10,6 @@ import { type AgeGroup, compareAgeGroups, type Division, normalizeAgeGroup } fro
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
 import type { RankingPageDto } from "@/lib/api/contract";
 import { cn } from "@/lib/utils/cn";
-import { LiveStatusBar } from "./LiveStatusBar";
 
 const DIVISIONS: readonly Division[] = ["A", "B", "RA", "RB"];
 const ALL_AGE_GROUPS = "all";
@@ -154,17 +153,14 @@ export function DivisionRankings({
 
   return (
     <div className="flex flex-col gap-2">
-      <GlobalHeader year={race?.year} />
-      <LiveStatusBar
+      <PageHeader
+        title="種目別順位"
+        subtitle={`${division}タイプ`}
         race={race}
         lastPolledAt={lastPolledAt}
         error={raceError}
         intervalMs={intervalMs}
       />
-      <h1 className="px-4 pt-2 pb-1 font-bold text-lg">
-        種目別順位
-        <span className="ml-2 font-semibold text-muted-foreground text-sm">{division}タイプ</span>
-      </h1>
       <nav aria-label="部門" className="mx-3 flex gap-[3px] rounded-lg bg-muted p-[3px]">
         {DIVISIONS.map((id) => (
           <Link

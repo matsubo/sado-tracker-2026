@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { GlobalHeader } from "@/components/layout/GlobalNav";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Discipline, Division } from "@/config/races";
@@ -12,7 +12,6 @@ import type { AthleteDetailDto, RankDto } from "@/lib/api/contract";
 import { formatClock, formatClockShort, formatDuration } from "@/lib/format";
 import { CoursePositionChart } from "./CoursePositionChart";
 import { DisciplineTable } from "./DisciplineTable";
-import { LiveStatusBar } from "./LiveStatusBar";
 import { PastResults } from "./PastResults";
 import { barCheckpoints, type DisciplineKm, liveKm, PositionBar } from "./PositionBar";
 import { PredictionBox } from "./PredictionBox";
@@ -148,45 +147,36 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
 
   return (
     <div className="mx-auto w-full max-w-[480px] pb-10">
-      <GlobalHeader year={race?.year} />
-      <LiveStatusBar
+      <PageHeader
+        title={detail.name}
+        subtitle={`#${detail.bib}`}
+        back={{ href: "/bookmarks", label: "ブックマーク" }}
         race={race}
         lastPolledAt={lastPolledAt}
         error={raceError}
         intervalMs={intervalMs}
+        action={
+          ready ? (
+            <button
+              type="button"
+              aria-pressed={bookmarked}
+              onClick={() => (bookmarked ? remove(detail.bib) : add(detail.bib))}
+              className="rounded-md px-1 py-0.5 font-bold text-[12px] text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {bookmarked ? "★ ブックマーク済み" : "☆ ブックマーク"}
+            </button>
+          ) : null
+        }
       />
+
       {error === null ? null : (
         <p role="status" className="px-4 pt-2 text-[11.5px] text-muted-foreground">
           最新の情報を取得できませんでした。表示は直前の内容です。
         </p>
       )}
-      <div className="flex items-center justify-between px-4 pt-3 pb-1 text-[13px]">
-        <Link
-          href="/bookmarks"
-          className="rounded-md px-1 py-0.5 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          ‹ ブックマーク
-        </Link>
-        {ready ? (
-          <button
-            type="button"
-            aria-pressed={bookmarked}
-            onClick={() => (bookmarked ? remove(detail.bib) : add(detail.bib))}
-            className="rounded-md px-1 py-0.5 font-bold text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {bookmarked ? "★ ブックマーク済み" : "☆ ブックマーク"}
-          </button>
-        ) : null}
-      </div>
 
-      <div className="px-4 pt-1">
-        <h1 className="flex items-baseline gap-2 font-bold text-[24px] leading-tight">
-          {detail.name}
-          <span className="font-semibold text-[14px] text-muted-foreground tnum">
-            #{detail.bib}
-          </span>
-        </h1>
-        <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+      <div className="px-4 pt-1.5">
+        <p className="text-[12.5px] text-muted-foreground">
           {DIVISION_LABELS[detail.division]} · {detail.ageGroupLabel ?? "年齢区分なし"} ·{" "}
           {formatClockShort(detail.startAt)} スタート
         </p>

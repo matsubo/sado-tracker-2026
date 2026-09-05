@@ -1,7 +1,18 @@
-import { type Division, normalizeName, type RaceConfig } from "@/config/races";
+import { type Discipline, type Division, normalizeName, type RaceConfig } from "@/config/races";
+import { disciplineKm, disciplineTime } from "@/lib/compute/elapsed";
 import { buildPopulations } from "@/lib/compute/population";
-import { type Rank, rankBy } from "@/lib/compute/ranking";
+import { disciplineRanks, type Rank, rankBy } from "@/lib/compute/ranking";
 import type { RaceSnapshot } from "@/lib/domain/types";
+
+/** One discipline of a past race, with the rank it earned that year. */
+export interface PastDiscipline {
+  readonly discipline: Discipline;
+  readonly timeMs: number;
+  /** Distance raced that year, which is not always the same across years. */
+  readonly km: number;
+  readonly divisionRank: Rank | null;
+  readonly ageRank: Rank | null;
+}
 
 export interface PastResult {
   readonly year: number;
@@ -14,6 +25,8 @@ export interface PastResult {
   readonly divisionRank: Rank;
   readonly ageRank: Rank | null;
   readonly ageGroupId: string | null;
+  /** Swim, bike and run of that race, for readers who want the breakdown. */
+  readonly disciplines: readonly PastDiscipline[];
 }
 
 export interface HistoryYear {
@@ -44,9 +57,25 @@ export function buildNameIndex(years: readonly HistoryYear[]): NameIndex {
       const finishers = pop.atCheckpoint("finish");
       const totalOf = (a: (typeof finishers)[number]) => (a.passes.finish as number) - a.startAt;
 
+      const legs: readonly Discipline[] = ["swim", "bike", "run"];
+
       for (const athlete of finishers) {
         const divisionRank = rankBy(finishers, totalOf, athlete);
         if (!divisionRank) continue;
+
+        const disciplines: PastDiscipline[] = [];
+        for (const leg of legs) {
+          const timeMs = disciplineTime(athlete, leg, course);
+          if (timeMs === null) continue;
+          const ranked = disciplineRanks(athlete, leg, pop, course);
+          disciplines.push({
+            discipline: leg,
+            timeMs,
+            km: disciplineKm(leg, course),
+            divisionRank: ranked.ranks.division,
+            ageRank: ranked.ranks.ageGroup,
+          });
+        }
 
         const ageGroup = athlete.ageGroup;
         const ageRank = ageGroup
@@ -62,6 +91,7 @@ export function buildNameIndex(years: readonly HistoryYear[]): NameIndex {
           divisionRank,
           ageRank,
           ageGroupId: ageGroup?.id ?? null,
+          disciplines,
         };
 
         const existing = index.get(athlete.nameKey);

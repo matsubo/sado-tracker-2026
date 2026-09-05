@@ -45,6 +45,7 @@ export function GlobalHeader({ year }: { readonly year?: number }) {
   const current = LINKS.find((link) => link.match(pathname));
   const { items, unreadCount, markAllSeen, bookmarkCount } = useBookmarkNotifications();
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: navigating away is the trigger, not an input
   useEffect(() => {
     setOpen(false);
     setBellOpen(false);

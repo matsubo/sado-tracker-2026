@@ -165,6 +165,9 @@ test.describe("leaderboard", () => {
 test.describe("search", () => {
   test("suggests athletes as the reader types", async ({ page }) => {
     await page.goto("/bookmarks");
+    // The countdown only renders once the client has hydrated; typing before
+    // that sets the value without firing the handler that opens the list.
+    await expect(page.getByText(/秒後に確認/)).toBeVisible();
     await page.getByLabel("ゼッケン番号か名前で選手を検索").fill("1");
     await expect(page.getByRole("listbox")).toBeVisible();
     expect(await page.getByRole("option").count()).toBeGreaterThan(1);

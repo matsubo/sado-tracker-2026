@@ -1,17 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { GlobalHeader } from "@/components/layout/GlobalNav";
+import { useMemo } from "react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBookmarkNotifications } from "@/hooks/useBookmarkNotifications";
 import { useBookmarks } from "@/hooks/useBookmarks";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
 import type { AthleteSummaryDto } from "@/lib/api/contract";
-import { cn } from "@/lib/utils/cn";
 import type { WeatherData } from "@/lib/weather/types";
 import { AthleteCard } from "./AthleteCard";
-import { LiveStatusBar } from "./LiveStatusBar";
 import { barCheckpoints, legDistances } from "./PositionBar";
 import { PreRaceNotice } from "./PreRaceNotice";
 import { SearchBox } from "./SearchBox";
@@ -61,13 +59,9 @@ export function BookmarkDashboard() {
 
   return (
     <main className="mx-auto w-full max-w-[430px] pb-10">
-      <GlobalHeader year={race?.year} />
-      <header className="flex items-center justify-between px-4 pt-1 pb-2">
-        <h1 className="font-bold text-[20px] tracking-tight">ブックマーク</h1>
-        <div className="flex items-center gap-2.5"></div>
-      </header>
-
-      <LiveStatusBar
+      <PageHeader
+        title="ブックマーク"
+        subtitle={bibs.length > 0 ? `${bibs.length} 人` : null}
         race={race}
         lastPolledAt={lastPolledAt}
         error={raceError}

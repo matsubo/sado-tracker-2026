@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { type KeyboardEvent, useMemo, useRef, useState } from "react";
-import { GlobalHeader } from "@/components/layout/GlobalNav";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
 import { type AgeGroup, compareAgeGroups, type Division, normalizeAgeGroup } from "@/config/races";
@@ -11,7 +11,6 @@ import { projectKm, useLiveClock } from "@/hooks/useLivePosition";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
 import type { MapEntryDto, PositionDto, RaceStateDto } from "@/lib/api/contract";
 import { cn } from "@/lib/utils/cn";
-import { LiveStatusBar } from "./LiveStatusBar";
 
 type Leg = "swim" | "bike" | "run";
 type View = "division" | "age" | "friends";
@@ -237,7 +236,10 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
   const activeAge =
     ageOptions.find((option) => option.value === ageGroup)?.value ?? ageOptions[0]?.value ?? null;
 
-  const named = view !== "division";
+  // Every view names its rows. The division view runs to hundreds of rows and
+  // the page becomes very long, which is the point: a dot with no name tells
+  // a supporter nothing about who is where.
+  const named = true;
   const entries = useMemo(() => {
     const all = data?.entries ?? [];
     if (view === "friends") return all.filter((e) => e.isSelf === true);
@@ -276,7 +278,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
           filled: position.waiting || position.inTransition || position.speedKmh <= 0,
         };
       }),
-    [entries, axis, named, now],
+    [entries, axis, now],
   );
 
   const yTicks = useMemo(() => {
@@ -292,7 +294,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
    * Without a word of explanation that column reads as a rendering fault.
    */
   const clump = useMemo(() => {
-    if (named || placed.length === 0) return null;
+    if (placed.length === 0) return null;
     const counts = new Map<string, number>();
     for (const p of placed) {
       if (!p.entry.position.waiting) continue;
@@ -302,7 +304,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
     const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
     if (!top || top[1] < placed.length * CLUMP_SHARE) return null;
     return { label: top[0], count: top[1] };
-  }, [placed, named]);
+  }, [placed]);
 
   const activeIndex = Math.min(focusIndex, Math.max(0, placed.length - 1));
   const tip = placed.find((p) => p.entry.bib === selected) ?? null;
@@ -330,17 +332,14 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
 
   return (
     <div className="flex flex-col gap-2">
-      <GlobalHeader year={race?.year} />
-      <LiveStatusBar
+      <PageHeader
+        title="全体マップ"
+        subtitle="推定位置"
         race={race}
         lastPolledAt={lastPolledAt}
         error={raceError}
         intervalMs={intervalMs}
       />
-      <h1 className="px-4 pt-2 pb-1 font-bold text-lg">
-        全体マップ
-        <span className="ml-2 font-semibold text-muted-foreground text-sm">推定位置</span>
-      </h1>
       <Tabs
         aria-label="部門"
         className="mx-3"
