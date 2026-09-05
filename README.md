@@ -8,6 +8,8 @@ doing against their division and age group, and when will they finish.
 
 Race day: 6 September 2026. Type A starts at 06:00 JST, Type B at 07:30.
 
+Live at [sado-tracker-2026.teraren.com](https://sado-tracker-2026.teraren.com/).
+
 ## What it shows
 
 - **Bookmarks** — follow athletes by bib or name. Bookmarks live in the
@@ -32,6 +34,8 @@ Race day: 6 September 2026. Type A starts at 06:00 JST, Type B at 07:30.
   ordered by how far along they are.
 - **Weather** — Open-Meteo forecast for the finish area and the latest JMA
   AMeDAS observation from Aikawa on Sado.
+- **Help** — where the data comes from, what a rank's denominator means, how
+  far the prediction can be trusted, and where to report a problem.
 
 ## How the numbers are produced
 
@@ -109,8 +113,14 @@ publishes it at `https://<host>.<tailnet>.ts.net/` for the tailnet only.
 |---|---|
 | `RACE_YEAR` | Race to display, default 2026 |
 | `DATA_DIR` | Where past exports and the snapshot are cached, default `.data` |
+| `POLL_INTERVAL_MS` | How often the field is recomputed, default 60000 |
 | `REPLAY_START` | Virtual start time; set to enable replay mode |
 | `REPLAY_SPEED` | Replay multiplier, default 60 |
+| `REPLAY_HOURS` | Race hours covered before looping, default 14 |
+
+Production runs with `RACE_YEAR`, `TZ` and `DATA_DIR` only. Setting any
+`REPLAY_*` variable switches the server to a past race, so they must be absent
+on race day.
 
 ## Data
 

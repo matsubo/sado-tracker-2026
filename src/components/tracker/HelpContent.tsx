@@ -56,6 +56,10 @@ function External({ href, children }: { readonly href: string; readonly children
 export function HelpContent() {
   const { race, lastPolledAt, error, intervalMs } = useRaceState();
   const seconds = Math.round((race?.pollIntervalMs ?? 60_000) / 1000);
+  const year = race?.year ?? 2026;
+  // History is every past race the app can load, which is the year before the
+  // one on screen back to 2022.
+  const historyTo = year - 1;
 
   return (
     <>
@@ -69,9 +73,13 @@ export function HelpContent() {
 
       <Section title="このサイトについて">
         <p>
-          佐渡国際トライアスロンを応援する人のための、非公式のトラッカーです。
+          {year} 年の佐渡国際トライアスロンを応援する人のための、非公式のトラッカーです。
           公式の計測サイトが公開している通過記録を読み取り、順位やコース上の位置、
           ゴール予想時刻を計算して表示しています。大会の主催者や計測会社とは関係ありません。
+        </p>
+        <p>
+          Aタイプは 06:00、Bタイプは 07:30 にスタートします。
+          スタート前は全員が「スタート前」と表示され、最初の計測点を通過した選手から順に動きはじめます。
         </p>
       </Section>
 
@@ -93,6 +101,8 @@ export function HelpContent() {
           <p>
             計測サイト側の反映に時間がかかることがあります。
             通過したはずの地点がまだ出ていない場合は、次の更新を待ってください。
+            取得に失敗したときは直前の内容を表示したまま「再取得中」と出し、
+            古い数字を新しいもののように見せることはしません。
           </p>
         </Question>
         <Question q="ページを開くたびに取りに行っているのですか">
@@ -182,7 +192,7 @@ export function HelpContent() {
         </Question>
         <Question q="過去の成績が出ません">
           <p>
-            2022 年から 2025 年の記録を名前で照合しています。
+            2022 年から {historyTo} 年の記録を名前で照合しています。
             表記が変わっていたり、同姓同名が複数いる場合は正しく結び付かないことがあります。
             同姓同名は該当するものをすべて表示します。
           </p>
