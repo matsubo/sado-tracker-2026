@@ -137,7 +137,8 @@ export function normalizeAgeGroup(raw: string): string | null;  // -> "M40-44" |
 
 - [ ] Write `tests/unit/config.test.ts` covering: `normalizeDivision` maps `Aタイプ`/`Ａタイプ`/`ATYPE`→`A`, `RBタイプ`→`RB`, `予備`→`null`, `チャンピオンシップ`→`A`, `""`→`null`; `normalizeAgeGroup` maps `40-44男子`→`M40-44`, `40-44歳男子`→`M40-44`, `M40-44`→`M40-44`, `24歳以下女子`→`F24-`, `80-84男子`→`M80-84`, `""`→`null`.
 - [ ] Run it, watch it fail.
-- [ ] Implement config types and the five year files. 2026 checkpoints, in order with km: `start`(0), `swimL`(2.0, A only), `swimF`(4.0 A / 2.0 B), `bikeS`(0), `sumiyoshi`(100 A inferred / 18 B inferred), `runS`(190 A / 108 B), `run4`(4) … `run39`(39, A only), `finish`(42.2 A / 21.1 B). Every checkpoint lists both `（本部）` and `(本部)` header spellings.
+- [ ] Implement config types and the five year files. Swim distance is per year and per division: A 4.0 km always; B 2.0 km except 2025, which is **1.35 km** (shortened that year). Bike/run: A 190/42.2, B 108/21.1 in every year.
+- [ ] Add a config test asserting `getRaceConfig(2025).divisions.B.swimKm === 1.35` and `getRaceConfig(2026).divisions.B.swimKm === 2.0`. 2026 checkpoints, in order with km: `start`(0), `swimL`(2.0, A only), `swimF`(4.0 A / 2.0 B), `bikeS`(0), `sumiyoshi`(100 A inferred / 18 B inferred), `runS`(190 A / 108 B), `run4`(4) … `run39`(39, A only), `finish`(42.2 A / 21.1 B). Every checkpoint lists both `（本部）` and `(本部)` header spellings.
 - [ ] Run tests until green.
 - [ ] Commit: `feat: add per-year race configuration and label normalization`
 
@@ -274,7 +275,7 @@ export function predictFinish(a, course, pop, model, nowMs): Prediction | null;
 export function runBacktest(model, holdoutYear): Map<string, {medianErrorMs:number; within25Pct:number}>;
 ```
 
-- [ ] Write tests using fixture history: a mid-bike A athlete gets `method: "neighbours"` with `neighbourCount === 20` and `rangeLow < totalMs < rangeHigh`; a B athlete's feature vector omits swim (assert the model is built without a swim dimension for B); an athlete before `swimF` gets `method: "extrapolation"`; a not-started athlete returns `null`; the backtest over the fixtures returns finite `medianErrorMs` for A at `sumiyoshi`; predictions are monotonic in the sense that a faster athlete at the same checkpoint never gets a later prediction.
+- [ ] Write tests using fixture history: a mid-bike A athlete gets `method: "neighbours"` with `neighbourCount === 20` and `rangeLow < totalMs < rangeHigh`; a B athlete's feature vector omits swim (assert the model is built without a swim dimension for B, even though 2025 B now has a known 1.35 km distance); an athlete before `swimF` gets `method: "extrapolation"`; a not-started athlete returns `null`; the backtest over the fixtures returns finite `medianErrorMs` for A at `sumiyoshi`; predictions are monotonic in the sense that a faster athlete at the same checkpoint never gets a later prediction.
 - [ ] Run, watch fail, implement, run until green.
 - [ ] Commit: `feat: predict finish times from past races with an explanation payload`
 
