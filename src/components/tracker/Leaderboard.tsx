@@ -98,8 +98,7 @@ export function Leaderboard() {
               <b className="font-semibold text-foreground">{board.finished}</b> 名
             </>
           ) : null}
-          {board.order === "field" ? " · 先頭順 " : " · ゼッケン順 "}
-          <b className="font-semibold text-foreground">{board.total}</b> 名
+          {board.order === "field" ? " · 先頭順" : " · ゼッケン順"}
         </p>
       ) : null}
 
