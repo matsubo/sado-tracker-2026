@@ -64,6 +64,9 @@ export function Footer({ className }: { className?: string }) {
           不具合の報告・ソースコード
         </a>
       </p>
+
+      {/* The source is readable, which is not the same as reusable. */}
+      <p className="mt-2 text-[10.5px]">© 2026 Yuki Matsukura. All rights reserved.</p>
     </footer>
   );
 }

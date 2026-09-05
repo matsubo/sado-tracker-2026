@@ -132,11 +132,17 @@ on race day.
 build variable wherever this is deployed. Setting it after a build has no
 effect until the next one.
 
-The timing site is only asked between 07:00 and 23:00 Tokyo time on the race
-date itself: before and after that the file cannot have changed, and polling it
-is load on someone else's server for nothing. A start-up always fetches once
-whatever the hour, so a server brought up the night before still serves the
-entry list, and `POST /api/refresh` fetches on demand.
+The timing site is only asked between the hours set by `FETCH_FROM_HOUR` and
+`FETCH_TO_HOUR` (Tokyo time, defaulting to 07:00 and 23:00) and only on the race
+date itself: outside that the file cannot have changed, and polling it is load
+on someone else's server for nothing. Set `FETCH_FROM_HOUR` to the hour the
+first wave actually goes off; in 2026 that was 06. A start-up always fetches
+once whatever the hour, so a server brought up the night before still serves the
+entry list.
+
+`POST /api/refresh` fetches on demand, ignoring those hours. Set `REFRESH_TOKEN`
+on any host reachable from the internet and pass it as `?token=` or a bearer
+token; without it the endpoint is open and anyone can make this server fetch.
 
 ## Data
 
@@ -146,3 +152,12 @@ preserved, names and bibs are replaced, so no athlete's name enters this
 repository.
 
 Powered by [AI TRI+](https://ai-triathlon-result.teraren.com/).
+
+## Licence
+
+Copyright (c) 2026 Yuki Matsukura. All rights reserved. See [LICENSE](LICENSE).
+
+The source is published to be read and audited, not to be reused: publication
+is not a grant of licence. Forking to open a pull request here is welcome, and
+a contribution offered that way is offered under the same terms. For any other
+use, [ask](https://github.com/matsubo/sado-tracker-2026/issues).

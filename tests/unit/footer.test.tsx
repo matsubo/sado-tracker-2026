@@ -36,6 +36,11 @@ describe("Footer", () => {
     );
   });
 
+  it("reserves copyright, because reading the source is not reusing it", () => {
+    render(<Footer />);
+    expect(screen.getByText(/All rights reserved/)).toBeInTheDocument();
+  });
+
   it("offers the share buttons", () => {
     render(<Footer />);
     for (const name of ["X で共有", "Facebook で共有", "LINE で共有"]) {
