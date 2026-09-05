@@ -55,9 +55,18 @@ describe("buildNeighbourModel", () => {
     expect(model.percentileFeatures.B).toEqual(["swim"]);
   });
 
-  it("compares the A swim on absolute pace because the distance never changed", () => {
-    expect(model.features.A).toContain("swim");
-    expect(model.percentileFeatures.A).toEqual([]);
+  it("compares the A swim by within-year percentile because 2026 halved it", () => {
+    // The organiser cut the swim to two 1,000 m laps on the morning of the
+    // race, so a 2026 swim time says nothing about a 4 km swim in 2024.
+    expect(model.features.A).toEqual(["bike", "run"]);
+    expect(model.percentileFeatures.A).toEqual(["swim"]);
+  });
+
+  it("still compares the A bike and run on absolute pace", () => {
+    expect(model.features.A).toContain("bike");
+    expect(model.features.A).toContain("run");
+    expect(model.percentileFeatures.A).not.toContain("bike");
+    expect(model.percentileFeatures.A).not.toContain("run");
   });
 
   it("ranks every finisher within their own year", () => {

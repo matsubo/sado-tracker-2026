@@ -87,7 +87,8 @@ describe("toSnapshot", () => {
 
   it("falls back to the configured wave start when START is empty", () => {
     const a = loadFixture().athletes.find((x) => x.bib === "1006");
-    expect(a?.startAt).toBe(jst("2026-09-06T06:00:00+09:00"));
+    // 2026 moved the A wave to 06:30 on the morning of the race.
+    expect(a?.startAt).toBe(jst("2026-09-06T06:30:00+09:00"));
     expect(a?.startInferred).toBe(true);
   });
 

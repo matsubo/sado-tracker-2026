@@ -96,18 +96,57 @@ describe("getRaceConfig", () => {
     expect(getRaceConfig(2025).divisions.B.swimTimesComparable).toBe(false);
   });
 
-  it("uses the standard 2 km B swim in the other years", () => {
-    expect(getRaceConfig(2026).divisions.B.swimKm).toBe(2.0);
+  it("uses the standard 2 km B swim in the years that swam it", () => {
     expect(getRaceConfig(2024).divisions.B.swimKm).toBe(2.0);
     expect(getRaceConfig(2023).divisions.B.swimKm).toBe(2.0);
   });
 
-  it("keeps the A distances constant across years", () => {
+  it("knows the 2026 swim was halved on the morning for wind and tide", () => {
+    for (const division of ["A", "RA"] as const) {
+      const course = getRaceConfig(2026).divisions[division];
+      expect(course.swimKm).toBe(2.0);
+      expect(course.waveStart).toBe("06:30");
+      expect(course.swimTimesComparable).toBe(false);
+    }
+    for (const division of ["B", "RB"] as const) {
+      const course = getRaceConfig(2026).divisions[division];
+      expect(course.swimKm).toBe(1.0);
+      expect(course.waveStart).toBe("08:00");
+      expect(course.swimTimesComparable).toBe(false);
+    }
+  });
+
+  it("puts the 2026 swim lap at the turn of the two 1,000 m laps", () => {
+    const lap = getRaceConfig(2026).divisions.A.checkpoints.find((c) => c.id === "swimL");
+    expect(lap?.km).toBe(1.0);
+    const finish = getRaceConfig(2026).divisions.A.checkpoints.find((c) => c.id === "swimF");
+    expect(finish?.km).toBe(2.0);
+  });
+
+  it("keeps the 2026 bike and run at full distance", () => {
+    const a = getRaceConfig(2026).divisions.A;
+    expect(a.bikeKm).toBe(190);
+    expect(a.runKm).toBe(42.2);
+    const b = getRaceConfig(2026).divisions.B;
+    expect(b.bikeKm).toBe(108);
+    expect(b.runKm).toBe(21.1);
+  });
+
+  it("keeps the A bike and run constant across years", () => {
     for (const year of [2023, 2024, 2025, 2026]) {
       const a = getRaceConfig(year).divisions.A;
-      expect(a.swimKm).toBe(4.0);
       expect(a.bikeKm).toBe(190);
       expect(a.runKm).toBe(42.2);
+    }
+    for (const year of [2023, 2024, 2025]) {
+      expect(getRaceConfig(year).divisions.A.swimKm).toBe(4.0);
+    }
+  });
+
+  it("starts every earlier year at the usual times", () => {
+    for (const year of [2023, 2024, 2025]) {
+      expect(getRaceConfig(year).divisions.A.waveStart).toBe("06:00");
+      expect(getRaceConfig(year).divisions.B.waveStart).toBe("07:30");
     }
   });
 

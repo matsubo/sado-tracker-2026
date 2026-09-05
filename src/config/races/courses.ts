@@ -59,15 +59,25 @@ const SUMIYOSHI_B: CheckpointDef = {
 interface CourseOptions {
   readonly swimKm: number;
   readonly swimTimesComparable?: boolean;
+  /**
+   * The wave start, "HH:MM" in JST. The organiser moves it on the day when
+   * the sea demands it, so every year states its own rather than inheriting
+   * a default that would silently be wrong.
+   */
+  readonly waveStart?: string;
 }
 
 /** A and RA share the long course: 4 km swim, 190 km bike, 42.2 km run. */
-export function longCourse({ swimKm, swimTimesComparable = true }: CourseOptions): DivisionCourse {
+export function longCourse({
+  swimKm,
+  swimTimesComparable = true,
+  waveStart = "06:00",
+}: CourseOptions): DivisionCourse {
   return {
     swimKm,
     bikeKm: 190,
     runKm: 42.2,
-    waveStart: "06:00",
+    waveStart,
     swimCutoffMin: 150,
     swimTimesComparable,
     checkpoints: [
@@ -93,12 +103,13 @@ export function longCourse({ swimKm, swimTimesComparable = true }: CourseOptions
 export function middleCourse({
   swimKm,
   swimTimesComparable = true,
+  waveStart = "07:30",
 }: CourseOptions): DivisionCourse {
   return {
     swimKm,
     bikeKm: 108,
     runKm: 21.1,
-    waveStart: "07:30",
+    waveStart,
     swimCutoffMin: 100,
     swimTimesComparable,
     checkpoints: [
