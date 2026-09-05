@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { GlobalHeader } from "@/components/layout/GlobalNav";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Discipline, Division } from "@/config/races";
@@ -13,7 +14,7 @@ import { CoursePositionChart } from "./CoursePositionChart";
 import { DisciplineTable } from "./DisciplineTable";
 import { LiveStatusBar } from "./LiveStatusBar";
 import { PastResults } from "./PastResults";
-import { type DisciplineKm, liveKm, PositionBar } from "./PositionBar";
+import { barCheckpoints, type DisciplineKm, liveKm, PositionBar } from "./PositionBar";
 import { PredictionBox } from "./PredictionBox";
 import { RankChart } from "./RankChart";
 import { SplitTable } from "./SplitTable";
@@ -147,6 +148,7 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
 
   return (
     <div className="mx-auto w-full max-w-[480px] pb-10">
+      <GlobalHeader year={race?.year} />
       <LiveStatusBar
         race={race}
         lastPolledAt={lastPolledAt}
@@ -200,18 +202,36 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
         {detail.elapsedMs !== null ? <span>経過 {formatDuration(detail.elapsedMs)}</span> : null}
       </div>
 
-      <div className="px-4 pt-2.5">
-        <PositionBar
-          discipline={detail.position.discipline}
-          estKm={estKm}
-          totalKm={detail.position.totalKm}
-          waiting={detail.position.waiting}
-          finished={finished}
-          nextLabel={nextLabel}
-        />
-      </div>
+      <section className="mx-3 mt-3 rounded-md border border-border border-dashed bg-muted/40 px-3 py-2.5">
+        <p className="flex items-center gap-1.5 font-semibold text-[10px] text-muted-foreground uppercase tracking-wider">
+          推定
+          <span className="h-px flex-1 bg-border" aria-hidden />
+        </p>
+        <div className="mt-1.5">
+          <PositionBar
+            discipline={detail.position.discipline}
+            estKm={estKm}
+            totalKm={detail.position.totalKm}
+            waiting={detail.position.waiting}
+            finished={finished}
+            nextLabel={nextLabel}
+            checkpoints={barCheckpoints(checkpoints)}
+            legKm={totals}
+          />
+        </div>
+        {detail.prediction === null ? null : (
+          <div className="mt-2.5">
+            <PredictionBox prediction={detail.prediction} startAt={detail.startAt} />
+          </div>
+        )}
+      </section>
 
-      <div className="grid grid-cols-3 gap-1.5 px-3 pt-3">
+      <p className="mx-3 mt-3.5 flex items-center gap-1.5 font-semibold text-[10px] text-muted-foreground uppercase tracking-wider">
+        計測
+        <span className="h-px flex-1 bg-border" aria-hidden />
+      </p>
+
+      <div className="grid grid-cols-3 gap-1.5 px-3 pt-2">
         <RankTile
           label={
             detail.lastCheckpointLabel === null
@@ -231,14 +251,7 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
         <Heading title="種目" note="暫定 = 進行中の区間" />
         <DisciplineTable rows={detail.disciplines} splits={detail.splits} />
 
-        {detail.prediction === null ? null : (
-          <>
-            <Heading title="予想ゴール" />
-            <PredictionBox prediction={detail.prediction} startAt={detail.startAt} />
-          </>
-        )}
-
-        <Heading title="コース上の位置" note="10 秒ごとに再計算" />
+        <Heading title="コース上の位置" note="推定 · 10 秒ごとに再計算" />
         <CoursePositionChart
           entries={detail.neighbours}
           checkpoints={checkpoints}

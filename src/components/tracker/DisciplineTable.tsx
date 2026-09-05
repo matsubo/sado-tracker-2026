@@ -5,7 +5,6 @@ import type { Discipline } from "@/config/races";
 import type { DisciplineDto, SplitDto } from "@/lib/api/contract";
 import {
   formatBikeSpeed,
-  formatDeviation,
   formatDuration,
   formatRankOrDash,
   formatRunPace,
@@ -53,11 +52,11 @@ interface DisciplineTableProps {
   readonly splits: readonly SplitDto[];
 }
 
-/** Swim, bike and run side by side: time, pace, ranks and deviation score. */
+/** Swim, bike and run side by side: time, pace and ranks. */
 export function DisciplineTable({ rows, splits }: DisciplineTableProps): React.JSX.Element {
   return (
     // `min-w-max` keeps the table at its content width so the wrapper
-    // scrolls instead of squeezing the last column (偏差値) off a phone.
+    // scrolls instead of squeezing the last column off a phone.
     <Table className="min-w-max">
       <THead>
         <TR>
@@ -66,7 +65,6 @@ export function DisciplineTable({ rows, splits }: DisciplineTableProps): React.J
           <TH>ペース</TH>
           <TH>部門</TH>
           <TH>エイジ</TH>
-          <TH>偏差値</TH>
         </TR>
       </THead>
       <TBody>
@@ -99,7 +97,6 @@ export function DisciplineTable({ rows, splits }: DisciplineTableProps): React.J
               <TD>
                 {formatRankOrDash(row.ranks.ageGroup?.rank ?? null, row.ranks.ageGroup?.of ?? null)}
               </TD>
-              <TD>{formatDeviation(row.deviation)}</TD>
             </TR>
           );
         })}

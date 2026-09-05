@@ -85,7 +85,6 @@ function toDisciplines(computed: ComputedAthlete): DisciplineDto[] {
     provisional: d.provisional,
     atCheckpointLabel: d.atCheckpointLabel,
     ranks: d.ranks,
-    deviation: d.deviation === null ? null : Math.round(d.deviation),
     speedKmh: d.speedKmh === null ? null : round(d.speedKmh, 1),
   }));
 }

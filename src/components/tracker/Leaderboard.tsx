@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { GlobalHeader } from "@/components/layout/GlobalNav";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs } from "@/components/ui/tabs";
 import { useBookmarks } from "@/hooks/useBookmarks";
@@ -46,19 +47,17 @@ export function Leaderboard() {
 
   return (
     <main className="mx-auto w-full max-w-[430px] pb-10">
-      <header className="flex items-baseline justify-between px-4 pt-3.5 pb-2">
-        <h1 className="font-bold text-[20px] tracking-tight">
-          佐渡トラッカー
-          <span className="ml-1.5 font-semibold text-[13px] text-muted-foreground">
-            {race?.year ?? 2026}
-          </span>
-        </h1>
-        <Link
-          href="/friends"
-          className="rounded font-bold text-[13px] text-primary focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-        >
-          友達一覧{bibs.length > 0 ? ` (${bibs.length})` : ""} ›
-        </Link>
+      <GlobalHeader year={race?.year} />
+      <header className="flex items-baseline justify-between px-4 pt-1 pb-2">
+        <h1 className="font-bold text-[20px] tracking-tight">総合トップ</h1>
+        {bibs.length > 0 ? (
+          <Link
+            href="/friends"
+            className="rounded font-semibold text-[12px] text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            友達 {bibs.length} 人 ›
+          </Link>
+        ) : null}
       </header>
 
       <LiveStatusBar
@@ -113,7 +112,7 @@ export function Leaderboard() {
               href={`/athletes/${athlete.bib}`}
               className={cn(
                 "flex items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2",
-                bookmarked ? "border-[#00d3f2]" : "border-border",
+                bookmarked ? "border-primary/60" : "border-border",
               )}
             >
               <span
@@ -175,27 +174,6 @@ export function Leaderboard() {
           );
         })}
       </div>
-
-      <nav className="flex gap-2 px-3 pt-3.5">
-        <Link
-          href="/friends"
-          className="flex-1 rounded-lg border border-border bg-card py-2 text-center font-bold text-[12.5px] focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-        >
-          友達一覧
-        </Link>
-        <Link
-          href="/map"
-          className="flex-1 rounded-lg border border-border bg-card py-2 text-center font-bold text-[12.5px] focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-        >
-          全体マップ
-        </Link>
-        <Link
-          href={`/divisions/${division}`}
-          className="flex-1 rounded-lg border border-border bg-card py-2 text-center font-bold text-[12.5px] focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-        >
-          種目別順位
-        </Link>
-      </nav>
     </main>
   );
 }

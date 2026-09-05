@@ -35,7 +35,6 @@ const leg = (
   provisional: false,
   atCheckpointLabel: null,
   ranks: NO_RANKS,
-  deviation: null,
   speedKmh: null,
   ...over,
 });
@@ -112,7 +111,7 @@ const detail: AthleteDetailDto = {
     ageGroup: { rank: 7, of: 23 },
   },
   disciplines: [
-    leg({ discipline: "swim", label: "スイム", km: 4, timeMs: SWIM_MS, deviation: 54 }),
+    leg({ discipline: "swim", label: "スイム", km: 4, timeMs: SWIM_MS }),
     leg({
       discipline: "bike",
       label: "バイク",
@@ -121,7 +120,6 @@ const detail: AthleteDetailDto = {
       provisional: true,
       atCheckpointLabel: "住吉",
       ranks: ranks(201, 412),
-      deviation: 56,
       speedKmh: 37.3,
     }),
     leg({ discipline: "run", label: "ラン", km: 42.2 }),

@@ -103,6 +103,32 @@ export function fitLabels(labels: readonly AxisLabel[]): AxisLabel[] {
   return kept;
 }
 
+/**
+ * Where a leg's timing points sit along its bar, as fractions. The two ends
+ * are left out: they are the leg boundaries, already drawn as the gap between
+ * segments, and a tick there would read as a stray mark.
+ */
+function ticksFor(
+  segment: Discipline,
+  checkpoints: readonly BarCheckpoint[] | undefined,
+  legKm: Partial<DisciplineKm> | undefined,
+  current: Discipline,
+  currentTotalKm: number,
+): number[] {
+  if (!checkpoints) return [];
+  const total = legKm?.[segment] ?? (segment === current ? currentTotalKm : 0);
+  if (!total || total <= 0) return [];
+
+  const seen = new Set<number>();
+  for (const checkpoint of checkpoints) {
+    if (checkpoint.discipline !== segment) continue;
+    const at = checkpoint.km / total;
+    if (at <= 0.02 || at >= 0.98) continue;
+    seen.add(Math.round(at * 1000) / 1000);
+  }
+  return [...seen].sort((a, b) => a - b);
+}
+
 /** How full each leg's bar is, given the leg the athlete is currently on. */
 function fillOf(segment: Discipline, current: Discipline, progress: number): number {
   const order: readonly Discipline[] = ["swim", "bike", "run"];
@@ -125,11 +151,52 @@ const SEGMENT_BASIS: Record<Discipline, string> = {
   run: "basis-[30%] grow-0",
 };
 
+/** A timing point, placed within its own leg. */
+export interface BarCheckpoint {
+  readonly discipline: Discipline;
+  /** Kilometres into that leg. */
+  readonly km: number;
+}
+
+/**
+ * Distance of each leg, read off the checkpoints that close them: the swim
+ * finish, the run start (which is the end of the bike) and the finish. Needed
+ * so the ticks can be placed on legs the athlete has not reached yet.
+ */
+export function legDistances(
+  checkpoints: readonly { id: string; km: number }[] | undefined,
+): Partial<DisciplineKm> {
+  if (!checkpoints) return {};
+  const kmOf = (id: string) => checkpoints.find((c) => c.id === id)?.km;
+  return {
+    ...(kmOf("swimF") === undefined ? {} : { swim: kmOf("swimF") }),
+    ...(kmOf("runS") === undefined ? {} : { bike: kmOf("runS") }),
+    ...(kmOf("finish") === undefined ? {} : { run: kmOf("finish") }),
+  };
+}
+
+/** Timing points of one division, in the shape the bar wants. */
+export function barCheckpoints(
+  checkpoints: readonly { discipline: string; km: number }[] | undefined,
+): BarCheckpoint[] {
+  if (!checkpoints) return [];
+  const legs: readonly Discipline[] = ["swim", "bike", "run"];
+  return checkpoints
+    .filter((c): c is { discipline: Discipline; km: number } =>
+      legs.includes(c.discipline as Discipline),
+    )
+    .map((c) => ({ discipline: c.discipline, km: c.km }));
+}
+
 interface PositionBarProps {
   readonly discipline: Discipline;
   /** Estimated kilometres completed within `discipline`. */
   readonly estKm: number;
   readonly totalKm: number;
+  /** Timing points to mark, so the bar shows where the next reading comes from. */
+  readonly checkpoints?: readonly BarCheckpoint[];
+  /** Full distance of each leg, needed to place the ticks. */
+  readonly legKm?: Partial<DisciplineKm>;
   /** True once the estimate is parked on a timing point rather than projected. */
   readonly waiting: boolean;
   /** Fills every leg and pins the marker to the finish. */
@@ -147,6 +214,8 @@ export function PositionBar({
   discipline,
   estKm,
   totalKm,
+  checkpoints,
+  legKm,
   waiting,
   finished,
   nextLabel,
@@ -176,6 +245,14 @@ export function PositionBar({
                 className={cn("absolute inset-y-0 left-0 rounded-full", TONE_FILL[segment.tone])}
                 style={{ width: `${fill * 100}%` }}
               />
+              {ticksFor(segment.discipline, checkpoints, legKm, discipline, totalKm).map((at) => (
+                <span
+                  key={at}
+                  aria-hidden="true"
+                  className="absolute inset-y-[1px] w-px bg-foreground/25"
+                  style={{ left: `${at * 100}%` }}
+                />
+              ))}
               {marked ? (
                 <span
                   aria-hidden="true"

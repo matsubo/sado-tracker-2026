@@ -3,6 +3,7 @@
 import { Bell } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { GlobalHeader } from "@/components/layout/GlobalNav";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBookmarks } from "@/hooks/useBookmarks";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -13,6 +14,7 @@ import type { WeatherData } from "@/lib/weather/types";
 import { AthleteCard } from "./AthleteCard";
 import { LiveStatusBar } from "./LiveStatusBar";
 import { NotificationPanel } from "./NotificationPanel";
+import { barCheckpoints, legDistances } from "./PositionBar";
 import { PreRaceNotice } from "./PreRaceNotice";
 import { SearchBox } from "./SearchBox";
 import { WeatherPanel } from "./WeatherPanel";
@@ -39,6 +41,15 @@ export function HomeDashboard() {
   const athletes = useMemo(() => data?.athletes ?? [], [data]);
   const { items, unreadCount, markAllSeen } = useNotifications(athletes);
 
+  const divisionOf = (athlete: AthleteSummaryDto) =>
+    race?.divisions.find((entry) => entry.id === athlete.division);
+
+  /** Leg distances for the athlete's division, so ticks show on every leg. */
+  const legKmOf = (athlete: AthleteSummaryDto) => ({
+    ...legDistances(divisionOf(athlete)?.checkpoints),
+    [athlete.position.discipline]: athlete.position.totalKm,
+  });
+
   const nextLabelOf = (athlete: AthleteSummaryDto): string | null => {
     const division = race?.divisions.find((d) => d.id === athlete.division);
     if (!division) return null;
@@ -52,21 +63,9 @@ export function HomeDashboard() {
 
   return (
     <main className="mx-auto w-full max-w-[430px] pb-10">
-      <header className="flex items-center justify-between px-4 pt-3.5 pb-2">
-        <div>
-          <Link
-            href="/"
-            className="rounded text-[11.5px] text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-          >
-            ‹ 総合トップ
-          </Link>
-          <h1 className="font-bold text-[20px] tracking-tight">
-            友達一覧
-            <span className="ml-1.5 font-semibold text-[13px] text-muted-foreground">
-              {race?.year ?? 2026}
-            </span>
-          </h1>
-        </div>
+      <GlobalHeader year={race?.year} />
+      <header className="flex items-center justify-between px-4 pt-1 pb-2">
+        <h1 className="font-bold text-[20px] tracking-tight">友達一覧</h1>
         <div className="flex items-center gap-2.5">
           <button
             type="button"
@@ -141,6 +140,8 @@ export function HomeDashboard() {
             athlete={athlete}
             unread={items.some((item) => item.bib === athlete.bib && item.unread)}
             nextLabel={nextLabelOf(athlete)}
+            checkpoints={barCheckpoints(divisionOf(athlete)?.checkpoints)}
+            legKm={legKmOf(athlete)}
             onRemove={remove}
           />
         ))}
@@ -151,27 +152,6 @@ export function HomeDashboard() {
           </p>
         ) : null}
       </div>
-
-      <nav className="flex gap-2 px-3 pt-3.5">
-        <Link
-          href="/"
-          className="flex-1 rounded-lg border border-border bg-card py-2 text-center font-bold text-[12.5px] focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-        >
-          総合トップ
-        </Link>
-        <Link
-          href="/map"
-          className="flex-1 rounded-lg border border-border bg-card py-2 text-center font-bold text-[12.5px] focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-        >
-          全体マップ
-        </Link>
-        <Link
-          href="/divisions/A"
-          className="flex-1 rounded-lg border border-border bg-card py-2 text-center font-bold text-[12.5px] focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-        >
-          部門別ランキング
-        </Link>
-      </nav>
 
       <div className="px-3 pt-3.5">
         <WeatherPanel weather={weather} />

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { type KeyboardEvent, useMemo, useRef, useState } from "react";
+import { GlobalHeader } from "@/components/layout/GlobalNav";
 import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
 import { type AgeGroup, compareAgeGroups, type Division, normalizeAgeGroup } from "@/config/races";
@@ -329,6 +330,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
 
   return (
     <div className="flex flex-col gap-2">
+      <GlobalHeader year={race?.year} />
       <LiveStatusBar
         race={race}
         lastPolledAt={lastPolledAt}

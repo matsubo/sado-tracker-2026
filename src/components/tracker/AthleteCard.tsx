@@ -6,7 +6,7 @@ import { projectKm, useLiveClock } from "@/hooks/useLivePosition";
 import type { AthleteSummaryDto } from "@/lib/api/contract";
 import { formatClock, formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils/cn";
-import { PositionBar } from "./PositionBar";
+import { type BarCheckpoint, PositionBar } from "./PositionBar";
 import { PredictionSummary } from "./PredictionSummary";
 import { DisciplineLines } from "./RankChips";
 import { StatusPill } from "./StatusPill";
@@ -21,11 +21,13 @@ interface Props {
   readonly athlete: AthleteSummaryDto;
   readonly unread: boolean;
   readonly nextLabel?: string | null;
+  readonly checkpoints?: readonly BarCheckpoint[];
+  readonly legKm?: Partial<Record<"swim" | "bike" | "run", number>>;
   readonly onRemove?: (bib: string) => void;
 }
 
 /** One friend, summarised: where they are, how they rank, when they finish. */
-export function AthleteCard({ athlete, unread, nextLabel, onRemove }: Props) {
+export function AthleteCard({ athlete, unread, nextLabel, checkpoints, legKm, onRemove }: Props) {
   const now = useLiveClock();
   const finished = athlete.status === "finished";
   const estKm = finished ? athlete.position.totalKm : projectKm(athlete.position, now);
@@ -35,9 +37,7 @@ export function AthleteCard({ athlete, unread, nextLabel, onRemove }: Props) {
     <article
       className={cn(
         "relative overflow-hidden rounded-lg border bg-card",
-        unread
-          ? "border-[color:var(--brand-ring,#00d3f2)] ring-2 ring-[#00d3f2]/25"
-          : "border-border",
+        unread ? "border-primary/60 ring-1 ring-primary/20" : "border-border",
       )}
     >
       <span className={cn("absolute inset-y-0 left-0 w-1", stripe)} aria-hidden />
@@ -76,7 +76,12 @@ export function AthleteCard({ athlete, unread, nextLabel, onRemove }: Props) {
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 pr-3 pl-4 text-[12.5px] text-muted-foreground tabular-nums">
+      <p className="mt-2 flex items-center gap-1.5 pr-3 pl-4 font-semibold text-[10px] text-muted-foreground uppercase tracking-wider">
+        計測
+        <span className="h-px flex-1 bg-border" aria-hidden />
+      </p>
+
+      <div className="mt-1 flex flex-wrap items-center gap-2 pr-3 pl-4 text-[12.5px] text-muted-foreground tabular-nums">
         <StatusPill athlete={athlete} />
         {athlete.lastCheckpointLabel && athlete.lastPassedAt !== null ? (
           <span>
@@ -90,47 +95,60 @@ export function AthleteCard({ athlete, unread, nextLabel, onRemove }: Props) {
         ) : null}
       </div>
 
+      <div className="mt-2 pr-3 pl-4">
+        <DisciplineLines disciplines={athlete.disciplines} current={athlete.position.discipline} />
+      </div>
+
       {athlete.status === "not_started" || athlete.status === "dns_suspected" ? null : (
-        <div className="mt-2.5 pr-3 pl-4">
-          <PositionBar
-            discipline={athlete.position.discipline}
-            estKm={estKm}
-            totalKm={athlete.position.totalKm}
-            waiting={athlete.position.waiting}
-            finished={finished}
-            nextLabel={nextLabel ?? null}
-          />
+        <div className="mt-2.5 mr-3 mb-3 ml-4 rounded-md border border-border border-dashed bg-muted/40 px-2.5 py-2">
+          <p className="flex items-center gap-1.5 font-semibold text-[10px] text-muted-foreground uppercase tracking-wider">
+            推定
+            <span className="h-px flex-1 bg-border" aria-hidden />
+          </p>
+          <div className="mt-1.5">
+            <PositionBar
+              discipline={athlete.position.discipline}
+              estKm={estKm}
+              totalKm={athlete.position.totalKm}
+              waiting={athlete.position.waiting}
+              finished={finished}
+              nextLabel={nextLabel ?? null}
+              checkpoints={checkpoints}
+              legKm={legKm}
+            />
+          </div>
+          <div className="mt-2">
+            <PredictionSummary prediction={athlete.prediction} />
+          </div>
         </div>
       )}
 
-      <div className="mt-2.5 pr-3 pl-4">
-        <DisciplineLines disciplines={athlete.disciplines} />
-      </div>
-
-      <div className="mt-2 mb-3 pr-3 pl-4">
-        {finished ? (
-          <p className="rounded-lg bg-muted px-2.5 py-2 text-[12px] tabular-nums">
-            総合{" "}
-            <b className="font-bold text-[15px]">
-              {athlete.officialTotal ?? formatDuration(athlete.elapsedMs ?? 0)}
-            </b>
-            {athlete.totalRanks.division ? (
-              <>
-                {" · 部門 "}
-                {athlete.totalRanks.division.rank}/{athlete.totalRanks.division.of}
-              </>
-            ) : null}
-            {athlete.totalRanks.ageGroup ? (
-              <>
-                {" · エイジ "}
-                {athlete.totalRanks.ageGroup.rank}/{athlete.totalRanks.ageGroup.of}
-              </>
-            ) : null}
-          </p>
-        ) : (
-          <PredictionSummary prediction={athlete.prediction} />
-        )}
-      </div>
+      {finished || athlete.status === "not_started" || athlete.status === "dns_suspected" ? (
+        <div className="mt-2 mb-3 pr-3 pl-4">
+          {finished ? (
+            <p className="rounded-lg bg-muted px-2.5 py-2 text-[12px] tabular-nums">
+              総合{" "}
+              <b className="font-bold text-[15px]">
+                {athlete.officialTotal ?? formatDuration(athlete.elapsedMs ?? 0)}
+              </b>
+              {athlete.totalRanks.division ? (
+                <>
+                  {" · 部門 "}
+                  {athlete.totalRanks.division.rank}/{athlete.totalRanks.division.of}
+                </>
+              ) : null}
+              {athlete.totalRanks.ageGroup ? (
+                <>
+                  {" · エイジ "}
+                  {athlete.totalRanks.ageGroup.rank}/{athlete.totalRanks.ageGroup.of}
+                </>
+              ) : null}
+            </p>
+          ) : (
+            <PredictionSummary prediction={athlete.prediction} />
+          )}
+        </div>
+      ) : null}
     </article>
   );
 }

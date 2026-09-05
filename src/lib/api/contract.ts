@@ -32,7 +32,6 @@ export interface DisciplineDto {
   readonly provisional: boolean;
   readonly atCheckpointLabel: string | null;
   readonly ranks: RankSetDto;
-  readonly deviation: number | null;
   /** Speed in km/h for bike, null for swim and run which use pace. */
   readonly speedKmh: number | null;
 }

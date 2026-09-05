@@ -3,7 +3,6 @@ import type { Athlete, RaceSnapshot } from "@/lib/domain/types";
 import type { NeighbourModel } from "@/lib/history/model";
 import type { NameIndex, PastResult } from "@/lib/history/nameIndex";
 import { findPastResults } from "@/lib/history/nameIndex";
-import { deviationScore } from "./deviation";
 import { disciplineKm, disciplineStart, elapsedAt, splitBetween } from "./elapsed";
 import { buildPopulations, latestCheckpoint, type Populations } from "./population";
 import { estimatePosition, fieldOrder, type PositionEstimate } from "./position";
@@ -42,7 +41,6 @@ export interface ComputedDiscipline {
   readonly provisional: boolean;
   readonly atCheckpointLabel: string | null;
   readonly ranks: RankSet;
-  readonly deviation: number | null;
   readonly speedKmh: number | null;
 }
 
@@ -106,14 +104,6 @@ function computeDisciplines(
     const from = disciplineStart(discipline);
     const measuredAt = result.atCheckpoint;
 
-    const peers =
-      measuredAt === null
-        ? []
-        : pop
-            .atCheckpoint(measuredAt)
-            .map((other) => splitBetween(other, from, measuredAt))
-            .filter((value): value is number => value !== null);
-
     const partialKm =
       measuredAt === null ? km : (course.checkpoints.find((c) => c.id === measuredAt)?.km ?? km);
 
@@ -128,7 +118,6 @@ function computeDisciplines(
           ? (course.checkpoints.find((c) => c.id === measuredAt)?.label ?? null)
           : null,
       ranks: result.ranks,
-      deviation: result.timeMs === null ? null : deviationScore(peers, result.timeMs),
       speedKmh:
         discipline === "bike" && result.timeMs !== null && result.timeMs > 0
           ? (result.provisional ? partialKm : km) / (result.timeMs / 3_600_000)

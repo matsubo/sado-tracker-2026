@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { GlobalHeader } from "@/components/layout/GlobalNav";
 import { RankingTable } from "@/components/tracker/RankingTable";
 import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
@@ -153,6 +154,7 @@ export function DivisionRankings({
 
   return (
     <div className="flex flex-col gap-2">
+      <GlobalHeader year={race?.year} />
       <LiveStatusBar
         race={race}
         lastPolledAt={lastPolledAt}
