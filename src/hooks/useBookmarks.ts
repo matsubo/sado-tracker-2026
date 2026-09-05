@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { track } from "@/lib/analytics";
 
 const STORAGE_KEY = "sado2026.bookmarks";
 const MAX_BOOKMARKS = 50;
+
+/** Used when a caller does not name the screen the action came from. */
+const UNKNOWN_SOURCE = "unknown";
 
 function readStorage(): string[] {
   try {
@@ -43,12 +46,18 @@ export function useBookmarks(): {
 } {
   const [bibs, setBibs] = useState<string[]>([]);
   const [ready, setReady] = useState(false);
+  // The list as it stands right now. State alone cannot answer "did this
+  // change anything?" during the same tick, and that answer decides whether
+  // an event is worth reporting.
+  const latest = useRef<string[]>([]);
 
   useEffect(() => {
     const fromUrl = readUrl();
     const merged =
       fromUrl.length > 0 ? [...new Set([...fromUrl, ...readStorage()])] : readStorage();
-    setBibs(merged.slice(0, MAX_BOOKMARKS));
+    const initial = merged.slice(0, MAX_BOOKMARKS);
+    latest.current = initial;
+    setBibs(initial);
     setReady(true);
   }, []);
 
@@ -68,14 +77,24 @@ export function useBookmarks(): {
     }
   }, [bibs, ready]);
 
-  const add = useCallback((bib: string) => {
-    setBibs((current) =>
-      current.includes(bib) ? current : [...current, bib].slice(0, MAX_BOOKMARKS),
-    );
+  // Reporting happens here rather than inside the state updater: React runs an
+  // updater more than once in development, which would double every count.
+  const add = useCallback((bib: string, source: string = UNKNOWN_SOURCE) => {
+    const current = latest.current;
+    if (current.includes(bib) || current.length >= MAX_BOOKMARKS) return;
+    const next = [...current, bib];
+    latest.current = next;
+    setBibs(next);
+    track("bookmark_add", { source });
   }, []);
 
-  const remove = useCallback((bib: string) => {
-    setBibs((current) => current.filter((value) => value !== bib));
+  const remove = useCallback((bib: string, source: string = UNKNOWN_SOURCE) => {
+    const current = latest.current;
+    if (!current.includes(bib)) return;
+    const next = current.filter((value) => value !== bib);
+    latest.current = next;
+    setBibs(next);
+    track("bookmark_remove", { source });
   }, []);
 
   return { bibs, ready, add, remove, has: (bib) => bibs.includes(bib) };
