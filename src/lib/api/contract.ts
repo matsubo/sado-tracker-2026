@@ -153,6 +153,8 @@ export interface RaceStateDto {
   readonly now: number;
   readonly stale: boolean;
   readonly replay: boolean;
+  /** How often the server recomputes, so the client never polls slower. */
+  readonly pollIntervalMs: number;
   /** Counts of athletes measured at each checkpoint, per division. */
   readonly counts: Readonly<Record<Division, Readonly<Record<string, number>>>>;
   readonly divisions: readonly {

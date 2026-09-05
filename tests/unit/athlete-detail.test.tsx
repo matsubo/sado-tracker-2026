@@ -76,6 +76,7 @@ const raceState: RaceStateDto = {
   now: 1_757_000_000_000,
   stale: false,
   replay: false,
+  pollIntervalMs: 60_000,
   counts: { A: {}, B: {}, RA: {}, RB: {} },
   divisions: [
     {

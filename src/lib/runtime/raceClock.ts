@@ -8,17 +8,30 @@
  * The offset is refreshed from every race-state response.
  */
 let offsetMs = 0;
+let known = false;
 
 export function setRaceClockOffset(serverNowMs: number): void {
-  if (Number.isFinite(serverNowMs)) offsetMs = serverNowMs - Date.now();
+  if (!Number.isFinite(serverNowMs)) return;
+  offsetMs = serverNowMs - Date.now();
+  known = true;
 }
 
-/** Current time on the race's clock. */
+/**
+ * True once a server response has told us what time the race is on. Until
+ * then the device clock is not a usable substitute: in replay it is a year
+ * out, which would push every athlete to the next timing point.
+ */
+export function hasRaceClock(): boolean {
+  return known;
+}
+
+/** Current time on the race's clock, or 0 while it is still unknown. */
 export function raceNow(): number {
-  return Date.now() + offsetMs;
+  return known ? Date.now() + offsetMs : 0;
 }
 
 /** Test helper: forget any offset learned from a response. */
 export function resetRaceClock(): void {
   offsetMs = 0;
+  known = false;
 }

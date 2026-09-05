@@ -220,7 +220,11 @@ function standardizer(
 }
 
 interface CandidateSet {
-  readonly candidates: readonly { row: TrainingRow; vector: Map<string, number>; remaining: number }[];
+  readonly candidates: readonly {
+    row: TrainingRow;
+    vector: Map<string, number>;
+    remaining: number;
+  }[];
   readonly scale: Standardizer;
 }
 
@@ -354,13 +358,23 @@ export function predictFinish(
         built.push({ row, vector, remaining: row.totalMs - atCheckpoint });
       }
     }
-    set = { candidates: built, scale: standardizer(built.map((c) => c.vector), keys) };
+    set = {
+      candidates: built,
+      scale: standardizer(
+        built.map((c) => c.vector),
+        keys,
+      ),
+    };
     cache?.set(cacheKey, set);
   }
   const { candidates, scale } = set;
 
   if (candidates.length >= MIN_NEIGHBOURS) {
-    const nearest = nearestBy(candidates, (c) => distance(own, c.vector, keys, scale), NEIGHBOUR_COUNT);
+    const nearest = nearestBy(
+      candidates,
+      (c) => distance(own, c.vector, keys, scale),
+      NEIGHBOUR_COUNT,
+    );
 
     const remaining = nearest.map((n) => n.remaining).sort((a, b) => a - b);
     const yearBreakdown: Record<number, number> = {};

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { projectKm } from "@/hooks/useLivePosition";
 import type { PositionDto } from "@/lib/api/contract";
-import { raceNow, resetRaceClock, setRaceClockOffset } from "@/lib/runtime/raceClock";
+import { hasRaceClock, raceNow, resetRaceClock, setRaceClockOffset } from "@/lib/runtime/raceClock";
 
 afterEach(() => {
   resetRaceClock();
@@ -23,8 +23,9 @@ const position: PositionDto = {
 };
 
 describe("race clock", () => {
-  it("follows the device clock until a server time arrives", () => {
-    expect(Math.abs(raceNow() - Date.now())).toBeLessThan(50);
+  it("reports itself unknown until a server time arrives", () => {
+    expect(hasRaceClock()).toBe(false);
+    expect(raceNow()).toBe(0);
   });
 
   it("adopts the server's time, so replay and clock skew both track correctly", () => {
@@ -35,7 +36,16 @@ describe("race clock", () => {
 
   it("ignores a nonsensical server time", () => {
     setRaceClockOffset(Number.NaN);
-    expect(Math.abs(raceNow() - Date.now())).toBeLessThan(50);
+    expect(hasRaceClock()).toBe(false);
+    expect(raceNow()).toBe(0);
+  });
+
+  it("holds the server estimate for the moment before the clock is known", () => {
+    // Reproduces the flash where every leader briefly showed the next timing
+    // point: the projection ran on the device clock before the first response.
+    expect(projectKm(position, raceNow())).toBe(position.estKm);
+    setRaceClockOffset(position.lastAt + 60 * 60 * 1000);
+    expect(projectKm(position, raceNow())).toBeCloseTo(130, 0);
   });
 });
 

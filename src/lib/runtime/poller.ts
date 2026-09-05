@@ -16,8 +16,26 @@ import { type Clock, clockFromEnv } from "./clock";
 import { logger } from "./logger";
 import { claimPollerStart, markStale, setSnapshot } from "./store";
 
-const POLL_INTERVAL_MS = 60_000;
+const DEFAULT_POLL_INTERVAL_MS = 60_000;
+const MIN_POLL_INTERVAL_MS = 500;
 const WEATHER_INTERVAL_MS = 300_000;
+
+/**
+ * How often the field is recomputed. The live race is polled once a minute,
+ * which is as fast as the timing site publishes. A replay reads from disk, so
+ * it can run far faster and needs to when a whole race is compressed into a
+ * couple of minutes.
+ */
+export function pollIntervalMs(env: NodeJS.ProcessEnv = process.env): number {
+  const configured = Number(env.POLL_INTERVAL_MS);
+  if (Number.isFinite(configured) && configured >= MIN_POLL_INTERVAL_MS) return configured;
+  if (!env.REPLAY_START) return DEFAULT_POLL_INTERVAL_MS;
+
+  // Keep roughly one frame per five minutes of race time in replay.
+  const speed = Number(env.REPLAY_SPEED ?? "60");
+  const perFrame = (5 * 60_000) / (Number.isFinite(speed) && speed > 0 ? speed : 60);
+  return Math.max(MIN_POLL_INTERVAL_MS, Math.min(DEFAULT_POLL_INTERVAL_MS, Math.round(perFrame)));
+}
 
 function dataDir(): string {
   return process.env.DATA_DIR ?? ".data";
@@ -116,6 +134,7 @@ async function refresh(runtime: Runtime): Promise<void> {
     const computed = computeSnapshot(visible, config, runtime.model, runtime.nameIndex, nowMs, {
       replay: runtime.clock.replay,
       backtest: runtime.backtest,
+      pollIntervalMs: pollIntervalMs(),
     });
     setSnapshot(computed);
 
@@ -152,7 +171,16 @@ export async function startPollers(): Promise<void> {
   const runtime: Runtime = { clock, model, nameIndex, backtest };
 
   await refresh(runtime);
-  setInterval(() => void refresh(runtime), POLL_INTERVAL_MS);
+  const interval = pollIntervalMs();
+  logger.info("Poll interval chosen", { intervalMs: interval, replay: clock.replay });
+
+  // Chain rather than use a fixed interval: a refresh that runs long must not
+  // stack up behind itself when the replay is fast.
+  const tick = async (): Promise<void> => {
+    await refresh(runtime);
+    setTimeout(() => void tick(), interval);
+  };
+  setTimeout(() => void tick(), interval);
 
   void getWeather();
   setInterval(() => void getWeather(), WEATHER_INTERVAL_MS);

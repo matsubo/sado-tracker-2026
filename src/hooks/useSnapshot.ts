@@ -4,10 +4,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { RaceStateDto } from "@/lib/api/contract";
 import { setRaceClockOffset } from "@/lib/runtime/raceClock";
 
-const POLL_MS = 15_000;
+const DEFAULT_POLL_MS = 15_000;
+const MIN_POLL_MS = 1_000;
+
+/**
+ * Check at least as often as the server recomputes, so a fast replay is not
+ * watched through a fifteen-second window. Never faster than once a second.
+ */
+function clientPollMs(serverIntervalMs: number | undefined): number {
+  if (serverIntervalMs === undefined) return DEFAULT_POLL_MS;
+  return Math.max(MIN_POLL_MS, Math.min(DEFAULT_POLL_MS, serverIntervalMs));
+}
 
 export interface SnapshotState {
   readonly race: RaceStateDto | null;
+  /** How often this client is checking, in milliseconds. */
+  readonly intervalMs: number;
   /** Update time of the data currently displayed; changes drive refetches. */
   readonly fetchedAt: number | null;
   readonly error: string | null;
@@ -43,9 +55,11 @@ export function useRaceState(): SnapshotState & { refresh: () => void } {
     }
   }, []);
 
+  const intervalMs = clientPollMs(race?.pollIntervalMs);
+
   useEffect(() => {
     void poll();
-    const timer = setInterval(() => void poll(), POLL_MS);
+    const timer = setInterval(() => void poll(), intervalMs);
     const onVisible = () => {
       if (document.visibilityState === "visible") void poll();
     };
@@ -54,10 +68,11 @@ export function useRaceState(): SnapshotState & { refresh: () => void } {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [poll]);
+  }, [poll, intervalMs]);
 
   return {
     race,
+    intervalMs,
     fetchedAt: race?.fetchedAt ?? null,
     error,
     lastPolledAt,

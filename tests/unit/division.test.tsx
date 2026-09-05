@@ -36,6 +36,7 @@ const RACE: RaceStateDto = {
   now: 1_000,
   stale: false,
   replay: false,
+  pollIntervalMs: 60_000,
   counts: { A: {}, B: {}, RA: {}, RB: {} },
   divisions: [
     { id: "A", label: "Aタイプ", entrants: 3, racing: 3, checkpoints: CHECKPOINTS },

@@ -30,6 +30,14 @@ node .next/standalone/server.js
 """
 env = { PORT = "3111", HOSTNAME = "0.0.0.0", RACE_YEAR = "2025", REPLAY_START = "2025-09-07T13:00:00+09:00", REPLAY_SPEED = "6", DATA_DIR = ".data" }
 
+[tasks.serve-fast]
+description = "Replay the whole 2025 race, 06:00 to 20:00, in about two minutes"
+run = """
+bunx next build
+node .next/standalone/server.js
+"""
+env = { PORT = "3111", HOSTNAME = "0.0.0.0", RACE_YEAR = "2025", REPLAY_START = "2025-09-07T06:00:00+09:00", REPLAY_SPEED = "420", POLL_INTERVAL_MS = "1000", DATA_DIR = ".data" }
+
 [tasks.test]
 run = "bunx vitest run"
 

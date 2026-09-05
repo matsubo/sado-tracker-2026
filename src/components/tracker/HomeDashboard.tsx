@@ -28,7 +28,7 @@ interface AthletesResponse {
  * changes, so the page never reloads under the reader.
  */
 export function HomeDashboard() {
-  const { race, fetchedAt, error: raceError, lastPolledAt } = useRaceState();
+  const { race, fetchedAt, error: raceError, lastPolledAt, intervalMs } = useRaceState();
   const { bibs, ready, add, remove, has, shareUrl } = useBookmarks();
   const [panelOpen, setPanelOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -64,12 +64,20 @@ export function HomeDashboard() {
   return (
     <main className="mx-auto w-full max-w-[430px] pb-10">
       <header className="flex items-center justify-between px-4 pt-3.5 pb-2">
-        <h1 className="font-bold text-[20px] tracking-tight">
-          佐渡トラッカー
-          <span className="ml-1.5 font-semibold text-[13px] text-muted-foreground">
-            {race?.year ?? 2026}
-          </span>
-        </h1>
+        <div>
+          <Link
+            href="/"
+            className="rounded text-[11.5px] text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+          >
+            ‹ 総合トップ
+          </Link>
+          <h1 className="font-bold text-[20px] tracking-tight">
+            友達一覧
+            <span className="ml-1.5 font-semibold text-[13px] text-muted-foreground">
+              {race?.year ?? 2026}
+            </span>
+          </h1>
+        </div>
         <div className="flex items-center gap-2.5">
           <button
             type="button"
@@ -104,7 +112,12 @@ export function HomeDashboard() {
         </div>
       </header>
 
-      <LiveStatusBar race={race} lastPolledAt={lastPolledAt} error={raceError} />
+      <LiveStatusBar
+        race={race}
+        lastPolledAt={lastPolledAt}
+        error={raceError}
+        intervalMs={intervalMs}
+      />
 
       {copied ? (
         <p className="mx-3 mt-2 rounded-lg bg-foreground px-3 py-2 text-[12.5px] text-background">
@@ -139,10 +152,10 @@ export function HomeDashboard() {
               右上の共有ボタンで同じリストを他の人に送れます。
             </p>
             <Link
-              href="/map"
+              href="/"
               className="mt-3 inline-block rounded font-bold text-[12.5px] text-primary hover:underline focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
             >
-              全体マップを見る ›
+              総合トップを見る ›
             </Link>
           </div>
         ) : null}
@@ -165,6 +178,12 @@ export function HomeDashboard() {
       </div>
 
       <nav className="flex gap-2 px-3 pt-3.5">
+        <Link
+          href="/"
+          className="flex-1 rounded-lg border border-border bg-card py-2 text-center font-bold text-[12.5px] focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+        >
+          総合トップ
+        </Link>
         <Link
           href="/map"
           className="flex-1 rounded-lg border border-border bg-card py-2 text-center font-bold text-[12.5px] focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"

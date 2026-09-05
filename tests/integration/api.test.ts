@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { getRaceConfig } from "@/config/races";
+import { buildLeaderboard } from "@/lib/api/leaderboard";
 import { buildRankingPage } from "@/lib/api/rankings";
 import { aiTriHref, toAthleteDetail, toAthleteSummary, toRaceState } from "@/lib/api/serialize";
 import type { ComputedSnapshot } from "@/lib/compute/snapshot";
@@ -278,5 +279,41 @@ describe("ranking pagination", () => {
     });
     expect(centred.page).toBe(5);
     expect(centred.rows.some((row) => row.isTarget)).toBe(true);
+  });
+});
+
+describe("leaderboard", () => {
+  it("lists the front of a division in field order", () => {
+    const board = buildLeaderboard(snapshot, "A", 20);
+    expect(board.division).toBe("A");
+    expect(board.leaders).toHaveLength(20);
+    expect(board.leaders[0]?.place).toBe(1);
+    expect(board.leaders.at(-1)?.place).toBe(20);
+  });
+
+  it("puts athletes further along the course ahead of faster ones behind them", () => {
+    const board = buildLeaderboard(snapshot, "A", 20);
+    const kms = board.leaders.map((row) => row.athlete.position.estKm);
+    expect(kms[0]).toBeGreaterThan(0);
+    // Leaders are on the same or a later leg than those behind them.
+    const legOrder = { swim: 0, bike: 1, run: 2 } as const;
+    for (let i = 1; i < board.leaders.length; i += 1) {
+      const ahead = legOrder[board.leaders[i - 1]?.athlete.position.discipline as "swim"];
+      const behind = legOrder[board.leaders[i]?.athlete.position.discipline as "swim"];
+      expect(ahead).toBeGreaterThanOrEqual(behind);
+    }
+  });
+
+  it("counts everyone entered, not only those on the board", () => {
+    const board = buildLeaderboard(snapshot, "A", 5);
+    expect(board.leaders).toHaveLength(5);
+    expect(board.entrants).toBeGreaterThan(900);
+    expect(board.racing).toBeLessThanOrEqual(board.entrants);
+  });
+
+  it("returns an empty board rather than failing for an empty division", () => {
+    const board = buildLeaderboard(snapshot, "RB", 20);
+    expect(board.division).toBe("RB");
+    expect(Array.isArray(board.leaders)).toBe(true);
   });
 });

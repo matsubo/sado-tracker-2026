@@ -9,6 +9,7 @@ import { type AgeGroup, compareAgeGroups, type Division, normalizeAgeGroup } fro
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
 import type { RankingPageDto } from "@/lib/api/contract";
 import { cn } from "@/lib/utils/cn";
+import { LiveStatusBar } from "./LiveStatusBar";
 
 const DIVISIONS: readonly Division[] = ["A", "B", "RA", "RB"];
 const ALL_AGE_GROUPS = "all";
@@ -102,7 +103,7 @@ export function DivisionRankings({
   const [page, setPage] = useState(initialPage);
   const [known, setKnown] = useState<KnownGroups>({ division, ids: [] });
 
-  const { race, fetchedAt, error: raceError } = useRaceState();
+  const { race, fetchedAt, error: raceError, lastPolledAt, intervalMs } = useRaceState();
 
   useEffect(() => {
     if (discipline !== null) return;
@@ -152,6 +153,12 @@ export function DivisionRankings({
 
   return (
     <div className="flex flex-col gap-2">
+      <LiveStatusBar
+        race={race}
+        lastPolledAt={lastPolledAt}
+        error={raceError}
+        intervalMs={intervalMs}
+      />
       <nav aria-label="部門" className="mx-3 flex gap-[3px] rounded-lg bg-muted p-[3px]">
         {DIVISIONS.map((id) => (
           <Link

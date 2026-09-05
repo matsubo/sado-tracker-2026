@@ -212,6 +212,7 @@ export function toRaceState(snapshot: ComputedSnapshot): RaceStateDto {
     now: snapshot.replay ? snapshot.computedAt + (Date.now() - snapshot.fetchedAt) : Date.now(),
     stale: snapshot.stale,
     replay: snapshot.replay,
+    pollIntervalMs: snapshot.pollIntervalMs,
     counts: snapshot.counts,
     divisions: DIVISIONS.map((id) => ({
       id,

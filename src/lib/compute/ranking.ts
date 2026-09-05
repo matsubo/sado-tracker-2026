@@ -46,9 +46,9 @@ function ranksAgainst(
   if (value(athlete) === null) return EMPTY_RANKS;
 
   const division =
-    pop.rankTable(`${valueKey}|${checkpointId}|div`, pop.atCheckpoint(checkpointId), value).get(
-      athlete.bib,
-    ) ?? null;
+    pop
+      .rankTable(`${valueKey}|${checkpointId}|div`, pop.atCheckpoint(checkpointId), value)
+      .get(athlete.bib) ?? null;
 
   const sex = athlete.sex
     ? (pop
@@ -130,7 +130,9 @@ export function disciplineRanks(
   }
 
   return {
-    ranks: ranksAgainst(athlete, latest, pop, `split:${from}`, (a) => splitBetween(a, from, latest)),
+    ranks: ranksAgainst(athlete, latest, pop, `split:${from}`, (a) =>
+      splitBetween(a, from, latest),
+    ),
     provisional: true,
     atCheckpoint: latest,
     timeMs: splitBetween(athlete, from, latest),

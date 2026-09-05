@@ -11,6 +11,7 @@ import type { AthleteDetailDto, RankDto } from "@/lib/api/contract";
 import { formatClock, formatClockShort, formatDuration } from "@/lib/format";
 import { CoursePositionChart } from "./CoursePositionChart";
 import { DisciplineTable } from "./DisciplineTable";
+import { LiveStatusBar } from "./LiveStatusBar";
 import { PastResults } from "./PastResults";
 import { type DisciplineKm, liveKm, PositionBar } from "./PositionBar";
 import { PredictionBox } from "./PredictionBox";
@@ -102,7 +103,7 @@ interface AthleteDetailProps {
 
 /** Everything known about one athlete, ordered the way a supporter reads it. */
 export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
-  const { race, fetchedAt } = useRaceState();
+  const { race, fetchedAt, error: raceError, lastPolledAt, intervalMs } = useRaceState();
   const {
     data: detail,
     loading,
@@ -123,7 +124,7 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
             : `ゼッケン ${bib} の情報を表示できませんでした。少し時間をおいて開き直してください。`}
         </p>
         <Link
-          href="/"
+          href="/friends"
           className="mt-3 inline-block rounded-md px-2 py-1 font-semibold text-[13px] text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           ‹ 友達一覧
@@ -146,6 +147,12 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
 
   return (
     <div className="mx-auto w-full max-w-[480px] pb-10">
+      <LiveStatusBar
+        race={race}
+        lastPolledAt={lastPolledAt}
+        error={raceError}
+        intervalMs={intervalMs}
+      />
       {error === null ? null : (
         <p role="status" className="px-4 pt-2 text-[11.5px] text-muted-foreground">
           最新の情報を取得できませんでした。表示は直前の内容です。
@@ -153,7 +160,7 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
       )}
       <div className="flex items-center justify-between px-4 pt-3 pb-1 text-[13px]">
         <Link
-          href="/"
+          href="/friends"
           className="rounded-md px-1 py-0.5 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
           ‹ 友達一覧

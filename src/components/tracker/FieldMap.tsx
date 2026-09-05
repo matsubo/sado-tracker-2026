@@ -10,6 +10,7 @@ import { projectKm, useLiveClock } from "@/hooks/useLivePosition";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
 import type { MapEntryDto, PositionDto, RaceStateDto } from "@/lib/api/contract";
 import { cn } from "@/lib/utils/cn";
+import { LiveStatusBar } from "./LiveStatusBar";
 
 type Leg = "swim" | "bike" | "run";
 type View = "division" | "age" | "friends";
@@ -207,7 +208,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
   const [focusIndex, setFocusIndex] = useState(0);
   const dots = useRef(new Map<string, SVGGElement>());
 
-  const { race, fetchedAt } = useRaceState();
+  const { race, fetchedAt, error: raceError, lastPolledAt, intervalMs } = useRaceState();
   const { bibs, ready } = useBookmarks();
   const now = useLiveClock();
 
@@ -328,6 +329,12 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
 
   return (
     <div className="flex flex-col gap-2">
+      <LiveStatusBar
+        race={race}
+        lastPolledAt={lastPolledAt}
+        error={raceError}
+        intervalMs={intervalMs}
+      />
       <Tabs
         aria-label="部門"
         className="mx-3"
