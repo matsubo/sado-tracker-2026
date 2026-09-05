@@ -250,11 +250,16 @@ export async function startPollers(): Promise<void> {
   logger.info("Starting pollers", { year, replay: clock.replay });
 
   const history = await loadHistory(year);
-  const model = buildNeighbourModel(history, getRaceConfig(year));
+  const liveConfig = getRaceConfig(year);
+  const model = buildNeighbourModel(history, liveConfig);
   const nameIndex = buildNameIndex(history);
   const holdout = history.map((entry) => entry.year).sort((a, b) => b - a)[0];
+  // The measured accuracy has to come from the same feature set the live
+  // model uses, or it describes predictions nobody is being shown.
   const backtest =
-    history.length >= 2 && holdout !== undefined ? runBacktest(history, holdout) : new Map();
+    history.length >= 2 && holdout !== undefined
+      ? runBacktest(history, holdout, liveConfig)
+      : new Map();
 
   const runtime: Runtime = { clock, model, nameIndex, backtest };
   setPollerRuntime(runtime);

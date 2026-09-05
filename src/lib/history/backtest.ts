@@ -1,4 +1,4 @@
-import type { Division } from "@/config/races";
+import type { Division, RaceConfig } from "@/config/races";
 import { getRaceConfig } from "@/config/races";
 import { buildPopulations } from "@/lib/compute/population";
 import type { BacktestAccuracy, BacktestTable } from "@/lib/compute/prediction";
@@ -25,15 +25,26 @@ function median(values: readonly number[]): number {
  * Measure how well the neighbour method would have predicted one past race,
  * training only on the other years. The result is shown to readers so they
  * can judge how much to trust a live prediction.
+ *
+ * `liveConfig` is the edition being served, and it decides which disciplines
+ * the model may compare on absolute pace. It has to be the live one rather
+ * than the holdout's: when this year's swim is a different distance, the live
+ * model scores the swim by within-year rank, and a figure measured on a model
+ * that compared raw swim times would not describe the predictions on screen.
+ * The holdout's own config still supplies the course being replayed.
  */
-export function runBacktest(years: readonly HistoryYear[], holdoutYear: number): BacktestTable {
+export function runBacktest(
+  years: readonly HistoryYear[],
+  holdoutYear: number,
+  liveConfig?: RaceConfig,
+): BacktestTable {
   const holdout = years.find((y) => y.year === holdoutYear);
   const training = years.filter((y) => y.year !== holdoutYear);
   const table = new Map<string, BacktestAccuracy>();
   if (!holdout || training.length === 0) return table;
 
   const config = getRaceConfig(holdoutYear);
-  const model = buildNeighbourModel(training, config);
+  const model = buildNeighbourModel(training, liveConfig ?? config);
   const errorsByKey = new Map<string, number[]>();
 
   for (const division of DIVISIONS) {

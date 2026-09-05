@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ShareButtons } from "@/components/layout/ShareButtons";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Discipline, Division } from "@/config/races";
@@ -282,6 +283,12 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
         <Heading title="過去の成績" note="同じ名前で検索" />
         <PastResults results={detail.pastResults} />
       </div>
+
+      <ShareButtons
+        text={`${detail.name} 選手を応援中 — 佐渡国際トライアスロン`}
+        source="athlete"
+        className="px-4 pt-5"
+      />
 
       {aiTriHref === null ? null : (
         <p className="px-4 pt-5 text-[11px] text-muted-foreground">

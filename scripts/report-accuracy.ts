@@ -2,6 +2,7 @@
 import { getRaceConfig } from "@/config/races";
 import { runBacktest } from "@/lib/history/backtest";
 import type { HistoryYear } from "@/lib/history/nameIndex";
+import { raceYear } from "@/lib/runtime/year";
 import { loadFixtureSnapshot } from "@/lib/testing/fixtures";
 
 const years: HistoryYear[] = [2023, 2024, 2025].map((year) => ({
@@ -10,7 +11,8 @@ const years: HistoryYear[] = [2023, 2024, 2025].map((year) => ({
   config: getRaceConfig(year),
 }));
 
-const table = runBacktest(years, 2025);
+// Report what the edition being served would actually show.
+const table = runBacktest(years, 2025, getRaceConfig(raceYear()));
 const rows = [...table.entries()].sort(([a], [b]) => a.localeCompare(b));
 process.stdout.write("division:checkpoint  median error  within 25min  n\n");
 for (const [key, value] of rows) {

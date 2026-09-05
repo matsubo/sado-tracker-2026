@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ShareButtons } from "@/components/layout/ShareButtons";
 import { cn } from "@/lib/utils/cn";
 
 const AI_TRI_URL = "https://ai-triathlon-result.teraren.com/";
@@ -19,6 +20,11 @@ export function Footer({ className }: { className?: string }) {
         className,
       )}
     >
+      <ShareButtons
+        text="佐渡国際トライアスロンの応援トラッカー"
+        source="footer"
+        className="mb-3"
+      />
       {"Powered by "}
       <a className={LINK_CLASS} href={AI_TRI_URL} target="_blank" rel="noopener noreferrer">
         AI TRI+
