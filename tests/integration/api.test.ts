@@ -437,3 +437,29 @@ describe("past results", () => {
     for (const leg of legs) expect(leg.km).toBeGreaterThan(0);
   });
 });
+
+describe("course neighbours", () => {
+  it("shows age-group rivals for an athlete who has an age group", () => {
+    const withAge = [...snapshot.athletes.values()].find(
+      (c) => c.athlete.ageGroup !== null && c.fieldOrder !== Number.MAX_SAFE_INTEGER,
+    );
+    const detail = toAthleteDetail(snapshot, withAge as never);
+    expect(detail.neighbours.length).toBeGreaterThan(1);
+    for (const entry of detail.neighbours) {
+      expect(entry.ageGroupId).toBe(detail.ageGroupId);
+    }
+  });
+
+  it("falls back to the division for a relay, which has no age group", () => {
+    // A relay grouped by age group could only ever see itself.
+    const relay = [...snapshot.athletes.values()].find(
+      (c) =>
+        (c.athlete.division === "RA" || c.athlete.division === "RB") &&
+        c.fieldOrder !== Number.MAX_SAFE_INTEGER,
+    );
+    if (!relay) return;
+    const detail = toAthleteDetail(snapshot, relay);
+    expect(detail.neighbours.length).toBeGreaterThan(1);
+    expect(detail.neighbours.some((entry) => entry.isSelf)).toBe(true);
+  });
+});

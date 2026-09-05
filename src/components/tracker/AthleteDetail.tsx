@@ -241,7 +241,10 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
         <Heading title="種目" note="暫定 = 進行中の区間" />
         <DisciplineTable rows={detail.disciplines} splits={detail.splits} />
 
-        <Heading title="コース上の位置" note="推定 · 10 秒ごとに再計算" />
+        <Heading
+          title="コース上の位置"
+          note={`推定 · ${detail.ageGroupLabel ?? `${detail.division}タイプ`}の前後`}
+        />
         <CoursePositionChart
           entries={detail.neighbours}
           checkpoints={checkpoints}

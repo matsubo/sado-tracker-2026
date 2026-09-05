@@ -174,22 +174,25 @@ export function toMapEntry(computed: ComputedAthlete, isSelf = false): MapEntryD
 }
 
 /**
- * Age-group rivals immediately ahead of and behind an athlete, chosen by
- * estimated position so the strip reads as a live picture of the course.
+ * The athletes immediately ahead of and behind this one, chosen by estimated
+ * position so the strip reads as a live picture of the course.
+ *
+ * Age group is the natural comparison, but relay teams have none: grouping
+ * only by age group left a relay looking at an empty strip containing itself.
+ * They fall back to the division, which for a relay is the other teams.
  */
 export function neighbourEntries(
   snapshot: ComputedSnapshot,
   computed: ComputedAthlete,
   each = 5,
 ): MapEntryDto[] {
-  const ageGroupId = computed.athlete.ageGroup?.id;
-  if (!ageGroupId) return [toMapEntry(computed, true)];
+  const ageGroupId = computed.athlete.ageGroup?.id ?? null;
 
   const rivals = [...snapshot.athletes.values()]
     .filter(
       (other) =>
         other.athlete.division === computed.athlete.division &&
-        other.athlete.ageGroup?.id === ageGroupId &&
+        (ageGroupId === null || other.athlete.ageGroup?.id === ageGroupId) &&
         other.fieldOrder !== Number.MAX_SAFE_INTEGER,
     )
     .sort((a, b) => a.fieldOrder - b.fieldOrder);
