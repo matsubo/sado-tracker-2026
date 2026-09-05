@@ -186,3 +186,31 @@ test.describe("athlete splits", () => {
     await expect(page.getByText("未通過").first()).toBeVisible();
   });
 });
+
+test.describe("help", () => {
+  test("explains where the data comes from and how often it updates", async ({ page }) => {
+    await page.goto("/help");
+    await expect(page.getByRole("heading", { name: "ヘルプ" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "データの取得" })).toBeVisible();
+    await expect(page.getByText(/秒.*ごとに全選手のデータを取得/)).toBeVisible();
+  });
+
+  test("links to the issue tracker and the repository", async ({ page }) => {
+    await page.goto("/help");
+    await expect(page.getByRole("link", { name: /GitHub Issues/ })).toHaveAttribute(
+      "href",
+      "https://github.com/matsubo/sado-tracker-2026/issues",
+    );
+    await expect(page.getByRole("link", { name: /matsubo\/sado-tracker-2026/ })).toHaveAttribute(
+      "href",
+      "https://github.com/matsubo/sado-tracker-2026",
+    );
+  });
+
+  test("is reachable from the menu on any page", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: /メニューを開く/ }).click();
+    await page.getByRole("link", { name: "ヘルプ", exact: true }).click();
+    await expect(page).toHaveURL(/\/help/);
+  });
+});

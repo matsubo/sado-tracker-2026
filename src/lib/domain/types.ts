@@ -9,9 +9,9 @@ export interface PreRacePasses {
 
 export interface Athlete {
   readonly bib: string;
-  /** Name exactly as published, with the source's full-width space. */
+  /** Display name, with a single ASCII space between family and given name. */
   readonly name: string;
-  /** Name with a single ASCII space, used for cross-year matching. */
+  /** The same string, used as the key for cross-year matching. */
   readonly nameKey: string;
   readonly sex: Sex | null;
   readonly division: Division;

@@ -60,7 +60,10 @@ function toAthlete(row: readonly string[], map: ColumnMap, config: RaceConfig): 
 
   return {
     bib,
-    name: rawName.trim(),
+    // The source separates family and given name with an ideographic space,
+    // which reads as a gap twice as wide as anything else on the screen.
+    // Displayed and matched names both use a single ASCII space.
+    name: normalizeName(rawName),
     nameKey: normalizeName(rawName),
     sex: SEX_BY_LABEL[cell(row, map.sex)] ?? null,
     division,

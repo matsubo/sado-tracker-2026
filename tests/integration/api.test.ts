@@ -463,3 +463,21 @@ describe("course neighbours", () => {
     expect(detail.neighbours.some((entry) => entry.isSelf)).toBe(true);
   });
 });
+
+describe("displayed names", () => {
+  it("never carries the source's ideographic space", () => {
+    let checked = 0;
+    for (const computed of snapshot.athletes.values()) {
+      expect(computed.athlete.name).not.toContain("　");
+      checked += 1;
+    }
+    expect(checked).toBeGreaterThan(1000);
+  });
+
+  it("keeps the external link keyed by the same single-space name", () => {
+    expect(aiTriHref("松倉　友樹")).toBe(
+      "https://ai-triathlon-result.teraren.com/athletes/%E6%9D%BE%E5%80%89%20%E5%8F%8B%E6%A8%B9",
+    );
+    expect(aiTriHref("松倉 友樹")).toBe(aiTriHref("松倉　友樹"));
+  });
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, ListOrdered, Map as MapIcon, Menu, Star, Trophy, X } from "lucide-react";
+import { Bell, CircleHelp, ListOrdered, Map as MapIcon, Menu, Star, Trophy, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
@@ -27,6 +27,12 @@ const LINKS = [
     label: "種目別順位",
     icon: ListOrdered,
     match: (path: string) => path.startsWith("/divisions"),
+  },
+  {
+    href: "/help",
+    label: "ヘルプ",
+    icon: CircleHelp,
+    match: (path: string) => path.startsWith("/help"),
   },
 ] as const;
 

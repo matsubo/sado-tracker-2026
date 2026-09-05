@@ -23,9 +23,14 @@ const DIVISION_LABELS: Record<Division, string> = {
   RB: "RBタイプ（リレー）",
 };
 
-/** External athlete page on the sibling results site. */
+/**
+ * External athlete page on the sibling results site, which keys athletes by
+ * name with a single space. Names arrive normalized, but an ideographic space
+ * is replaced again here so the link cannot break if that ever changes.
+ */
 export function aiTriHref(name: string): string {
-  return `https://ai-triathlon-result.teraren.com/athletes/${encodeURIComponent(name.replace(/　/g, " "))}`;
+  const normalized = name.replace(/　/g, " ").replace(/\s+/g, " ").trim();
+  return `https://ai-triathlon-result.teraren.com/athletes/${encodeURIComponent(normalized)}`;
 }
 
 function athleteLinks(computed: ComputedAthlete): Links {
