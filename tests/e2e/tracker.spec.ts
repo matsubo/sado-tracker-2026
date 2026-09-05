@@ -251,3 +251,23 @@ test.describe("refresh control", () => {
     await expect(page.getByText(/現在 · 更新/)).toBeVisible();
   });
 });
+
+test.describe("social card", () => {
+  test("renders an Open Graph image and points the tags at it", async ({ page, request }) => {
+    const image = await request.get("/opengraph-image");
+    expect(image.status()).toBe(200);
+    expect(image.headers()["content-type"]).toContain("image/png");
+
+    await page.goto("/");
+    const og = page.locator('meta[property="og:image"]');
+    await expect(og).toHaveAttribute("content", /opengraph-image/);
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+      "content",
+      /佐渡トラッカー/,
+    );
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
+      "content",
+      "summary_large_image",
+    );
+  });
+});

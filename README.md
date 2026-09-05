@@ -119,6 +119,7 @@ publishes it at `https://<host>.<tailnet>.ts.net/` for the tailnet only.
 | `FETCH_WINDOW` | `off` to poll around the clock |
 | `REFRESH_TOKEN` | Required by `POST /api/refresh` when set |
 | `NEXT_PUBLIC_GA_ID` | GA4 measurement id, e.g. `G-XXXXXXXXXX`. Analytics is off when unset |
+| `NEXT_PUBLIC_SITE_URL` | Canonical origin for Open Graph tags, default the production domain |
 | `REPLAY_START` | Virtual start time; set to enable replay mode |
 | `REPLAY_SPEED` | Replay multiplier, default 60 |
 | `REPLAY_HOURS` | Race hours covered before looping, default 14 |

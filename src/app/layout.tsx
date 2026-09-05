@@ -4,12 +4,26 @@ import type { ReactNode } from "react";
 import { Footer } from "@/components/layout/Footer";
 import "./globals.css";
 
+const DESCRIPTION =
+  "佐渡国際トライアスロンの応援トラッカー。ブックマークした選手の現在地、順位、ゴール予想タイムがひと目でわかります。";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sado-tracker-2026.teraren.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "佐渡トラッカー 2026",
   applicationName: "佐渡トラッカー",
   appleWebApp: { capable: true, title: "佐渡トラッカー", statusBarStyle: "default" },
-  description:
-    "佐渡国際トライアスロンの応援トラッカー。ブックマークした選手の現在地、順位、ゴール予想タイムがひと目でわかります。",
+  openGraph: {
+    type: "website",
+    siteName: "佐渡トラッカー 2026",
+    title: "佐渡トラッカー 2026",
+    description: DESCRIPTION,
+    locale: "ja_JP",
+    url: SITE_URL,
+  },
+  twitter: { card: "summary_large_image", title: "佐渡トラッカー 2026", description: DESCRIPTION },
+  description: DESCRIPTION,
 };
 
 export const viewport: Viewport = {
