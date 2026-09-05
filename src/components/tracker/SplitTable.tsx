@@ -5,7 +5,6 @@ import type { SplitDto } from "@/lib/api/contract";
 import {
   formatClock,
   formatDuration,
-  formatDurationShort,
   formatRank,
   formatRunPace,
   formatSpeedKmh,
@@ -66,7 +65,7 @@ export function SplitTable({ splits }: SplitTableProps): React.JSX.Element {
             </TD>
             <TD>{formatClock(split.passedAt)}</TD>
             <TD>{formatDuration(split.elapsedMs)}</TD>
-            <TD>{split.segmentMs === null ? DASH : formatDurationShort(split.segmentMs)}</TD>
+            <TD>{split.segmentMs === null ? DASH : formatDuration(split.segmentMs)}</TD>
             <TD>{segmentSpeed(split)}</TD>
             <TD>
               {split.segmentRank === null

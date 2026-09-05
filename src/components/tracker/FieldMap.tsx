@@ -205,7 +205,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
           y: rowY(index, entries.length, named),
           km,
           leg,
-          filled: position.waiting || position.speedKmh <= 0,
+          filled: position.waiting || position.inTransition || position.speedKmh <= 0,
         };
       }),
     [entries, axis, named, now],
@@ -286,117 +286,124 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
         ) : null}
       </div>
 
-      <div className="relative mx-3 rounded-lg border border-border bg-card p-2">
-        <svg viewBox={`0 0 ${VIEW_W} ${height}`} className="block h-auto w-full">
-          <title>{`${division}タイプの推定位置マップ`}</title>
-          {LEGS.map((leg) => (
-            <rect
-              key={leg}
-              x={axis[leg].x0}
-              y={14}
-              width={axis[leg].x1 - axis[leg].x0}
-              height={6}
-              rx={3}
-              fill={LEG[leg].bg}
-            />
-          ))}
-          <g stroke="var(--border)" strokeWidth={1} strokeDasharray="2 3">
-            {ticks.map((tick) => (
-              <line key={tick.id} x1={tick.x} y1={22} x2={tick.x} y2={height - 14} />
+      <div className="mx-3 rounded-lg border border-border bg-card p-2">
+        {/* The tooltip is placed in viewBox percentages, so it must sit in a
+            box that is exactly the SVG: no padding between the two. */}
+        <div className="relative">
+          <svg viewBox={`0 0 ${VIEW_W} ${height}`} className="block h-auto w-full">
+            <title>{`${division}タイプの推定位置マップ`}</title>
+            {LEGS.map((leg) => (
+              <rect
+                key={leg}
+                x={axis[leg].x0}
+                y={14}
+                width={axis[leg].x1 - axis[leg].x0}
+                height={6}
+                rx={3}
+                fill={LEG[leg].bg}
+              />
             ))}
-          </g>
-          <g fill="var(--muted-foreground)" fontSize={8.5}>
-            {labels.map((label) => (
-              <text
-                key={`${label.id}-${label.y}`}
-                x={label.x}
-                y={label.y}
-                textAnchor={anchorAt(label.x, x0, x1)}
-              >
-                {label.label}
-              </text>
-            ))}
-          </g>
+            <g stroke="var(--border)" strokeWidth={1} strokeDasharray="2 3">
+              {ticks.map((tick) => (
+                <line key={tick.id} x1={tick.x} y1={22} x2={tick.x} y2={height - 14} />
+              ))}
+            </g>
+            <g fill="var(--muted-foreground)" fontSize={8.5}>
+              {labels.map((label) => (
+                <text
+                  key={`${label.id}-${label.y}`}
+                  x={label.x}
+                  y={label.y}
+                  textAnchor={anchorAt(label.x, x0, x1)}
+                >
+                  {label.label}
+                </text>
+              ))}
+            </g>
 
-          <g fill="var(--muted-foreground)" fontSize={named ? 9.5 : 8.5} textAnchor="end">
-            {named
-              ? placed.map((p, index) => (
-                  <text
-                    key={p.entry.bib}
-                    x={x0 - 8}
-                    y={p.y + 3}
-                    fill={p.entry.isSelf === true ? "var(--foreground)" : undefined}
-                  >
-                    {index + 1} {p.entry.name}
-                  </text>
-                ))
-              : yTicks.map((value, index) => (
-                  <text key={value} x={x0 - 6} y={rowY(value - 1, entries.length, false) + 3}>
-                    {index === 0 ? `${value}位` : value}
-                  </text>
-                ))}
-          </g>
+            <g fill="var(--muted-foreground)" fontSize={named ? 9.5 : 8.5} textAnchor="end">
+              {named
+                ? placed.map((p, index) => (
+                    <text
+                      key={p.entry.bib}
+                      x={x0 - 8}
+                      y={p.y + 3}
+                      fill={p.entry.isSelf === true ? "var(--foreground)" : undefined}
+                    >
+                      {index + 1} {p.entry.name}
+                    </text>
+                  ))
+                : yTicks.map((value, index) => (
+                    <text key={value} x={x0 - 6} y={rowY(value - 1, entries.length, false) + 3}>
+                      {index === 0 ? `${value}位` : value}
+                    </text>
+                  ))}
+            </g>
 
-          {placed.map((p, index) => {
-            const friend = p.entry.isSelf === true;
-            const radius = friend ? FRIEND_DOT : named ? NAMED.dot : DENSE.dot;
-            const color = friend ? "currentColor" : LEG[p.leg].color;
-            return (
-              // biome-ignore lint/a11y/useSemanticElements: a <button> cannot be an SVG child
-              <g
-                key={p.entry.bib}
-                ref={(node) => {
-                  if (node) dots.current.set(p.entry.bib, node);
-                  else dots.current.delete(p.entry.bib);
-                }}
-                role="button"
-                tabIndex={index === activeIndex ? 0 : -1}
-                aria-label={`${p.entry.name} ${LEG[p.leg].label} ${p.km.toFixed(1)}km`}
-                className={cn("cursor-pointer", friend && "text-brand-cyan-400")}
-                onClick={() => {
-                  setFocusIndex(index);
-                  toggle(p.entry.bib);
-                }}
-                onKeyDown={(event) => onDotKey(event, index, p.entry.bib)}
-              >
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={radius}
-                  fill={p.filled ? color : "var(--card)"}
-                  stroke={color}
-                  strokeWidth={radius >= 3 ? 1.4 : 0.9}
-                  strokeDasharray={p.filled ? undefined : "2 2"}
-                />
-                {friend && !named ? (
-                  <text x={p.x + 8} y={p.y + 3} fontSize={9} fill="var(--foreground)">
-                    {p.entry.name}
-                    {p.entry.divisionRank ? ` ${p.entry.divisionRank.rank}位` : ""}
-                  </text>
-                ) : null}
-              </g>
-            );
-          })}
-        </svg>
+            {placed.map((p, index) => {
+              const friend = p.entry.isSelf === true;
+              const radius = friend ? FRIEND_DOT : named ? NAMED.dot : DENSE.dot;
+              const color = friend ? "currentColor" : LEG[p.leg].color;
+              return (
+                // biome-ignore lint/a11y/useSemanticElements: a <button> cannot be an SVG child
+                <g
+                  key={p.entry.bib}
+                  ref={(node) => {
+                    if (node) dots.current.set(p.entry.bib, node);
+                    else dots.current.delete(p.entry.bib);
+                  }}
+                  role="button"
+                  tabIndex={index === activeIndex ? 0 : -1}
+                  aria-label={`${p.entry.name} ${LEG[p.leg].label} ${p.km.toFixed(1)}km`}
+                  className={cn("cursor-pointer", friend && "text-brand-cyan-400")}
+                  onClick={() => {
+                    setFocusIndex(index);
+                    toggle(p.entry.bib);
+                  }}
+                  onKeyDown={(event) => onDotKey(event, index, p.entry.bib)}
+                >
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={radius}
+                    fill={p.filled ? color : "var(--card)"}
+                    stroke={color}
+                    strokeWidth={radius >= 3 ? 1.4 : 0.9}
+                    strokeDasharray={p.filled ? undefined : "2 2"}
+                  />
+                  {friend && !named ? (
+                    <text x={p.x + 8} y={p.y + 3} fontSize={9} fill="var(--foreground)">
+                      {p.entry.name}
+                      {p.entry.divisionRank ? ` ${p.entry.divisionRank.rank}位` : ""}
+                    </text>
+                  ) : null}
+                </g>
+              );
+            })}
+          </svg>
 
-        {tip ? (
-          <div
-            className="-translate-x-1/2 -translate-y-full absolute z-10 w-max max-w-[220px] rounded-md border border-border bg-popover px-2 py-1 text-popover-foreground shadow-sm"
-            style={{ left: `${(tip.x / VIEW_W) * 100}%`, top: `${((tip.y - 6) / height) * 100}%` }}
-          >
-            <p className="font-bold text-[12px]">{tip.entry.name}</p>
-            <p className="text-[11px] text-muted-foreground tabular-nums">
-              {tipRank ? `部門 ${tipRank.rank}/${tipRank.of} · ` : ""}
-              {placed.indexOf(tip) + 1} 番目 · {LEG[tip.leg].label} {tip.km.toFixed(1)} km
-            </p>
-            <Link
-              href={`/athletes/${tip.entry.bib}`}
-              className="rounded-sm font-bold text-[11px] text-primary underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          {tip ? (
+            <div
+              className="-translate-x-1/2 -translate-y-full absolute z-10 w-max max-w-[220px] rounded-md border border-border bg-popover px-2 py-1 text-popover-foreground shadow-sm"
+              style={{
+                left: `${(tip.x / VIEW_W) * 100}%`,
+                top: `${((tip.y - 6) / height) * 100}%`,
+              }}
             >
-              詳細 ›
-            </Link>
-          </div>
-        ) : null}
+              <p className="font-bold text-[12px]">{tip.entry.name}</p>
+              <p className="text-[11px] text-muted-foreground tabular-nums">
+                {tipRank ? `部門 ${tipRank.rank}/${tipRank.of} · ` : ""}
+                {placed.indexOf(tip) + 1} 番目 · {LEG[tip.leg].label} {tip.km.toFixed(1)} km
+              </p>
+              <Link
+                href={`/athletes/${tip.entry.bib}`}
+                className="rounded-sm font-bold text-[11px] text-primary underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                詳細 ›
+              </Link>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <ul className="mx-4 flex flex-wrap gap-3 text-[11px] text-muted-foreground">

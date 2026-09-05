@@ -24,7 +24,11 @@ export function WeatherPanel({ weather }: { weather: WeatherData | null }) {
     );
   }
 
-  const hours = weather.forecast.slice(0, 8);
+  // Only slots still ahead are useful; a past forecast tells nobody anything.
+  // Keep the slot in progress by rewinding three hours from now.
+  const from = Date.now() - 3 * 60 * 60 * 1000;
+  const upcoming = weather.forecast.filter((hour) => hour.timeMs >= from);
+  const hours = (upcoming.length >= 4 ? upcoming : weather.forecast).slice(0, 8);
   const observation = weather.observation;
 
   return (

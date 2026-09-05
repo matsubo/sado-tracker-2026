@@ -23,12 +23,9 @@ const SUMIYOSHI_MS = 15_154_000;
 const BIKE_MS = 10_129_000;
 const AI_TRI_HREF = "https://ai-triathlon-result.teraren.com/athletes/misaki";
 
-const EMPTY_RANKS: RankSetDto = { division: null, sex: null, ageGroup: null };
+const NO_RANKS: RankSetDto = { division: null, sex: null, ageGroup: null };
 
-const ranks = (rank: number, of: number): RankSetDto => ({
-  ...EMPTY_RANKS,
-  division: { rank, of },
-});
+const ranks = (rank: number, of: number): RankSetDto => ({ ...NO_RANKS, division: { rank, of } });
 
 /** A discipline row, defaulting to "not measured yet". */
 const leg = (
@@ -37,7 +34,7 @@ const leg = (
   timeMs: null,
   provisional: false,
   atCheckpointLabel: null,
-  ranks: EMPTY_RANKS,
+  ranks: NO_RANKS,
   deviation: null,
   speedKmh: null,
   ...over,
@@ -68,7 +65,7 @@ const split = (
   segmentKm: null,
   segmentSpeedKmh: null,
   segmentRank: null,
-  cumulativeRanks: EMPTY_RANKS,
+  cumulativeRanks: NO_RANKS,
   passedAt: START_AT + over.elapsedMs,
   ...over,
 });

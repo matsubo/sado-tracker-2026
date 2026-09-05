@@ -37,10 +37,10 @@ const RACE: RaceStateDto = {
   replay: false,
   counts: { A: {}, B: {}, RA: {}, RB: {} },
   divisions: [
-    { id: "A", label: "Aタイプ", entrants: 3, checkpoints: CHECKPOINTS },
-    { id: "B", label: "Bタイプ", entrants: 0, checkpoints: [] },
-    { id: "RA", label: "RAタイプ", entrants: 0, checkpoints: [] },
-    { id: "RB", label: "RBタイプ", entrants: 0, checkpoints: [] },
+    { id: "A", label: "Aタイプ", entrants: 3, racing: 3, checkpoints: CHECKPOINTS },
+    { id: "B", label: "Bタイプ", entrants: 0, racing: 0, checkpoints: [] },
+    { id: "RA", label: "RAタイプ", entrants: 0, racing: 0, checkpoints: [] },
+    { id: "RB", label: "RBタイプ", entrants: 0, racing: 0, checkpoints: [] },
   ],
   _links: { self: { href: "/api/race" } },
 };
