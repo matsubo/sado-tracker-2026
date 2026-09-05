@@ -212,6 +212,7 @@ export function toRaceState(snapshot: ComputedSnapshot): RaceStateDto {
   return {
     year: snapshot.year,
     fetchedAt: snapshot.fetchedAt,
+    now: snapshot.replay ? snapshot.computedAt + (Date.now() - snapshot.fetchedAt) : Date.now(),
     stale: snapshot.stale,
     replay: snapshot.replay,
     counts: snapshot.counts,

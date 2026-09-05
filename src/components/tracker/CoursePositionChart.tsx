@@ -2,7 +2,18 @@
 
 import type { Discipline } from "@/config/races";
 import type { MapEntryDto } from "@/lib/api/contract";
-import { COURSE_SEGMENTS, courseFraction, type DisciplineKm, liveKm } from "./PositionBar";
+import {
+  type Anchor,
+  type AxisLabel,
+  COURSE_SEGMENTS,
+  courseFraction,
+  type DisciplineKm,
+  edgesOf,
+  fitLabels,
+  LABEL_FONT,
+  LABEL_GAP,
+  liveKm,
+} from "./PositionBar";
 
 /** A timing point as the race endpoint publishes it. */
 export interface CourseCheckpoint {
@@ -22,9 +33,6 @@ const BAND_Y = 20;
 const TICK_TOP = 30;
 /** Keeps the rightmost distance label inside the viewBox. */
 const FLIP_X = PLOT_LEFT + PLOT_W * 0.78;
-const LABEL_FONT = 8.5;
-/** Clear space required between two axis labels, in viewBox units. */
-const LABEL_GAP = 4;
 /** Kilometre step of the scale drawn under the run band. */
 const RUN_STEP_KM = 10;
 
@@ -40,59 +48,22 @@ const BAND_COLOR: Record<Discipline, string> = {
   run: "var(--run-bg)",
 };
 
+/** A dot is solid once it sits on a timing point, dashed while projected. */
+const LEGEND = [
+  { text: "計測済み", swatch: "bg-foreground" },
+  { text: "推定", swatch: "border border-muted-foreground border-dashed" },
+  { text: "この選手", swatch: "bg-primary" },
+] as const;
+
 const isDiscipline = (value: string): value is Discipline =>
   value === "swim" || value === "bike" || value === "run";
 
 /** X coordinate of a course fraction. */
 const plotX = (fraction: number): number => PLOT_LEFT + fraction * PLOT_W;
 
-type Anchor = "start" | "middle" | "end";
-
-interface AxisLabel {
-  readonly key: string;
-  readonly text: string;
-  readonly x: number;
-  readonly anchor: Anchor;
-}
-
-/** Full-width glyphs take about one em, latin about half. */
-const CJK = /[\u3000-\u9fff\uff00-\uffef]/;
-
-/** Approximate rendered width of an axis label, in viewBox units. */
-function textWidth(text: string): number {
-  let em = 0;
-  for (const char of text) em += CJK.test(char) ? 1 : 0.55;
-  return em * LABEL_FONT;
-}
-
 /** Anchors the outermost labels inwards so they stay inside the viewBox. */
 const anchorFor = (x: number): Anchor =>
   x <= PLOT_LEFT + 4 ? "start" : x >= PLOT_RIGHT - 4 ? "end" : "middle";
-
-/** Left and right edges of a label drawn at its anchor. */
-function edgesOf(label: AxisLabel): { left: number; right: number } {
-  const width = textWidth(label.text);
-  if (label.anchor === "start") return { left: label.x, right: label.x + width };
-  if (label.anchor === "end") return { left: label.x - width, right: label.x };
-  return { left: label.x - width / 2, right: label.x + width / 2 };
-}
-
-/**
- * Keeps labels left to right, dropping any that would touch the one before.
- * Two timing points can share an x — the swim finish and the bike start are
- * the same place — so a gap test on positions alone is not enough.
- */
-function fitLabels(labels: readonly AxisLabel[]): AxisLabel[] {
-  const kept: AxisLabel[] = [];
-  let lastRight = Number.NEGATIVE_INFINITY;
-  for (const label of labels) {
-    const { left, right } = edgesOf(label);
-    if (left < lastRight + LABEL_GAP) continue;
-    kept.push(label);
-    lastRight = right;
-  }
-  return kept;
-}
 
 /** Drops the parenthetical qualifier, so "ランS（本部）" reads as "ランS". */
 const shortLabel = (label: string): string => label.replace(/[（(][^）)]*[）)]/g, "");
@@ -298,21 +269,12 @@ export function CoursePositionChart({
         })}
       </svg>
       <div className="mt-1 flex justify-center gap-3 text-[11px] text-muted-foreground">
-        <span className="inline-flex items-center gap-1">
-          <span aria-hidden="true" className="size-2 rounded-full bg-foreground" />
-          計測済み
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <span
-            aria-hidden="true"
-            className="size-2 rounded-full border border-muted-foreground border-dashed"
-          />
-          推定
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <span aria-hidden="true" className="size-2 rounded-full bg-primary" />
-          この選手
-        </span>
+        {LEGEND.map((item) => (
+          <span key={item.text} className="inline-flex items-center gap-1">
+            <span aria-hidden="true" className={`size-2 rounded-full ${item.swatch}`} />
+            {item.text}
+          </span>
+        ))}
       </div>
     </div>
   );

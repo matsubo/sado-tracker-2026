@@ -33,6 +33,7 @@ const CHECKPOINTS = [
 const RACE: RaceStateDto = {
   year: 2026,
   fetchedAt: 1_000,
+  now: 1_000,
   stale: false,
   replay: false,
   counts: { A: {}, B: {}, RA: {}, RB: {} },

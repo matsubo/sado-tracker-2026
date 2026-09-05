@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RaceStateDto } from "@/lib/api/contract";
+import { setRaceClockOffset } from "@/lib/runtime/raceClock";
 
 const POLL_MS = 15_000;
 
@@ -30,7 +31,9 @@ export function useRaceState(): SnapshotState & { refresh: () => void } {
     try {
       const response = await fetch("/api/race", { cache: "no-store" });
       if (!response.ok) throw new Error(String(response.status));
-      setRace((await response.json()) as RaceStateDto);
+      const body = (await response.json()) as RaceStateDto;
+      setRaceClockOffset(body.now);
+      setRace(body);
       setError(null);
     } catch {
       setError("最新の状況を取得できませんでした。再試行しています。");

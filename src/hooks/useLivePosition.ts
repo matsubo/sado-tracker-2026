@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { raceNow } from "@/lib/runtime/raceClock";
 import type { PositionDto } from "@/lib/api/contract";
 
 const TICK_MS = 10_000;
@@ -12,7 +13,8 @@ const TICK_MS = 10_000;
  * timing point.
  */
 export function projectKm(position: PositionDto, nowMs: number): number {
-  if (position.speedKmh <= 0) return position.estKm;
+  // Before the clock is known the server's own estimate is the best answer.
+  if (nowMs === 0 || position.speedKmh <= 0) return position.estKm;
   const since = nowMs - position.lastAt;
   if (since <= 0) return position.estKm;
   const travelled = (position.speedKmh * since) / 3_600_000;
@@ -20,12 +22,17 @@ export function projectKm(position: PositionDto, nowMs: number): number {
   return Math.min(position.lastKm + travelled, cap);
 }
 
-/** A clock that ticks slowly, for components that animate positions. */
+/**
+ * A slow clock on the race's timeline, for components that animate positions.
+ * It starts at zero so the server and client render identical markup, then
+ * takes the race clock once mounted.
+ */
 export function useLiveClock(intervalMs = TICK_MS): number {
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(0);
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), intervalMs);
+    setNow(raceNow());
+    const timer = setInterval(() => setNow(raceNow()), intervalMs);
     return () => clearInterval(timer);
   }, [intervalMs]);
 

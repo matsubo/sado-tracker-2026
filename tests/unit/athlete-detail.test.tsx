@@ -73,6 +73,7 @@ const split = (
 const raceState: RaceStateDto = {
   year: 2026,
   fetchedAt: 1_757_000_000_000,
+  now: 1_757_000_000_000,
   stale: false,
   replay: false,
   counts: { A: {}, B: {}, RA: {}, RB: {} },

@@ -146,6 +146,11 @@ export interface MapEntryDto {
 export interface RaceStateDto {
   readonly year: number;
   readonly fetchedAt: number;
+  /**
+   * The server's current time. Clients project positions against this rather
+   * than their own clock, so device skew and replay mode both stay correct.
+   */
+  readonly now: number;
   readonly stale: boolean;
   readonly replay: boolean;
   /** Counts of athletes measured at each checkpoint, per division. */

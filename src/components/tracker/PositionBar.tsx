@@ -65,6 +65,50 @@ export function courseFraction(discipline: Discipline, km: number, totals: Disci
   return base;
 }
 
+/* Axis label layout, shared with the course strip. --------------------- */
+
+export type Anchor = "start" | "middle" | "end";
+
+export interface AxisLabel {
+  readonly key: string;
+  readonly text: string;
+  readonly x: number;
+  readonly anchor: Anchor;
+}
+
+export const LABEL_FONT = 8.5;
+/** Clear space required between two axis labels, in viewBox units. */
+export const LABEL_GAP = 4;
+/** Full-width glyphs take about one em, latin about half. */
+const CJK = /[\u3000-\u9fff\uff00-\uffef]/;
+
+/** Left and right edges of a label drawn at its anchor, in viewBox units. */
+export function edgesOf(label: AxisLabel): { left: number; right: number } {
+  let em = 0;
+  for (const char of label.text) em += CJK.test(char) ? 1 : 0.55;
+  const width = em * LABEL_FONT;
+  if (label.anchor === "start") return { left: label.x, right: label.x + width };
+  if (label.anchor === "end") return { left: label.x - width, right: label.x };
+  return { left: label.x - width / 2, right: label.x + width / 2 };
+}
+
+/**
+ * Keeps labels left to right, dropping any that would touch the one before.
+ * Two timing points can share an x — the swim finish and the bike start are
+ * the same place — so a gap test on positions alone is not enough.
+ */
+export function fitLabels(labels: readonly AxisLabel[]): AxisLabel[] {
+  const kept: AxisLabel[] = [];
+  let lastRight = Number.NEGATIVE_INFINITY;
+  for (const label of labels) {
+    const { left, right } = edgesOf(label);
+    if (left < lastRight + LABEL_GAP) continue;
+    kept.push(label);
+    lastRight = right;
+  }
+  return kept;
+}
+
 /** How full each leg's bar is, given the leg the athlete is currently on. */
 function fillOf(segment: Discipline, current: Discipline, progress: number): number {
   const order: readonly Discipline[] = ["swim", "bike", "run"];
