@@ -214,3 +214,13 @@ test.describe("help", () => {
     await expect(page).toHaveURL(/\/help/);
   });
 });
+
+test.describe("manual refresh", () => {
+  test("fetches on demand, whatever the hour", async ({ request }) => {
+    const response = await request.post("/api/refresh");
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as { refreshed: boolean; year: number };
+    expect(body.refreshed).toBe(true);
+    expect(body.year).toBeGreaterThan(2000);
+  });
+});

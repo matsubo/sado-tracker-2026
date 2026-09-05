@@ -114,6 +114,10 @@ publishes it at `https://<host>.<tailnet>.ts.net/` for the tailnet only.
 | `RACE_YEAR` | Race to display, default 2026 |
 | `DATA_DIR` | Where past exports and the snapshot are cached, default `.data` |
 | `POLL_INTERVAL_MS` | How often the field is recomputed, default 60000 |
+| `FETCH_FROM_HOUR` | First hour of race day the timing site is asked, default 7 |
+| `FETCH_TO_HOUR` | Hour it stops, exclusive, default 23 |
+| `FETCH_WINDOW` | `off` to poll around the clock |
+| `REFRESH_TOKEN` | Required by `POST /api/refresh` when set |
 | `REPLAY_START` | Virtual start time; set to enable replay mode |
 | `REPLAY_SPEED` | Replay multiplier, default 60 |
 | `REPLAY_HOURS` | Race hours covered before looping, default 14 |
@@ -121,6 +125,12 @@ publishes it at `https://<host>.<tailnet>.ts.net/` for the tailnet only.
 Production runs with `RACE_YEAR`, `TZ` and `DATA_DIR` only. Setting any
 `REPLAY_*` variable switches the server to a past race, so they must be absent
 on race day.
+
+The timing site is only asked between 07:00 and 23:00 Tokyo time on the race
+date itself: before and after that the file cannot have changed, and polling it
+is load on someone else's server for nothing. A start-up always fetches once
+whatever the hour, so a server brought up the night before still serves the
+entry list, and `POST /api/refresh` fetches on demand.
 
 ## Data
 

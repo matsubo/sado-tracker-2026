@@ -87,6 +87,8 @@ export interface ComputedSnapshot {
   /** Race seconds per real second; 1 outside replay. */
   readonly clockSpeed: number;
   readonly config: RaceConfig;
+  /** The parsed records this was computed from, so a recompute needs no refetch. */
+  readonly raw: RaceSnapshot;
   readonly athletes: ReadonlyMap<string, ComputedAthlete>;
   readonly byDivision: Readonly<Record<Division, readonly string[]>>;
   readonly counts: Readonly<Record<Division, Readonly<Record<string, number>>>>;
@@ -257,6 +259,7 @@ export function computeSnapshot(
     pollIntervalMs: options.pollIntervalMs ?? 60_000,
     clockSpeed: options.clockSpeed ?? 1,
     config,
+    raw: snapshot,
     athletes,
     byDivision,
     counts,
