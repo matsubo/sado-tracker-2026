@@ -44,6 +44,10 @@ function explanationRows(prediction: PredictionDto, startAt: number): readonly R
   const e = prediction.explanation;
   const candidates: readonly (Row | null)[] = [
     {
+      term: "予想の幅の意味",
+      value: "似た選手の半数がこの範囲でゴールしました（25〜75 パーセンタイル）",
+    },
+    {
       term: "近傍の残り時間",
       value: `25% ${formatDurationShort(e.remainingP25Ms)} · 中央値 ${formatDurationShort(
         e.remainingMedianMs,
@@ -84,19 +88,26 @@ export function PredictionBox({ prediction, startAt }: PredictionBoxProps): Reac
   return (
     <div className="overflow-hidden rounded-lg border border-border">
       <div className="flex items-end gap-3 px-3.5 py-3">
-        <div className="font-bold text-[32px] leading-none tracking-tight tnum">
-          {formatClockShort(prediction.finishAt)}
-          <span className="ml-1 font-medium text-[14px] text-muted-foreground">頃</span>
+        <div>
+          {/* Without this label the large time reads as a fact about the
+              race rather than a prediction of when this athlete finishes. */}
+          <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-wider">
+            予想ゴール時刻
+          </p>
+          <p className="mt-0.5 font-bold text-[32px] leading-none tracking-tight tnum">
+            {formatClockShort(prediction.finishAt)}
+            <span className="ml-1 font-medium text-[14px] text-muted-foreground">頃</span>
+          </p>
         </div>
         <div className="text-[12px] text-muted-foreground leading-snug tnum">
-          総合 <b className="font-semibold text-foreground">{formatDuration(prediction.totalMs)}</b>{" "}
-          前後
-          <br />幅{" "}
+          予想タイム{" "}
+          <b className="font-semibold text-foreground">{formatDuration(prediction.totalMs)}</b>
+          <br />
+          予想の幅{" "}
           <b className="font-semibold text-foreground">
             {formatClockShort(startAt + prediction.rangeLowMs)}〜
             {formatClockShort(startAt + prediction.rangeHighMs)}
           </b>
-          （25〜75%）
         </div>
         <button
           type="button"

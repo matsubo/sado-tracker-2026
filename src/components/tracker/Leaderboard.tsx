@@ -156,7 +156,7 @@ export function Leaderboard() {
               </span>
               {!finished && athlete.prediction ? (
                 <span className="shrink-0 text-right">
-                  <span className="block text-[10px] text-muted-foreground">予想</span>
+                  <span className="block text-[10px] text-muted-foreground">予想ゴール</span>
                   <span className="block font-bold text-[14px] tabular-nums">
                     {formatClockShort(athlete.prediction.finishAt)}
                   </span>

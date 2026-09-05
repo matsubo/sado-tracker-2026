@@ -14,7 +14,7 @@ export function PredictionSummary({ prediction }: { prediction: PredictionDto | 
   return (
     <div className="flex items-center gap-2.5">
       <div>
-        <p className="font-bold text-[11px] text-muted-foreground">予想ゴール</p>
+        <p className="font-bold text-[11px] text-muted-foreground">予想ゴール時刻</p>
         <p className="font-bold text-[22px] leading-none tabular-nums">
           {formatClockShort(prediction.finishAt)}
         </p>
