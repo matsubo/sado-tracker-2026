@@ -39,7 +39,7 @@ export function LiveStatusBar({
           <span
             className={cn(
               "mr-1.5 inline-block h-[7px] w-[7px] rounded-full align-[1px]",
-              stale ? "bg-[color:var(--bike)]" : "bg-[color:var(--good)]",
+              stale ? "bg-[color:var(--warn)]" : "bg-[color:var(--good)]",
             )}
             aria-hidden
           />

@@ -73,7 +73,7 @@ export function AppHeader({
             data-stale={stale}
             className={cn(
               "size-[7px] shrink-0 rounded-full",
-              stale ? "bg-amber-500" : "bg-[color:var(--good)]",
+              stale ? "bg-[color:var(--warn)]" : "bg-[color:var(--good)]",
             )}
           />
           <span className="truncate">

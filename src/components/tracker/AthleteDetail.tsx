@@ -107,6 +107,7 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
     data: detail,
     loading,
     error,
+    missing,
   } = useLiveResource<AthleteDetailDto>(`/api/athletes/${bib}`, fetchedAt);
   const { has, add, remove, ready } = useBookmarks();
   const nowMs = useLiveClock();
@@ -117,7 +118,9 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
     return (
       <div className="px-4 py-10 text-center">
         <p className="text-[13px] text-muted-foreground">
-          ゼッケン {bib} の情報を表示できませんでした。少し時間をおいて開き直してください。
+          {missing
+            ? `ゼッケン ${bib} は今年のエントリーに見つかりませんでした。番号をお確かめください。`
+            : `ゼッケン ${bib} の情報を表示できませんでした。少し時間をおいて開き直してください。`}
         </p>
         <Link
           href="/"

@@ -75,15 +75,19 @@ export function useLiveResource<T>(
 ): {
   data: T | null;
   error: string | null;
+  /** True when the server said the resource does not exist. */
+  missing: boolean;
   loading: boolean;
 } {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [missing, setMissing] = useState(false);
   const [loading, setLoading] = useState(url !== null);
 
   useEffect(() => {
     if (url === null) {
       setData(null);
+      setMissing(false);
       setLoading(false);
       return;
     }
@@ -95,10 +99,18 @@ export function useLiveResource<T>(
     void (async () => {
       try {
         const response = await fetch(versioned, { cache: "no-store" });
+        if (response.status === 404) {
+          if (!cancelled) {
+            setMissing(true);
+            setError(null);
+          }
+          return;
+        }
         if (!response.ok) throw new Error(String(response.status));
         const body = (await response.json()) as T;
         if (!cancelled) {
           setData(body);
+          setMissing(false);
           setError(null);
         }
       } catch {
@@ -113,5 +125,5 @@ export function useLiveResource<T>(
     };
   }, [url, fetchedAt]);
 
-  return { data, error, loading };
+  return { data, error, missing, loading };
 }

@@ -209,3 +209,74 @@ describe("ranking pages", () => {
     expect(page.rows).toEqual([]);
   });
 });
+
+describe("ranking pagination", () => {
+  it("opens on the target athlete's page when no page is requested", () => {
+    const first = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
+      targetBib: null,
+    });
+    const deepTarget = first.rows[0]?.bib as string;
+    const all = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: null,
+      perPage: 50,
+      targetBib: deepTarget,
+    });
+    expect(all.rows.some((row) => row.isTarget)).toBe(true);
+  });
+
+  it("respects an explicit page rather than snapping back to the target", () => {
+    const first = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
+      targetBib: null,
+    });
+    const target = first.rows[10]?.bib as string;
+
+    // Page 3 must stay page 3 even though the target sits on page 1: otherwise
+    // a reader who pages forward is thrown back every time.
+    const third = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: 3,
+      perPage: 50,
+      targetBib: target,
+    });
+    expect(third.page).toBe(3);
+    expect(third.rows.some((row) => row.isTarget)).toBe(false);
+    expect(third.rows[0]?.rank).toBeGreaterThan(100);
+  });
+
+  it("still centres on a target deep in the table", () => {
+    const rows = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: 5,
+      perPage: 50,
+      targetBib: null,
+    });
+    const deepBib = rows.rows[5]?.bib as string;
+    const centred = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: null,
+      perPage: 50,
+      targetBib: deepBib,
+    });
+    expect(centred.page).toBe(5);
+    expect(centred.rows.some((row) => row.isTarget)).toBe(true);
+  });
+});

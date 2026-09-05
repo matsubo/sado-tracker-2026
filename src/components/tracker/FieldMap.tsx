@@ -6,7 +6,7 @@ import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
 import { type AgeGroup, compareAgeGroups, type Division, normalizeAgeGroup } from "@/config/races";
 import { useBookmarks } from "@/hooks/useBookmarks";
-import { useLiveClock } from "@/hooks/useLivePosition";
+import { projectKm, useLiveClock } from "@/hooks/useLivePosition";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
 import type { MapEntryDto, PositionDto, RaceStateDto } from "@/lib/api/contract";
 import { cn } from "@/lib/utils/cn";
@@ -108,16 +108,12 @@ function scaleKm(axis: Axis, leg: Leg, km: number): number {
 }
 
 /**
- * Advance the server's own estimate by the time elapsed in this browser since
- * the payload arrived, capped at the next timing point exactly as the server
- * caps it. Re-projecting from `lastAt` with the browser clock instead would
- * be wrong whenever the two run on different timelines: the replay server
- * reports a past race, and every athlete would pin to their cap at once.
+ * Where an athlete is now, on the race clock. The shared projection keeps the
+ * map, the friend cards and the athlete page in agreement about the same
+ * athlete.
  */
-function advanceKm(position: PositionDto, elapsedMs: number): number {
-  if (position.inTransition || position.speedKmh <= 0 || elapsedMs <= 0) return position.estKm;
-  const travelled = (position.speedKmh * elapsedMs) / 3_600_000;
-  return Math.min(position.estKm + travelled, Math.max(position.lastKm, position.capKm - 0.1));
+function advanceKm(position: PositionDto, nowMs: number): number {
+  return projectKm(position, nowMs);
 }
 
 /** Rows run top to bottom: the leader first, then one row per athlete. */
@@ -219,15 +215,6 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
   const url = ready ? `/api/map?div=${division}${friends ? `&bibs=${friends}` : ""}` : null;
   const { data, error, loading } = useLiveResource<MapPayload>(url, fetchedAt);
 
-  // How long this browser has held the current snapshot, which is the only
-  // interval both clocks agree on.
-  const receivedAt = useRef(Date.now());
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the snapshot time is the trigger, not an input
-  useEffect(() => {
-    receivedAt.current = Date.now();
-  }, [data?.fetchedAt]);
-  const sinceSnapshot = Math.max(0, now - receivedAt.current);
-
   const checkpoints: readonly Checkpoint[] =
     race?.divisions.find((entry) => entry.id === division)?.checkpoints ?? [];
 
@@ -276,7 +263,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
     () =>
       entries.map((entry, index) => {
         const { position } = entry;
-        const km = advanceKm(position, sinceSnapshot);
+        const km = advanceKm(position, now);
         const leg = toLeg(position.discipline);
         return {
           entry,
@@ -287,7 +274,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
           filled: position.waiting || position.inTransition || position.speedKmh <= 0,
         };
       }),
-    [entries, axis, named, sinceSnapshot],
+    [entries, axis, named, now],
   );
 
   const yTicks = useMemo(() => {

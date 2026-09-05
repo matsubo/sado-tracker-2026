@@ -32,21 +32,15 @@ export type DisciplineKm = Readonly<Record<Discipline, number>>;
  * race data is polled every 15 s, so two minutes covers a slow poll with room
  * to spare.
  */
-const MAX_PROJECTION_MS = 120_000;
 
 /**
- * Move an athlete forward between server updates.
- *
- * The projection starts from the estimate the server already computed and is
- * capped at two minutes of travel, rather than running from the last timing
- * point on the browser's clock. The two clocks are not the same clock: a
- * replay feed carries last year's timestamps, so an uncapped projection from
- * `lastAt` advances every athlete by months and parks the whole field on the
- * next timing point.
+ * Where an athlete is now, on the race clock. This delegates to the one
+ * shared projection so the friend card, the athlete page and the field map
+ * never disagree about the same athlete, and so a server snapshot that stops
+ * refreshing degrades identically on all three.
  */
 export function liveKm(position: PositionDto, nowMs: number): number {
-  const elapsed = Math.min(Math.max(nowMs - position.lastAt, 0), MAX_PROJECTION_MS);
-  return projectKm({ ...position, lastKm: position.estKm, lastAt: 0 }, elapsed);
+  return projectKm(position, nowMs);
 }
 
 /** Clamps a value into the closed unit interval. */

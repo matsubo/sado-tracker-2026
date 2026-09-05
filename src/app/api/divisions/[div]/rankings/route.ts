@@ -11,7 +11,7 @@ const PER_PAGE = 50;
 const querySchema = z.object({
   discipline: z.enum(["swim", "bike", "run", "total"]).default("total"),
   ageGroup: z.string().trim().max(12).optional(),
-  page: z.coerce.number().int().min(1).max(200).default(1),
+  page: z.coerce.number().int().min(1).max(200).optional(),
   bib: z.string().trim().max(12).optional(),
 });
 
@@ -42,7 +42,7 @@ export async function GET(
     division,
     discipline: parsed.data.discipline as RankingDiscipline,
     ageGroupId: parsed.data.ageGroup ?? null,
-    page: parsed.data.page,
+    page: parsed.data.page ?? null,
     perPage: PER_PAGE,
     targetBib: parsed.data.bib ?? null,
   });

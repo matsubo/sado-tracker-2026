@@ -7,10 +7,10 @@ import { raceNow } from "@/lib/runtime/raceClock";
 const TICK_MS = 10_000;
 
 /**
- * Advance an estimated position between server updates, so the course map
- * keeps moving instead of freezing for a minute. The maths mirrors the
- * server: distance covered at the last known speed, capped at the next
- * timing point.
+ * Advance an estimated position between server updates, so the course keeps
+ * moving instead of freezing for a minute. This mirrors the server exactly,
+ * which is why it must run on the race clock rather than the device clock:
+ * given the same instant, client and server produce the same kilometre.
  */
 export function projectKm(position: PositionDto, nowMs: number): number {
   // Before the clock is known the server's own estimate is the best answer.

@@ -34,7 +34,8 @@ export interface RankingQuery {
   readonly division: Division;
   readonly discipline: RankingDiscipline;
   readonly ageGroupId: string | null;
-  readonly page: number;
+  /** Null means the caller expressed no preference, so the target may lead. */
+  readonly page: number | null;
   readonly perPage: number;
   readonly targetBib: string | null;
 }
@@ -76,10 +77,11 @@ export function buildRankingPage(snapshot: ComputedSnapshot, query: RankingQuery
     };
   });
 
-  // Centre the page on the target athlete when one is given and present.
+  // Open on the target athlete's page when the caller did not name one. Once
+  // the reader pages themselves, their choice stands: re-centring on every
+  // page 1 would make the pages before the target unreachable.
   const targetIndex = rows.findIndex((row) => row.isTarget);
-  const effectivePage =
-    targetIndex >= 0 && page === 1 ? Math.floor(targetIndex / perPage) + 1 : page;
+  const effectivePage = page ?? (targetIndex >= 0 ? Math.floor(targetIndex / perPage) + 1 : 1);
   const start = (effectivePage - 1) * perPage;
 
   const targetComputed = targetBib ? snapshot.athletes.get(targetBib) : undefined;
