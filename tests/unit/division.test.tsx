@@ -77,7 +77,11 @@ function page(partial: Partial<RankingPageDto> = {}): RankingPageDto {
   };
 }
 
-function position(discipline: "swim" | "bike" | "run", estKm: number, waiting: boolean): PositionDto {
+function position(
+  discipline: "swim" | "bike" | "run",
+  estKm: number,
+  waiting: boolean,
+): PositionDto {
   return {
     discipline,
     lastCheckpointLabel: null,

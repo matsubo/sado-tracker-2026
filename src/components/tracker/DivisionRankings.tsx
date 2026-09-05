@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { RankingTable } from "@/components/tracker/RankingTable";
 import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
-import { type AgeGroup, type Division, compareAgeGroups, normalizeAgeGroup } from "@/config/races";
+import { type AgeGroup, compareAgeGroups, type Division, normalizeAgeGroup } from "@/config/races";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
 import type { RankingPageDto } from "@/lib/api/contract";
 import { cn } from "@/lib/utils/cn";

@@ -36,7 +36,7 @@ export function DisciplineLines({ disciplines }: { disciplines: readonly Discipl
             <dt className={cn("font-bold", !missing && TEXT[row.discipline])}>{row.label}</dt>
             <dd className="font-semibold text-[15px] tabular-nums">
               {missing ? "—" : formatDuration(row.timeMs as number)}
-              {row.provisional ? (
+              {row.provisional && !missing ? (
                 <sup className="ml-0.5 font-bold text-[9px] text-[color:var(--bike)]">暫定</sup>
               ) : null}
             </dd>

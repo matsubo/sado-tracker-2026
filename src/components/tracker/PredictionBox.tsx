@@ -49,9 +49,7 @@ function explanationRows(prediction: PredictionDto, startAt: number): readonly R
         e.remainingMedianMs,
       )} · 75% ${formatDurationShort(e.remainingP75Ms)}`,
     },
-    ownSpeedText(e) === null
-      ? null
-      : { term: "本人の直近区間", value: ownSpeedText(e) as string },
+    ownSpeedText(e) === null ? null : { term: "本人の直近区間", value: ownSpeedText(e) as string },
     yearBreakdownText(e.yearBreakdown) === null
       ? null
       : { term: "近傍の年内訳", value: yearBreakdownText(e.yearBreakdown) as string },
@@ -91,7 +89,8 @@ export function PredictionBox({ prediction, startAt }: PredictionBoxProps): Reac
           <span className="ml-1 font-medium text-[14px] text-muted-foreground">頃</span>
         </div>
         <div className="text-[12px] text-muted-foreground leading-snug tnum">
-          総合 <b className="font-semibold text-foreground">{formatDuration(prediction.totalMs)}</b> 前後
+          総合 <b className="font-semibold text-foreground">{formatDuration(prediction.totalMs)}</b>{" "}
+          前後
           <br />幅{" "}
           <b className="font-semibold text-foreground">
             {formatClockShort(startAt + prediction.rangeLowMs)}〜
@@ -123,8 +122,8 @@ export function PredictionBox({ prediction, startAt }: PredictionBoxProps): Reac
             {prediction.method === "neighbours" ? (
               <>
                 過去の完走者から、{prediction.atCheckpointLabel} までの走り方が近い{" "}
-                {prediction.explanation.neighbourCount} 人を選び、その {prediction.atCheckpointLabel}{" "}
-                からゴールまでの所要時間の中央値{" "}
+                {prediction.explanation.neighbourCount} 人を選び、その{" "}
+                {prediction.atCheckpointLabel} からゴールまでの所要時間の中央値{" "}
                 <b className="font-semibold text-foreground">
                   {formatDuration(prediction.explanation.remainingMedianMs)}
                 </b>{" "}
@@ -132,7 +131,8 @@ export function PredictionBox({ prediction, startAt }: PredictionBoxProps): Reac
               </>
             ) : (
               <>
-                {prediction.atCheckpointLabel} までの平均速度のまま残りの距離を進んだとして計算しました。
+                {prediction.atCheckpointLabel}{" "}
+                までの平均速度のまま残りの距離を進んだとして計算しました。
                 近傍にできる過去の完走者が足りないため、中央値{" "}
                 <b className="font-semibold text-foreground">
                   {formatDuration(prediction.explanation.remainingMedianMs)}

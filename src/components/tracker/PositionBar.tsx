@@ -29,11 +29,7 @@ export type DisciplineKm = Readonly<Record<Discipline, number>>;
 const unit = (value: number): number => Math.min(Math.max(value, 0), 1);
 
 /** Position along the whole course, as a fraction between 0 and 1. */
-export function courseFraction(
-  discipline: Discipline,
-  km: number,
-  totals: DisciplineKm,
-): number {
+export function courseFraction(discipline: Discipline, km: number, totals: DisciplineKm): number {
   let base = 0;
   for (const segment of COURSE_SEGMENTS) {
     if (segment.discipline === discipline) {
@@ -109,7 +105,10 @@ export function PositionBar({
           return (
             <div
               key={segment.discipline}
-              className={cn("relative h-2.5 rounded-full bg-muted", SEGMENT_BASIS[segment.discipline])}
+              className={cn(
+                "relative h-2.5 rounded-full bg-muted",
+                SEGMENT_BASIS[segment.discipline],
+              )}
             >
               <div
                 className={cn("absolute inset-y-0 left-0 rounded-full", TONE_FILL[segment.tone])}

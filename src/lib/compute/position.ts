@@ -79,18 +79,32 @@ interface Anchor {
   readonly at: number;
 }
 
-/** Where the athlete was last actually measured, and on which leg. */
+/**
+ * Where the athlete was last measured, expressed on the leg they are now on.
+ * Two checkpoints sit on a boundary and must be read forwards, not backwards:
+ * `swimF` ends the swim and puts the athlete in T1 at bike km 0, and `runS`
+ * ends the bike and puts them on the run at km 0. Reading either as the end
+ * of the leg it closes would park the athlete at the far end of a leg they
+ * have already finished.
+ */
 function findAnchor(athlete: Athlete, course: DivisionCourse): Anchor {
   const latest = latestCheckpoint(athlete, course);
   if (latest === null) {
     return { discipline: "swim", checkpoint: null, km: 0, at: athlete.startAt };
   }
+
   const checkpoint = course.checkpoints.find((c) => c.id === latest) as CheckpointDef;
+  const at = athlete.passes[latest] as number;
+
+  if (checkpoint.id === "runS") {
+    return { discipline: "run", checkpoint, km: 0, at };
+  }
+
   return {
     discipline: checkpoint.discipline === "transition" ? "bike" : checkpoint.discipline,
     checkpoint,
     km: checkpoint.km,
-    at: athlete.passes[latest] as number,
+    at,
   };
 }
 
@@ -127,7 +141,7 @@ export function estimatePosition(
     };
   }
 
-  // The bike leg opens at bikeS; between swimF and bikeS the athlete is in T1.
+  // Between swimF and bikeS the athlete is in T1, at the start of the bike.
   const inTransition = anchor.checkpoint?.id === "swimF";
   const discipline: Discipline = inTransition ? "bike" : anchor.discipline;
   const legCheckpoints = checkpointsOf(course, discipline);
@@ -139,7 +153,7 @@ export function estimatePosition(
   let speed: number | null = null;
   let source: PositionEstimate["source"] = "none";
 
-  if (!inTransition && anchor.checkpoint) {
+  if (!inTransition && anchor.checkpoint && anchor.checkpoint.id !== "runS") {
     const index = checkpointIndex(course, anchor.checkpoint.id);
     const previous = course.checkpoints[index - 1];
     if (previous && previous.discipline === anchor.checkpoint.discipline) {

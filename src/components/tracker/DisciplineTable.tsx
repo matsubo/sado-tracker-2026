@@ -1,5 +1,6 @@
 "use client";
 
+import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import type { Discipline } from "@/config/races";
 import type { DisciplineDto, SplitDto } from "@/lib/api/contract";
 import {
@@ -11,7 +12,6 @@ import {
   formatSpeedKmh,
   formatSwimPace,
 } from "@/lib/format";
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { cn } from "@/lib/utils/cn";
 
 const DASH = "—";
@@ -91,8 +91,12 @@ export function DisciplineTable({ rows, splits }: DisciplineTableProps): React.J
                 ) : null}
               </TD>
               <TD>{paceText(row, splits)}</TD>
-              <TD>{formatRankOrDash(row.ranks.division?.rank ?? null, row.ranks.division?.of ?? null)}</TD>
-              <TD>{formatRankOrDash(row.ranks.ageGroup?.rank ?? null, row.ranks.ageGroup?.of ?? null)}</TD>
+              <TD>
+                {formatRankOrDash(row.ranks.division?.rank ?? null, row.ranks.division?.of ?? null)}
+              </TD>
+              <TD>
+                {formatRankOrDash(row.ranks.ageGroup?.rank ?? null, row.ranks.ageGroup?.of ?? null)}
+              </TD>
               <TD>{formatDeviation(row.deviation)}</TD>
             </TR>
           );

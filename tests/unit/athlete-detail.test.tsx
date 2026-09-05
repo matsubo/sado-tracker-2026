@@ -2,7 +2,15 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AthleteDetailDto, RaceStateDto, RankSetDto } from "@/lib/api/contract";
+import type {
+  AthleteDetailDto,
+  DisciplineDto,
+  MapEntryDto,
+  PositionDto,
+  RaceStateDto,
+  RankSetDto,
+  SplitDto,
+} from "@/lib/api/contract";
 
 vi.mock("@/components/tracker/RankChart", () => ({
   RankChart: (): null => null,
@@ -16,14 +24,75 @@ const SWIM_MS = 5_025_000;
 const T1_MS = 5_517_000;
 const SUMIYOSHI_MS = 15_154_000;
 const BIKE_MS = 10_129_000;
-const AI_TRI_HREF = "https://ai-triathlon-result.teraren.com/athletes/%E4%B8%A1%E6%B4%A5%20%E7%BE%8E%E5%92%B2";
+const AI_TRI_HREF = "https://ai-triathlon-result.teraren.com/athletes/misaki";
 
 const EMPTY_RANKS: RankSetDto = { division: null, sex: null, ageGroup: null };
 
-const ranks = (division: number, of: number): RankSetDto => ({
-  division: { rank: division, of },
+const ranks = (rank: number, of: number): RankSetDto => ({
+  division: { rank, of },
   sex: null,
   ageGroup: null,
+});
+
+/** A discipline row, defaulting to "no time yet". */
+const leg = (
+  over: Partial<DisciplineDto> & Pick<DisciplineDto, "discipline" | "label" | "km">,
+): DisciplineDto => ({
+  timeMs: null,
+  provisional: false,
+  atCheckpointLabel: null,
+  ranks: EMPTY_RANKS,
+  deviation: null,
+  speedKmh: null,
+  ...over,
+});
+
+/** Somewhere on the bike leg, having last been measured at 住吉. */
+const onBike = (estKm: number, lastAt: number, speedKmh: number): PositionDto => ({
+  discipline: "bike",
+  lastCheckpointLabel: "住吉",
+  lastKm: 100,
+  lastAt,
+  speedKmh,
+  capKm: 190,
+  estKm,
+  totalKm: 190,
+  waiting: false,
+  inTransition: false,
+  source: "own",
+});
+
+/** A split, with the pass time derived from the elapsed time. */
+const split = (
+  over: Partial<SplitDto> &
+    Pick<SplitDto, "checkpointId" | "label" | "discipline" | "km" | "elapsedMs">,
+): SplitDto => ({
+  kmInferred: false,
+  segmentMs: null,
+  segmentKm: null,
+  segmentSpeedKmh: null,
+  segmentRank: null,
+  cumulativeRanks: EMPTY_RANKS,
+  passedAt: START_AT + over.elapsedMs,
+  ...over,
+});
+
+/** An age-group rival on the course strip. */
+const neighbour = (
+  bib: string,
+  name: string,
+  rank: number,
+  position: PositionDto,
+  isSelf?: true,
+): MapEntryDto => ({
+  bib,
+  name,
+  ageGroupId: "F45-49",
+  status: "racing",
+  fieldOrder: rank,
+  divisionRank: { rank, of: 412 },
+  position,
+  ...(isSelf === undefined ? {} : { isSelf }),
 });
 
 const raceState: RaceStateDto = {
@@ -67,18 +136,15 @@ const detail: AthleteDetailDto = {
     ageGroup: { rank: 7, of: 23 },
   },
   disciplines: [
-    {
+    leg({
       discipline: "swim",
       label: "スイム",
       km: 4,
       timeMs: SWIM_MS,
-      provisional: false,
-      atCheckpointLabel: null,
       ranks: ranks(234, 980),
       deviation: 54,
-      speedKmh: null,
-    },
-    {
+    }),
+    leg({
       discipline: "bike",
       label: "バイク",
       km: 190,
@@ -88,32 +154,10 @@ const detail: AthleteDetailDto = {
       ranks: ranks(201, 412),
       deviation: 56,
       speedKmh: 37.3,
-    },
-    {
-      discipline: "run",
-      label: "ラン",
-      km: 42.2,
-      timeMs: null,
-      provisional: false,
-      atCheckpointLabel: null,
-      ranks: EMPTY_RANKS,
-      deviation: null,
-      speedKmh: null,
-    },
+    }),
+    leg({ discipline: "run", label: "ラン", km: 42.2 }),
   ],
-  position: {
-    discipline: "bike",
-    lastCheckpointLabel: "住吉",
-    lastKm: 100,
-    lastAt: START_AT + SUMIYOSHI_MS,
-    speedKmh: 32.1,
-    capKm: 190,
-    estKm: 132,
-    totalKm: 190,
-    waiting: false,
-    inTransition: false,
-    source: "own",
-  },
+  position: onBike(132, START_AT + SUMIYOSHI_MS, 32.1),
   prediction: {
     method: "neighbours",
     atCheckpointLabel: "住吉",
@@ -138,48 +182,36 @@ const detail: AthleteDetailDto = {
   officialTotal: null,
   remark: "",
   splits: [
-    {
+    split({
       checkpointId: "swimF",
       label: "スイムF",
       discipline: "swim",
       km: 4,
-      kmInferred: false,
-      passedAt: START_AT + SWIM_MS,
       elapsedMs: SWIM_MS,
       segmentMs: SWIM_MS,
       segmentKm: 4,
-      segmentSpeedKmh: null,
       segmentRank: { rank: 228, of: 980 },
-      cumulativeRanks: ranks(228, 980),
-    },
-    {
+    }),
+    split({
       checkpointId: "bikeS",
       label: "バイクS",
       discipline: "transition",
       km: 0,
-      kmInferred: false,
-      passedAt: START_AT + T1_MS,
       elapsedMs: T1_MS,
       segmentMs: T1_MS - SWIM_MS,
-      segmentKm: null,
-      segmentSpeedKmh: null,
-      segmentRank: null,
-      cumulativeRanks: ranks(240, 975),
-    },
-    {
+    }),
+    split({
       checkpointId: "sumiyoshi",
       label: "住吉",
       discipline: "bike",
       km: 100,
       kmInferred: true,
-      passedAt: START_AT + SUMIYOSHI_MS,
       elapsedMs: SUMIYOSHI_MS,
       segmentMs: SUMIYOSHI_MS - T1_MS,
       segmentKm: 100,
       segmentSpeedKmh: 37.3,
       segmentRank: { rank: 201, of: 412 },
-      cumulativeRanks: ranks(198, 412),
-    },
+    }),
   ],
   rankHistory: [
     { checkpointId: "swimF", label: "スイムF", ranks: ranks(234, 980) },
@@ -187,49 +219,8 @@ const detail: AthleteDetailDto = {
   ],
   pastResults: [],
   neighbours: [
-    {
-      bib: "1200",
-      name: "畑野 結衣",
-      ageGroupId: "F45-49",
-      status: "racing",
-      fieldOrder: 4,
-      divisionRank: { rank: 150, of: 412 },
-      position: {
-        discipline: "bike",
-        lastCheckpointLabel: "住吉",
-        lastKm: 100,
-        lastAt: START_AT + SUMIYOSHI_MS - 600_000,
-        speedKmh: 33.4,
-        capKm: 190,
-        estKm: 143,
-        totalKm: 190,
-        waiting: false,
-        inTransition: false,
-        source: "own",
-      },
-    },
-    {
-      bib: "1234",
-      name: "両津 美咲",
-      ageGroupId: "F45-49",
-      status: "racing",
-      fieldOrder: 5,
-      divisionRank: { rank: 198, of: 412 },
-      position: {
-        discipline: "bike",
-        lastCheckpointLabel: "住吉",
-        lastKm: 100,
-        lastAt: START_AT + SUMIYOSHI_MS,
-        speedKmh: 32.1,
-        capKm: 190,
-        estKm: 132,
-        totalKm: 190,
-        waiting: false,
-        inTransition: false,
-        source: "own",
-      },
-      isSelf: true,
-    },
+    neighbour("1200", "畑野 結衣", 150, onBike(143, START_AT + SUMIYOSHI_MS - 600_000, 33.4)),
+    neighbour("1234", "両津 美咲", 198, onBike(132, START_AT + SUMIYOSHI_MS, 32.1), true),
   ],
   _links: {
     self: { href: "/api/athletes/1234" },
@@ -250,7 +241,7 @@ function stubFetch(): void {
   );
 }
 
-/** Renders the page and waits for the first data-driven text to appear. */
+/** Renders the page and waits for the athlete data to land. */
 async function renderDetail(): Promise<void> {
   render(<AthleteDetail bib="1234" />);
   await screen.findByRole("heading", { level: 1 });
@@ -262,6 +253,13 @@ function tile(label: string): HTMLElement {
   const parent = heading.parentElement;
   if (parent === null) throw new Error(`tile ${label} has no container`);
   return parent;
+}
+
+/** The table row containing the given label cell. */
+function row(label: string): HTMLElement {
+  const cell = screen.getByText(label).closest("tr");
+  if (cell === null) throw new Error(`no row for ${label}`);
+  return cell;
 }
 
 describe("AthleteDetail", () => {
@@ -301,16 +299,12 @@ describe("AthleteDetail", () => {
 
   it("marks a discipline still in progress as 暫定", async () => {
     await renderDetail();
-    const bikeRow = screen.getByText("バイク 190km").closest("tr");
-    expect(bikeRow).not.toBeNull();
-    expect(within(bikeRow as HTMLElement).getByText("暫定")).toBeInTheDocument();
+    expect(within(row("バイク 190km")).getByText("暫定")).toBeInTheDocument();
   });
 
   it("renders an em dash for a discipline with no time yet", async () => {
     await renderDetail();
-    const runRow = screen.getByText("ラン 42.2km").closest("tr");
-    expect(runRow).not.toBeNull();
-    expect(within(runRow as HTMLElement).getAllByText("—").length).toBeGreaterThan(0);
+    expect(within(row("ラン 42.2km")).getAllByText("—").length).toBeGreaterThan(0);
   });
 
   it("renders the empty state when there are no past results", async () => {

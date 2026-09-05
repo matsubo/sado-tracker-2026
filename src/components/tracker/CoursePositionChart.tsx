@@ -1,9 +1,9 @@
 "use client";
 
 import type { Discipline } from "@/config/races";
-import type { MapEntryDto } from "@/lib/api/contract";
 import { projectKm } from "@/hooks/useLivePosition";
-import { COURSE_SEGMENTS, type DisciplineKm, courseFraction } from "./PositionBar";
+import type { MapEntryDto } from "@/lib/api/contract";
+import { COURSE_SEGMENTS, courseFraction, type DisciplineKm } from "./PositionBar";
 
 /** A timing point as the race endpoint publishes it. */
 export interface CourseCheckpoint {
@@ -155,7 +155,9 @@ export function CoursePositionChart({
               key={label.id}
               x={label.x}
               y={14}
-              textAnchor={label.x <= PLOT_LEFT + 8 ? "start" : label.x >= PLOT_RIGHT - 8 ? "end" : "middle"}
+              textAnchor={
+                label.x <= PLOT_LEFT + 8 ? "start" : label.x >= PLOT_RIGHT - 8 ? "end" : "middle"
+              }
             >
               {label.label}
             </text>

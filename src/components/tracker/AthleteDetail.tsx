@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import type { Discipline, Division } from "@/config/races";
-import type { AthleteDetailDto, RankDto } from "@/lib/api/contract";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Discipline, Division } from "@/config/races";
 import { useBookmarks } from "@/hooks/useBookmarks";
 import { projectKm, useLiveClock } from "@/hooks/useLivePosition";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
+import type { AthleteDetailDto, RankDto } from "@/lib/api/contract";
 import { formatClock, formatClockShort, formatDuration } from "@/lib/format";
 import { CoursePositionChart } from "./CoursePositionChart";
 import { DisciplineTable } from "./DisciplineTable";
@@ -103,10 +103,11 @@ interface AthleteDetailProps {
 /** Everything known about one athlete, ordered the way a supporter reads it. */
 export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
   const { race, fetchedAt } = useRaceState();
-  const { data: detail, loading, error } = useLiveResource<AthleteDetailDto>(
-    `/api/athletes/${bib}`,
-    fetchedAt,
-  );
+  const {
+    data: detail,
+    loading,
+    error,
+  } = useLiveResource<AthleteDetailDto>(`/api/athletes/${bib}`, fetchedAt);
   const { has, add, remove, ready } = useBookmarks();
   const nowMs = useLiveClock();
 
@@ -130,11 +131,13 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
   const pill = statusPill(detail);
   const bookmarked = has(detail.bib);
   const totals = disciplineTotals(detail);
-  const checkpoints = race?.divisions.find((entry) => entry.id === detail.division)?.checkpoints ?? [];
+  const checkpoints =
+    race?.divisions.find((entry) => entry.id === detail.division)?.checkpoints ?? [];
   const passedIndex = checkpoints.findIndex((cp) => cp.label === detail.lastCheckpointLabel);
   const nextLabel = checkpoints[passedIndex + 1]?.label ?? null;
   const finished = detail.status === "finished";
-  const estKm = detail.status === "racing" ? projectKm(detail.position, nowMs) : detail.position.estKm;
+  const estKm =
+    detail.status === "racing" ? projectKm(detail.position, nowMs) : detail.position.estKm;
   const sexLabel = detail.sex === "F" ? "女子" : detail.sex === "M" ? "男子" : "性別";
   const aiTriHref = detail._links.aiTri?.href ?? null;
 
@@ -162,7 +165,9 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
       <div className="px-4 pt-1">
         <h1 className="flex items-baseline gap-2 font-bold text-[24px] leading-tight">
           {detail.name}
-          <span className="font-semibold text-[14px] text-muted-foreground tnum">#{detail.bib}</span>
+          <span className="font-semibold text-[14px] text-muted-foreground tnum">
+            #{detail.bib}
+          </span>
         </h1>
         <p className="mt-0.5 text-[12.5px] text-muted-foreground">
           {DIVISION_LABELS[detail.division]} · {detail.ageGroupLabel ?? "年齢区分なし"} ·{" "}
@@ -194,7 +199,9 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
       <div className="grid grid-cols-3 gap-1.5 px-3 pt-3">
         <RankTile
           label={
-            detail.lastCheckpointLabel === null ? "部門" : `部門 · ${detail.lastCheckpointLabel}時点`
+            detail.lastCheckpointLabel === null
+              ? "部門"
+              : `部門 · ${detail.lastCheckpointLabel}時点`
           }
           rank={detail.totalRanks.division}
         />

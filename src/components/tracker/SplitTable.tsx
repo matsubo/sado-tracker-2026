@@ -1,5 +1,6 @@
 "use client";
 
+import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import type { SplitDto } from "@/lib/api/contract";
 import {
   formatClock,
@@ -10,7 +11,6 @@ import {
   formatSpeedKmh,
   formatSwimPace,
 } from "@/lib/format";
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
 import { cn } from "@/lib/utils/cn";
 
 const DASH = "—";

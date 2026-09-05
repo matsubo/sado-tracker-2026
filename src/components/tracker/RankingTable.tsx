@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table";
+import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import type { RankingRowDto } from "@/lib/api/contract";
 import { formatDiff, formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils/cn";
@@ -41,9 +41,7 @@ function diffClass(diffMs: number | null): string {
 export function RankingTable({ rows, discipline }: RankingTableProps) {
   return (
     <Table wrapperClassName="px-3">
-      <caption className="sr-only">
-        {TIME_HEADS[discipline] ?? "総合"}の順位表
-      </caption>
+      <caption className="sr-only">{TIME_HEADS[discipline] ?? "総合"}の順位表</caption>
       <THead>
         <TR>
           <TH>順位</TH>

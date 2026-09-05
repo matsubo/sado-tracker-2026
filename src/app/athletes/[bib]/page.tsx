@@ -11,7 +11,9 @@ export async function generateMetadata({ params }: AthletePageProps): Promise<Me
 }
 
 /** Athlete detail. The body is a client component: everything on it is live. */
-export default async function AthletePage({ params }: AthletePageProps): Promise<React.JSX.Element> {
+export default async function AthletePage({
+  params,
+}: AthletePageProps): Promise<React.JSX.Element> {
   const { bib } = await params;
   return <AthleteDetail bib={bib} />;
 }

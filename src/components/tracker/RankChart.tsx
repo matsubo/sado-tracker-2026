@@ -72,7 +72,11 @@ export function RankChart({ history, sexLabel, ageGroupLabel }: RankChartProps):
   const series = [
     { name: "部門総合", data: pick("division"), color: theme.series[0] },
     { name: sexLabel, data: pick("sex"), color: theme.series[1] },
-    { name: ageGroupLabel === null ? "エイジ" : `エイジ ${ageGroupLabel}`, data: pick("ageGroup"), color: theme.series[2] },
+    {
+      name: ageGroupLabel === null ? "エイジ" : `エイジ ${ageGroupLabel}`,
+      data: pick("ageGroup"),
+      color: theme.series[2],
+    },
   ];
 
   const option = {

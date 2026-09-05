@@ -142,3 +142,34 @@ describe("fieldOrder", () => {
     expect(order.slice(0, 2)).toEqual(["6", "5"]);
   });
 });
+
+describe("leg boundaries", () => {
+  const now = START + 9 * HOUR;
+
+  it("puts an athlete who has passed the run start at the beginning of the run", () => {
+    const onRun = athlete("30", {
+      swimF: START + 84 * MIN,
+      bikeS: START + 92 * MIN,
+      sumiyoshi: START + 4 * HOUR,
+      runS: START + 8 * HOUR + 55 * MIN,
+    });
+    const pop = buildPopulations([onRun], "A", courseA, now);
+    const position = estimatePosition(onRun, courseA, pop, now);
+    expect(position.discipline).toBe("run");
+    expect(position.lastKm).toBe(0);
+    expect(position.totalKm).toBe(courseA.runKm);
+    expect(position.estKm).toBeLessThan(courseA.runKm);
+    expect(position.inTransition).toBe(false);
+  });
+
+  it("does not report the bike as complete distance once the run has started", () => {
+    const onRun = athlete("31", {
+      swimF: START + 84 * MIN,
+      bikeS: START + 92 * MIN,
+      runS: START + 8 * HOUR + 55 * MIN,
+    });
+    const pop = buildPopulations([onRun], "A", courseA, now);
+    const position = estimatePosition(onRun, courseA, pop, now);
+    expect(position.estKm).not.toBe(courseA.bikeKm);
+  });
+});
