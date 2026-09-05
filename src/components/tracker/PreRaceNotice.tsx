@@ -1,5 +1,5 @@
 import type { RaceStateDto } from "@/lib/api/contract";
-import { formatClockShort } from "@/lib/format";
+import { formatClockShort, waveStartSentence } from "@/lib/format";
 
 /** Shown while every athlete is still waiting for their wave to start. */
 export function PreRaceNotice({ race }: { race: RaceStateDto | null }) {
@@ -13,7 +13,7 @@ export function PreRaceNotice({ race }: { race: RaceStateDto | null }) {
       <h2 className="font-bold text-[13.5px]">スタート前です</h2>
       <p className="mt-1 text-[12.5px] text-muted-foreground leading-relaxed">
         {race.year} 年大会のエントリー {entrants.toLocaleString("ja-JP")} 名を読み込みました。
-        Aタイプは 06:00、Bタイプは 07:30 にスタートします。
+        {waveStartSentence(race)}
         いまのうちに応援する選手をブックマークしておくと、通過するたびに通知が出ます。
       </p>
       <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted-foreground tabular-nums">

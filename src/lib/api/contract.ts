@@ -176,6 +176,10 @@ export interface RaceStateDto {
     readonly entrants: number;
     /** Those currently counted in rankings: racing, finished or retired. */
     readonly racing: number;
+    /** When this wave goes off, "HH:MM" in JST. The organiser can move it. */
+    readonly waveStart: string;
+    /** The swim distance actually being swum, which the organiser can shorten. */
+    readonly swimKm: number;
     readonly checkpoints: readonly { id: string; label: string; km: number; discipline: string }[];
   }[];
   readonly _links: Links;

@@ -8,3 +8,4 @@ export * from "./clock";
 export * from "./duration";
 export * from "./pace";
 export * from "./rank";
+export * from "./waves";

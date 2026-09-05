@@ -253,6 +253,8 @@ export function toRaceState(snapshot: ComputedSnapshot): RaceStateDto {
       label: DIVISION_LABELS[id],
       entrants: entrants[id],
       racing: snapshot.populations[id].all.length,
+      waveStart: snapshot.config.divisions[id].waveStart,
+      swimKm: snapshot.config.divisions[id].swimKm,
       checkpoints: snapshot.config.divisions[id].checkpoints
         .filter((c) => c.id !== "start")
         .map((c) => ({ id: c.id, label: c.label, km: c.km, discipline: c.discipline })),

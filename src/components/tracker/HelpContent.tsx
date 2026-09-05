@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useRaceState } from "@/hooks/useSnapshot";
+import { waveStartSentence } from "@/lib/format";
 
 const REPO = "https://github.com/matsubo/sado-tracker-2026";
 const ISSUES = `${REPO}/issues`;
@@ -81,7 +82,7 @@ export function HelpContent() {
           ゴール予想時刻を計算して表示しています。大会の主催者や計測会社とは関係ありません。
         </p>
         <p>
-          Aタイプは 06:00、Bタイプは 07:30 にスタートします。
+          {waveStartSentence(race)}
           スタート前は全員が「スタート前」と表示され、最初の計測点を通過した選手から順に動きはじめます。
         </p>
       </Section>

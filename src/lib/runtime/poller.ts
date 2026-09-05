@@ -11,6 +11,7 @@ import type { RaceSnapshot } from "@/lib/domain/types";
 import { runBacktest } from "@/lib/history/backtest";
 import { buildNeighbourModel, type NeighbourModel } from "@/lib/history/model";
 import { buildNameIndex, type HistoryYear, type NameIndex } from "@/lib/history/nameIndex";
+import { raceYear } from "@/lib/runtime/year";
 import { getWeather } from "@/lib/weather";
 import { type Clock, clockFromEnv } from "./clock";
 import { logger, logOnce } from "./logger";
@@ -46,11 +47,6 @@ export function pollIntervalMs(env: NodeJS.ProcessEnv = process.env): number {
 
 function dataDir(): string {
   return process.env.DATA_DIR ?? ".data";
-}
-
-function raceYear(): number {
-  const year = Number(process.env.RACE_YEAR ?? "2026");
-  return Number.isFinite(year) ? year : 2026;
 }
 
 const JST_OFFSET_MS = 9 * 60 * 60 * 1000;

@@ -83,6 +83,8 @@ const raceState: RaceStateDto = {
       label: "Aタイプ",
       entrants: 1004,
       racing: 980,
+      waveStart: "06:30",
+      swimKm: 2.0,
       checkpoints: [
         { id: "swimF", label: "スイムF", km: 4, discipline: "swim" },
         { id: "sumiyoshi", label: "住吉", km: 100, discipline: "bike" },

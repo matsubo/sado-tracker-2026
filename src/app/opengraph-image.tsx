@@ -1,4 +1,6 @@
 import { ImageResponse } from "next/og";
+import { getRaceConfig } from "@/config/races";
+import { raceYear } from "@/lib/runtime/year";
 
 export const runtime = "nodejs";
 export const alt = "佐渡トラッカー 2026 — 佐渡国際トライアスロンの応援トラッカー";
@@ -17,6 +19,9 @@ const MUTED = "#71717a";
  * and a browser tab read as the same thing.
  */
 export default function OpengraphImage() {
+  // The swim can be shortened on the morning of the race, so the card states
+  // the distance being swum rather than the one in the entry pack.
+  const course = getRaceConfig(raceYear()).divisions.A;
   // The canvas is 1200 wide with 80 of padding each side, so the three bands
   // and the two gaps between them have 1040 to share. The split is the same
   // 22/48/30 the position bar uses.
@@ -87,9 +92,9 @@ export default function OpengraphImage() {
           />
         </div>
         <div style={{ display: "flex", gap: 44, fontSize: 28, color: MUTED }}>
-          <span>スイム 4km</span>
-          <span>バイク 190km</span>
-          <span>ラン 42.2km</span>
+          <span>スイム {course.swimKm}km</span>
+          <span>バイク {course.bikeKm}km</span>
+          <span>ラン {course.runKm}km</span>
           <span style={{ marginLeft: "auto", color: INK, fontWeight: 700 }}>9月6日</span>
         </div>
       </div>
