@@ -101,8 +101,10 @@ describe("computeSnapshot", () => {
   it("finishes inside the poll interval", () => {
     const started = performance.now();
     build(MID_RACE + 60_000);
-    expect(performance.now() - started).toBeLessThan(5000);
-  });
+    // The poller runs every 60 seconds; a whole recomputation of 1,800
+    // athletes has to fit comfortably inside that, even on a shared runner.
+    expect(performance.now() - started).toBeLessThan(20_000);
+  }, 60_000);
 });
 
 describe("derivePassEvents", () => {

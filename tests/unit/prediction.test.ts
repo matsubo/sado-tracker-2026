@@ -167,23 +167,35 @@ describe("predictFinish", () => {
 });
 
 describe("runBacktest", () => {
-  it("measures the method against a year it did not train on", () => {
-    const table = runBacktest(YEARS, 2025);
-    expect(table.size).toBeGreaterThan(4);
+  // The backtest replays a whole race against a model built from the others,
+  // which takes a few seconds locally and longer on a shared CI runner.
+  const BACKTEST_TIMEOUT_MS = 60_000;
 
-    const sumiyoshi = table.get("A:sumiyoshi");
-    expect(sumiyoshi).toBeDefined();
-    expect(Number.isFinite(sumiyoshi?.medianErrorMs as number)).toBe(true);
-    expect(sumiyoshi?.within25MinPct).toBeGreaterThan(0);
-    expect(sumiyoshi?.within25MinPct).toBeLessThanOrEqual(100);
-    expect(sumiyoshi?.sampleSize).toBeGreaterThan(20);
-  });
+  it(
+    "measures the method against a year it did not train on",
+    () => {
+      const table = runBacktest(YEARS, 2025);
+      expect(table.size).toBeGreaterThan(4);
 
-  it("gets more accurate the further along the course the prediction is made", () => {
-    const table = runBacktest(YEARS, 2025);
-    const early = table.get("A:sumiyoshi");
-    const late = table.get("A:run30");
-    if (!early || !late) return;
-    expect(late.medianErrorMs).toBeLessThan(early.medianErrorMs);
-  });
+      const sumiyoshi = table.get("A:sumiyoshi");
+      expect(sumiyoshi).toBeDefined();
+      expect(Number.isFinite(sumiyoshi?.medianErrorMs as number)).toBe(true);
+      expect(sumiyoshi?.within25MinPct).toBeGreaterThan(0);
+      expect(sumiyoshi?.within25MinPct).toBeLessThanOrEqual(100);
+      expect(sumiyoshi?.sampleSize).toBeGreaterThan(20);
+    },
+    BACKTEST_TIMEOUT_MS,
+  );
+
+  it(
+    "gets more accurate the further along the course the prediction is made",
+    () => {
+      const table = runBacktest(YEARS, 2025);
+      const early = table.get("A:sumiyoshi");
+      const late = table.get("A:run30");
+      if (!early || !late) return;
+      expect(late.medianErrorMs).toBeLessThan(early.medianErrorMs);
+    },
+    BACKTEST_TIMEOUT_MS,
+  );
 });
