@@ -85,6 +85,20 @@ mise run accuracy   # print the prediction backtest table
 Replay mode reveals a past race gradually, which is how the live code paths
 are exercised before race day.
 
+### Showing it to someone else
+
+Use a production build, not `mise run dev`. The dev server refuses to serve
+its own client bundle to any host it does not recognise, so opening it through
+a LAN address or a Tailscale name returns HTML that never hydrates and looks
+like a broken page.
+
+```sh
+mise run serve-replay   # builds, then serves on 0.0.0.0:3111
+```
+
+Over Tailscale, `tailscale serve --bg --https=443 http://127.0.0.1:3111`
+publishes it at `https://<host>.<tailnet>.ts.net/` for the tailnet only.
+
 ### Environment
 
 | Variable | Meaning |
