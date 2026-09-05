@@ -7,10 +7,11 @@ export const dynamic = "force-dynamic";
 
 const querySchema = z.object({
   div: z.enum(["A", "B", "RA", "RB"]).default("A"),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
+  perPage: z.coerce.number().int().min(1).max(200).default(100),
+  page: z.coerce.number().int().min(1).max(100).default(1),
 });
 
-/** The front of one division, ordered by how far along the course they are. */
+/** One page of a division, ordered by how far along the course each athlete is. */
 export function GET(request: Request): Response {
   const snapshot = getSnapshot();
   if (!snapshot) return notReady();
@@ -18,7 +19,7 @@ export function GET(request: Request): Response {
   const parsed = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
   if (!parsed.success) return badRequest("表示条件が正しくありません。");
 
-  const board = buildLeaderboard(snapshot, parsed.data.div, parsed.data.limit);
+  const board = buildLeaderboard(snapshot, parsed.data.div, parsed.data.perPage, parsed.data.page);
   return liveJson({
     ...board,
     _links: {

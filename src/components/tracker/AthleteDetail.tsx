@@ -252,6 +252,7 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
         <Heading title="順位推移" note={`部門総合 · ${sexLabel} · エイジ`} />
         <div className="rounded-lg border border-border bg-card px-2 py-2">
           <RankChart
+            checkpoints={checkpoints}
             history={detail.rankHistory}
             sexLabel={sexLabel}
             ageGroupLabel={detail.ageGroupLabel}

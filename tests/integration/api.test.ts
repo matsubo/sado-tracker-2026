@@ -289,6 +289,28 @@ describe("leaderboard", () => {
     expect(board.leaders).toHaveLength(20);
     expect(board.leaders[0]?.place).toBe(1);
     expect(board.leaders.at(-1)?.place).toBe(20);
+    expect(board.total).toBeGreaterThan(700);
+  });
+
+  it("pages through the whole field, numbering places across pages", () => {
+    const first = buildLeaderboard(snapshot, "A", 100, 1);
+    const second = buildLeaderboard(snapshot, "A", 100, 2);
+
+    expect(first.leaders).toHaveLength(100);
+    expect(first.leaders[0]?.place).toBe(1);
+    expect(second.leaders[0]?.place).toBe(101);
+    expect(second.page).toBe(2);
+    expect(second.total).toBe(first.total);
+
+    // No athlete appears on both pages.
+    const firstBibs = new Set(first.leaders.map((row) => row.athlete.bib));
+    expect(second.leaders.some((row) => firstBibs.has(row.athlete.bib))).toBe(false);
+  });
+
+  it("returns an empty page past the end rather than failing", () => {
+    const board = buildLeaderboard(snapshot, "A", 100, 99);
+    expect(board.leaders).toEqual([]);
+    expect(board.total).toBeGreaterThan(0);
   });
 
   it("puts athletes further along the course ahead of faster ones behind them", () => {

@@ -6,7 +6,7 @@ export function PredictionSummary({ prediction }: { prediction: PredictionDto | 
   if (!prediction) {
     return (
       <p className="text-[12px] text-muted-foreground">
-        予想ゴールは最初の計測点を通過してから表示されます。
+        ゴール予想は最初の計測点を通過してから表示されます。
       </p>
     );
   }
@@ -14,7 +14,7 @@ export function PredictionSummary({ prediction }: { prediction: PredictionDto | 
   return (
     <div className="flex items-center gap-2.5">
       <div>
-        <p className="font-bold text-[11px] text-muted-foreground">予想ゴール時刻</p>
+        <p className="font-bold text-[11px] text-muted-foreground">ゴール予想時刻</p>
         <p className="font-bold text-[22px] leading-none tabular-nums">
           {formatClockShort(prediction.finishAt)}
         </p>

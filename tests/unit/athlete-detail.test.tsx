@@ -237,7 +237,7 @@ describe("AthleteDetail", () => {
 
   it("keeps the prediction explanation collapsed until the ? button is pressed", async () => {
     await renderDetail();
-    const button = screen.getByRole("button", { name: "予想ゴールの計算方法を表示" });
+    const button = screen.getByRole("button", { name: "ゴール予想の計算方法を表示" });
 
     expect(screen.queryByText("近傍 20 人法")).not.toBeInTheDocument();
     expect(screen.queryByText("どう計算したか")).not.toBeInTheDocument();

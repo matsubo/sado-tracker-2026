@@ -36,13 +36,21 @@ const MEDAL: Record<number, string> = {
 export function Leaderboard() {
   const { race, fetchedAt, error, lastPolledAt, intervalMs } = useRaceState();
   const [division, setDivision] = useState("A");
+  const [page, setPage] = useState(1);
   const { bibs, has } = useBookmarks();
   const now = useLiveClock();
 
   const { data: board, loading } = useLiveResource<LeaderboardDto>(
-    `/api/leaderboard?div=${division}&limit=20`,
+    `/api/leaderboard?div=${division}&page=${page}`,
     fetchedAt,
   );
+
+  const lastPage = board ? Math.max(1, Math.ceil(board.total / board.perPage)) : 1;
+
+  const changeDivision = (next: string): void => {
+    setDivision(next);
+    setPage(1);
+  };
 
   return (
     <main className="mx-auto w-full max-w-[430px] pb-10">
@@ -71,7 +79,7 @@ export function Leaderboard() {
       <Tabs
         items={DIVISION_TABS}
         value={division}
-        onValueChange={setDivision}
+        onValueChange={changeDivision}
         aria-label="部門"
         className="mt-2.5"
       />
@@ -86,7 +94,8 @@ export function Leaderboard() {
               <b className="font-semibold text-foreground">{board.finished}</b> 名
             </>
           ) : null}
-          {" · 先頭順"}
+          {" · 先頭順 "}
+          <b className="font-semibold text-foreground">{board.total}</b> 名
         </p>
       ) : null}
 
@@ -156,7 +165,7 @@ export function Leaderboard() {
               </span>
               {!finished && athlete.prediction ? (
                 <span className="shrink-0 text-right">
-                  <span className="block text-[10px] text-muted-foreground">予想ゴール</span>
+                  <span className="block text-[10px] text-muted-foreground">ゴール予想</span>
                   <span className="block font-bold text-[14px] tabular-nums">
                     {formatClockShort(athlete.prediction.finishAt)}
                   </span>
@@ -171,6 +180,37 @@ export function Leaderboard() {
           );
         })}
       </div>
+
+      {board && board.total > board.perPage ? (
+        <nav
+          aria-label="ページ送り"
+          className="flex items-center justify-center gap-5 px-3 pt-3 font-semibold text-[12px] tabular-nums"
+        >
+          <button
+            type="button"
+            onClick={() => setPage((value) => Math.max(1, value - 1))}
+            disabled={page <= 1}
+            className="rounded px-1 py-0.5 text-primary outline-none disabled:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            ‹ 前へ
+          </button>
+          <span className="text-muted-foreground">
+            {board.page} / {lastPage}
+            <span className="ml-1.5">
+              （{(board.page - 1) * board.perPage + 1}〜
+              {Math.min(board.page * board.perPage, board.total)} 位）
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((value) => Math.min(lastPage, value + 1))}
+            disabled={page >= lastPage}
+            className="rounded px-1 py-0.5 text-primary outline-none disabled:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            次へ ›
+          </button>
+        </nav>
+      ) : null}
     </main>
   );
 }

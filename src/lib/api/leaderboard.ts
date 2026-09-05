@@ -16,6 +16,10 @@ export interface LeaderboardDto {
   /** Athletes currently counted: racing, finished or retired. */
   readonly racing: number;
   readonly finished: number;
+  /** Everyone in the field order, before this page was taken from it. */
+  readonly total: number;
+  readonly page: number;
+  readonly perPage: number;
   readonly leaders: readonly LeaderRowDto[];
 }
 
@@ -37,16 +41,19 @@ const LABELS: Record<Division, string> = {
 export function buildLeaderboard(
   snapshot: ComputedSnapshot,
   division: Division,
-  limit: number,
+  perPage: number,
+  page = 1,
 ): LeaderboardDto {
   const order = snapshot.byDivision[division] ?? [];
+  const start = Math.max(0, (page - 1) * perPage);
   const leaders: LeaderRowDto[] = [];
 
-  for (const bib of order.slice(0, limit)) {
+  // Place is the athlete's position in the whole field, not on this page.
+  order.slice(start, start + perPage).forEach((bib, index) => {
     const computed = snapshot.athletes.get(bib);
-    if (!computed) continue;
-    leaders.push({ place: leaders.length + 1, athlete: toAthleteSummary(computed) });
-  }
+    if (!computed) return;
+    leaders.push({ place: start + index + 1, athlete: toAthleteSummary(computed) });
+  });
 
   let entrants = 0;
   for (const computed of snapshot.athletes.values()) {
@@ -59,6 +66,9 @@ export function buildLeaderboard(
     entrants,
     racing: snapshot.populations[division].all.length,
     finished: snapshot.counts[division].finish ?? 0,
+    total: order.length,
+    page,
+    perPage,
     leaders,
   };
 }

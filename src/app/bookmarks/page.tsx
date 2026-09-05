@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "ブックマーク | 佐渡トラッカー 2026",
-  description: "ブックマークした選手の現在地、順位、予想ゴールタイムをまとめて見る。",
+  description: "ブックマークした選手の現在地、順位、ゴール予想タイムをまとめて見る。",
 };
 
 export default function FriendsPage() {
