@@ -1,40 +1,13 @@
 "use client";
 
-import { Bell, CircleHelp, ListOrdered, Map as MapIcon, Menu, Star, Trophy, X } from "lucide-react";
+import { Bell, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import { NAV_LINKS, OFFICIAL_URL } from "@/components/layout/navLinks";
 import { NotificationPanel } from "@/components/tracker/NotificationPanel";
 import { useBookmarkNotifications } from "@/hooks/useBookmarkNotifications";
 import { cn } from "@/lib/utils/cn";
-
-const LINKS = [
-  { href: "/", label: "総合トップ", icon: Trophy, match: (path: string) => path === "/" },
-  {
-    href: "/bookmarks",
-    label: "ブックマーク",
-    icon: Star,
-    match: (path: string) => path.startsWith("/bookmarks") || path.startsWith("/athletes"),
-  },
-  {
-    href: "/map",
-    label: "全体マップ",
-    icon: MapIcon,
-    match: (path: string) => path.startsWith("/map"),
-  },
-  {
-    href: "/divisions/A",
-    label: "種目別順位",
-    icon: ListOrdered,
-    match: (path: string) => path.startsWith("/divisions"),
-  },
-  {
-    href: "/help",
-    label: "ヘルプ",
-    icon: CircleHelp,
-    match: (path: string) => path.startsWith("/help"),
-  },
-] as const;
 
 /**
  * The wordmark and the menu, on every page. The menu is a panel rather than a
@@ -48,7 +21,7 @@ export function GlobalHeader({ year }: { readonly year?: number }) {
   const panelId = useId();
   const bellId = useId();
   const container = useRef<HTMLDivElement>(null);
-  const current = LINKS.find((link) => link.match(pathname));
+  const current = NAV_LINKS.find((link) => link.match(pathname));
   const { items, unreadCount, markAllSeen, bookmarkCount } = useBookmarkNotifications();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: navigating away is the trigger, not an input
@@ -163,7 +136,7 @@ export function GlobalHeader({ year }: { readonly year?: number }) {
           className="absolute right-3 z-40 mt-1 w-52 overflow-hidden rounded-lg border border-border bg-popover shadow-lg"
         >
           <ul>
-            {LINKS.map((link) => {
+            {NAV_LINKS.map((link) => {
               const active = link.match(pathname);
               const Icon = link.icon;
               return (
@@ -186,7 +159,7 @@ export function GlobalHeader({ year }: { readonly year?: number }) {
             })}
             <li className="border-border border-t">
               <a
-                href="https://systemway.jp/26sado?di=1"
+                href={OFFICIAL_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2.5 px-3.5 py-2.5 text-[12px] text-muted-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
