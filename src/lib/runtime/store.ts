@@ -1,28 +1,42 @@
 import type { ComputedSnapshot } from "@/lib/compute/snapshot";
 
 /**
- * The computed snapshot lives in module state. Next runs route handlers in
- * the same process as instrumentation, so a plain module variable is the
- * cheapest correct cache; a restart refills it from the first poll.
+ * The computed snapshot is held on globalThis rather than in a module
+ * variable. The instrumentation hook and the route handlers are bundled
+ * separately, so a module-level variable would give each its own copy and the
+ * routes would never see the poller's work.
  */
-let current: ComputedSnapshot | null = null;
-const listeners = new Set<(snapshot: ComputedSnapshot) => void>();
+const KEY = Symbol.for("sado-tracker.snapshot");
+
+interface Slot {
+  snapshot: ComputedSnapshot | null;
+  started: boolean;
+}
+
+function slot(): Slot {
+  const store = globalThis as typeof globalThis & { [KEY]?: Slot };
+  if (!store[KEY]) store[KEY] = { snapshot: null, started: false };
+  return store[KEY];
+}
 
 export function getSnapshot(): ComputedSnapshot | null {
-  return current;
+  return slot().snapshot;
 }
 
 export function setSnapshot(snapshot: ComputedSnapshot): void {
-  current = snapshot;
-  for (const listener of listeners) listener(snapshot);
+  slot().snapshot = snapshot;
 }
 
-export function onSnapshot(listener: (snapshot: ComputedSnapshot) => void): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-/** Mark the current snapshot as stale after a failed refresh. */
+/** Keep the last good snapshot but tell readers it failed to refresh. */
 export function markStale(): void {
-  if (current) current = { ...current, stale: true };
+  const current = slot();
+  if (current.snapshot) current.snapshot = { ...current.snapshot, stale: true };
+}
+
+/** Guards the pollers so they start exactly once per process. */
+export function claimPollerStart(): boolean {
+  const current = slot();
+  if (current.started) return false;
+  current.started = true;
+  return true;
 }

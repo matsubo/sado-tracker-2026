@@ -5,6 +5,7 @@ import { Star, X } from "lucide-react";
 import type { AthleteSummaryDto } from "@/lib/api/contract";
 import { formatClock, formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils/cn";
+import { projectKm, useLiveClock } from "@/hooks/useLivePosition";
 import { DisciplineLines } from "./RankChips";
 import { PositionBar } from "./PositionBar";
 import { PredictionSummary } from "./PredictionSummary";
@@ -25,7 +26,9 @@ interface Props {
 
 /** One friend, summarised: where they are, how they rank, when they finish. */
 export function AthleteCard({ athlete, unread, nextLabel, onRemove }: Props) {
+  const now = useLiveClock();
   const finished = athlete.status === "finished";
+  const estKm = finished ? athlete.position.totalKm : projectKm(athlete.position, now);
   const stripe = finished ? "bg-muted-foreground" : STRIPE[athlete.position.discipline];
 
   return (
@@ -81,7 +84,14 @@ export function AthleteCard({ athlete, unread, nextLabel, onRemove }: Props) {
 
       {athlete.status === "not_started" || athlete.status === "dns_suspected" ? null : (
         <div className="mt-2.5 pr-3 pl-4">
-          <PositionBar position={athlete.position} finished={finished} nextLabel={nextLabel} />
+          <PositionBar
+            discipline={athlete.position.discipline}
+            estKm={estKm}
+            totalKm={athlete.position.totalKm}
+            waiting={athlete.position.waiting}
+            finished={finished}
+            nextLabel={nextLabel ?? null}
+          />
         </div>
       )}
 

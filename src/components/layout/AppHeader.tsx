@@ -51,8 +51,9 @@ export function AppHeader({
 }: AppHeaderProps) {
   const progress = elapsedFraction(nextInMs, intervalMs);
 
+  // The refresh bar at the bottom doubles as the divider, so there is no border.
   return (
-    <header className={cn("sticky top-0 z-30 border-border border-b bg-card", className)}>
+    <header className={cn("sticky top-0 z-30 bg-card", className)}>
       <div className="flex items-center justify-between gap-2 px-4 pt-3.5 pb-2">
         <div className="flex min-w-0 items-baseline gap-1.5">
           <span className="truncate font-bold text-xl leading-none tracking-tight">{title}</span>

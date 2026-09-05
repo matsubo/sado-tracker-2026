@@ -1,89 +1,150 @@
 "use client";
 
-import type { PositionDto } from "@/lib/api/contract";
-import { formatKm } from "@/lib/format";
-import { projectKm, useLiveClock } from "@/hooks/useLivePosition";
+import type { Discipline } from "@/config/races";
 import { cn } from "@/lib/utils/cn";
 
-/** Widths chosen so each leg is legible, not to scale with distance. */
-const SEGMENT_WIDTH: Record<string, string> = {
-  swim: "22%",
-  bike: "48%",
-  run: "30%",
-};
+/**
+ * Course geometry shared by the position bar and the course strip.
+ *
+ * The three legs take a fixed share of the width rather than a share
+ * proportional to their distance: the swim is 2 % of the course by distance
+ * but a fifth of the day, so a distance-true axis would collapse it to a
+ * hairline and make the bar useless for the hours an athlete spends there.
+ */
+export const COURSE_SEGMENTS = [
+  { discipline: "swim", label: "スイム", width: 0.22, tone: "swim" },
+  { discipline: "bike", label: "バイク", width: 0.48, tone: "bike" },
+  { discipline: "run", label: "ラン", width: 0.3, tone: "run" },
+] as const satisfies readonly {
+  discipline: Discipline;
+  label: string;
+  width: number;
+  tone: string;
+}[];
 
-const ORDER = ["swim", "bike", "run"] as const;
+/** Full distance of each leg, in kilometres. */
+export type DisciplineKm = Readonly<Record<Discipline, number>>;
 
-const FILL: Record<string, string> = {
+/** Clamps a value into the closed unit interval. */
+const unit = (value: number): number => Math.min(Math.max(value, 0), 1);
+
+/** Position along the whole course, as a fraction between 0 and 1. */
+export function courseFraction(
+  discipline: Discipline,
+  km: number,
+  totals: DisciplineKm,
+): number {
+  let base = 0;
+  for (const segment of COURSE_SEGMENTS) {
+    if (segment.discipline === discipline) {
+      const total = totals[segment.discipline];
+      return base + unit(total > 0 ? km / total : 0) * segment.width;
+    }
+    base += segment.width;
+  }
+  return base;
+}
+
+/** How full each leg's bar is, given the leg the athlete is currently on. */
+function fillOf(segment: Discipline, current: Discipline, progress: number): number {
+  const order: readonly Discipline[] = ["swim", "bike", "run"];
+  const at = order.indexOf(segment);
+  const now = order.indexOf(current);
+  if (at < now) return 1;
+  if (at > now) return 0;
+  return unit(progress);
+}
+
+const TONE_FILL: Record<string, string> = {
   swim: "bg-[color:var(--swim)]",
   bike: "bg-[color:var(--bike)]",
   run: "bg-[color:var(--run)]",
 };
 
-const LABELS: Record<string, string> = { swim: "スイム", bike: "バイク", run: "ラン" };
+const SEGMENT_BASIS: Record<Discipline, string> = {
+  swim: "basis-[22%] grow-0",
+  bike: "basis-[48%] grow-0",
+  run: "basis-[30%] grow-0",
+};
 
-interface Props {
-  readonly position: PositionDto;
+interface PositionBarProps {
+  readonly discipline: Discipline;
+  /** Estimated kilometres completed within `discipline`. */
+  readonly estKm: number;
+  readonly totalKm: number;
+  /** True once the estimate is parked on a timing point rather than projected. */
+  readonly waiting: boolean;
+  /** Fills every leg and pins the marker to the finish. */
   readonly finished: boolean;
-  readonly nextLabel?: string | null;
+  readonly nextLabel: string | null;
+  readonly className?: string;
 }
 
 /**
- * The three legs as one bar. Legs before the current one are full, the current
- * one fills to the estimated position, and a marker sits at that point:
- * hollow while the position is projected, solid once a timing point confirms it.
+ * Where the athlete is on the course, as three proportional segments with a
+ * marker at the estimated position. A dashed marker is a projection, a solid
+ * one sits on a timing point.
  */
-export function PositionBar({ position, finished, nextLabel }: Props) {
-  const now = useLiveClock();
-  const liveKm = finished ? position.totalKm : projectKm(position, now);
-  const currentIndex = ORDER.indexOf(position.discipline);
-  const fraction = position.totalKm > 0 ? Math.min(1, liveKm / position.totalKm) : 0;
+export function PositionBar({
+  discipline,
+  estKm,
+  totalKm,
+  waiting,
+  finished,
+  nextLabel,
+  className,
+}: PositionBarProps): React.JSX.Element {
+  const progress = finished ? 1 : totalKm > 0 ? unit(estKm / totalKm) : 0;
+  const current = COURSE_SEGMENTS.find((segment) => segment.discipline === discipline);
+  const legLabel = current?.label ?? "";
 
   return (
-    <div>
+    <div className={className}>
       <div className="flex gap-[3px]">
-        {ORDER.map((leg, index) => {
-          const done = finished || index < currentIndex;
-          const active = !finished && index === currentIndex;
-          const width = done ? "100%" : active ? `${fraction * 100}%` : "0%";
+        {COURSE_SEGMENTS.map((segment) => {
+          const fill = finished ? 1 : fillOf(segment.discipline, discipline, progress);
+          const marked = finished
+            ? segment.discipline === "run"
+            : segment.discipline === discipline;
           return (
             <div
-              key={leg}
-              className="relative h-2.5 rounded-full bg-muted"
-              style={{ flex: leg === "bike" ? "1 1 0%" : `0 0 ${SEGMENT_WIDTH[leg]}` }}
+              key={segment.discipline}
+              className={cn("relative h-2.5 rounded-full bg-muted", SEGMENT_BASIS[segment.discipline])}
             >
-              <div className={cn("absolute inset-y-0 left-0 rounded-full", FILL[leg])} style={{ width }} />
-              {active ? (
+              <div
+                className={cn("absolute inset-y-0 left-0 rounded-full", TONE_FILL[segment.tone])}
+                style={{ width: `${fill * 100}%` }}
+              />
+              {marked ? (
                 <span
+                  aria-hidden="true"
                   className={cn(
-                    "absolute top-[-4px] h-[18px] w-[18px] -translate-x-1/2 rounded-full border-[3px] bg-card border-foreground",
-                    position.waiting ? "border-solid" : "border-dashed",
+                    "-top-1 -translate-x-1/2 absolute size-[18px] rounded-full border-[3px] border-foreground bg-card",
+                    !finished && !waiting && "border-dashed",
                   )}
-                  style={{ left: width }}
-                  aria-hidden
+                  style={{ left: `${fill * 100}%` }}
                 />
               ) : null}
             </div>
           );
         })}
       </div>
-      <p className="mt-1 flex justify-between gap-2 text-[11px] text-muted-foreground tabular-nums">
+      <div className="mt-1.5 flex flex-wrap justify-between gap-x-3 text-[11px] text-muted-foreground tnum">
         <span>
           {finished ? (
-            "フィニッシュ"
+            <>フィニッシュ済み</>
           ) : (
             <>
-              {LABELS[position.discipline]}{" "}
-              <span className="font-semibold text-foreground">
-                約 {formatKm(liveKm, position.discipline === "bike" ? 0 : 1)} /{" "}
-                {formatKm(position.totalKm, position.discipline === "bike" ? 0 : 1)}
-              </span>
+              {legLabel} 約{" "}
+              <b className="font-semibold text-foreground">
+                {estKm.toFixed(1)} / {totalKm} km
+              </b>
               （推定）
             </>
           )}
         </span>
-        {nextLabel && !finished ? <span>次: {nextLabel}</span> : null}
-      </p>
+        {!finished && nextLabel ? <span>次: {nextLabel}</span> : null}
+      </div>
     </div>
   );
 }

@@ -1,0 +1,38 @@
+[tools]
+node = "24"
+bun = "1.4.0"
+
+[env]
+TZ = "Asia/Tokyo"
+
+[tasks.dev]
+description = "Run the dev server against the live 2026 feed"
+run = "bunx next dev -p 3111"
+
+[tasks.replay]
+description = "Replay the finished 2025 race to exercise the live paths"
+run = "bunx next dev -p 3111"
+env = { RACE_YEAR = "2025", REPLAY_START = "2025-09-07T13:00:00+09:00", REPLAY_SPEED = "60", DATA_DIR = ".data" }
+
+[tasks.test]
+run = "bunx vitest run"
+
+[tasks.typecheck]
+run = "bunx tsc --noEmit"
+
+[tasks.lint]
+run = "bunx biome check ."
+
+[tasks.build]
+run = "bunx next build"
+
+[tasks.e2e]
+run = "bunx playwright test"
+
+[tasks.fetch-history]
+description = "Download past race exports into .data/history"
+run = "bunx tsx scripts/fetch-history.ts"
+
+[tasks.accuracy]
+description = "Report prediction backtest accuracy"
+run = "bunx tsx scripts/report-accuracy.ts"

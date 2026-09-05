@@ -14,7 +14,7 @@ import { buildNameIndex, type HistoryYear, type NameIndex } from "@/lib/history/
 import { getWeather } from "@/lib/weather";
 import { type Clock, clockFromEnv } from "./clock";
 import { logger } from "./logger";
-import { markStale, setSnapshot } from "./store";
+import { claimPollerStart, markStale, setSnapshot } from "./store";
 
 const POLL_INTERVAL_MS = 60_000;
 const WEATHER_INTERVAL_MS = 300_000;
@@ -37,10 +37,14 @@ function readCsvFile(path: string): string {
  * Load past races from disk, downloading any that are missing. They are the
  * training set for the prediction and the source of past-result lookups.
  */
-async function loadHistory(): Promise<HistoryYear[]> {
+async function loadHistory(liveYear: number): Promise<HistoryYear[]> {
   const years: HistoryYear[] = [];
 
-  for (const year of HISTORY_YEARS) {
+  // Never train on, or match against, the race being displayed: in replay
+  // mode the live year is also a past year, and an athlete would otherwise
+  // be shown their own result as a previous year and used as their own
+  // nearest neighbour.
+  for (const year of HISTORY_YEARS.filter((candidate) => candidate !== liveYear)) {
     const path = `${dataDir()}/history/${year}.csv`;
     try {
       if (!existsSync(path)) {
@@ -134,21 +138,20 @@ async function refresh(runtime: Runtime): Promise<void> {
   }
 }
 
-let started = false;
-
 /** Start the background pollers exactly once per process. */
 export async function startPollers(): Promise<void> {
-  if (started) return;
-  started = true;
+  if (!claimPollerStart()) return;
 
   const clock = clockFromEnv();
   const year = raceYear();
   logger.info("Starting pollers", { year, replay: clock.replay });
 
-  const history = await loadHistory();
+  const history = await loadHistory(year);
   const model = buildNeighbourModel(history, getRaceConfig(year));
   const nameIndex = buildNameIndex(history);
-  const backtest = history.length >= 2 ? runBacktest(history, 2025) : new Map();
+  const holdout = history.map((entry) => entry.year).sort((a, b) => b - a)[0];
+  const backtest =
+    history.length >= 2 && holdout !== undefined ? runBacktest(history, holdout) : new Map();
 
   const runtime: Runtime = { clock, model, nameIndex, backtest };
 
