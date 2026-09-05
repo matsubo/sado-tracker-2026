@@ -317,3 +317,70 @@ describe("leaderboard", () => {
     expect(Array.isArray(board.leaders)).toBe(true);
   });
 });
+
+describe("the difference column", () => {
+  it("measures from the leader when no athlete is chosen", () => {
+    const page = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
+      targetBib: null,
+    });
+    expect(page.diffBasis?.kind).toBe("leader");
+    expect(page.rows[0]?.diffMs).toBe(0);
+    // Everyone behind the leader is slower, so the differences are positive.
+    for (const row of page.rows.slice(1)) {
+      expect(row.diffMs).toBeGreaterThan(0);
+    }
+  });
+
+  it("measures from the chosen athlete when one is given", () => {
+    const first = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
+      targetBib: null,
+    });
+    const target = first.rows[20]?.bib as string;
+    const focused = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: null,
+      perPage: 50,
+      targetBib: target,
+    });
+    expect(focused.diffBasis?.kind).toBe("athlete");
+    expect(focused.rows.find((row) => row.isTarget)?.diffMs).toBe(0);
+    expect(focused.rows.some((row) => (row.diffMs as number) < 0)).toBe(true);
+  });
+
+  it("names the athlete the differences are measured from", () => {
+    const first = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
+      targetBib: null,
+    });
+    expect(first.diffBasis?.name).toBe(first.rows[0]?.name);
+  });
+
+  it("reports no basis when nobody has been measured", () => {
+    const page = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "total",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
+      targetBib: null,
+    });
+    expect(page.total).toBe(0);
+    expect(page.diffBasis).toBeNull();
+  });
+});

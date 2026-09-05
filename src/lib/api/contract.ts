@@ -184,6 +184,12 @@ export interface RankingPageDto {
   readonly discipline: Discipline | "total";
   readonly ageGroupId: string | null;
   readonly measuredAt: string;
+  /** What the 差 column is measured from. */
+  readonly diffBasis: {
+    readonly kind: "leader" | "athlete";
+    /** Name of the athlete the differences are relative to. */
+    readonly name: string;
+  } | null;
   readonly total: number;
   readonly page: number;
   readonly perPage: number;

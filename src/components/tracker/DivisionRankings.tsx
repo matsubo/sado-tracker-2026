@@ -161,6 +161,10 @@ export function DivisionRankings({
         error={raceError}
         intervalMs={intervalMs}
       />
+      <h1 className="px-4 pt-2 pb-1 font-bold text-lg">
+        種目別順位
+        <span className="ml-2 font-semibold text-muted-foreground text-sm">{division}タイプ</span>
+      </h1>
       <nav aria-label="部門" className="mx-3 flex gap-[3px] rounded-lg bg-muted p-[3px]">
         {DIVISIONS.map((id) => (
           <Link
@@ -229,7 +233,9 @@ export function DivisionRankings({
 
       {/* The column heads follow the payload, so they never describe a
           discipline the rows do not belong to. */}
-      {data ? <RankingTable rows={data.rows} discipline={data.discipline} /> : null}
+      {data ? (
+        <RankingTable rows={data.rows} discipline={data.discipline} diffBasis={data.diffBasis} />
+      ) : null}
 
       <div className="flex items-center justify-center gap-4 py-2 font-semibold text-muted-foreground text-xs tabular-nums">
         <button

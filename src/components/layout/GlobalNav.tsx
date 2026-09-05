@@ -133,7 +133,8 @@ export function GlobalHeader({ year }: { readonly year?: number }) {
             ) : (
               <Menu className="size-[15px]" aria-hidden />
             )}
-            <span className="text-muted-foreground">{current?.label ?? "メニュー"}</span>
+            {/* The page title sits right below, so repeating it here is noise. */}
+            <span className="text-muted-foreground">メニュー</span>
           </button>
         </div>
       </div>

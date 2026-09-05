@@ -25,9 +25,17 @@ const TIME_HEADS: Readonly<Record<string, string>> = {
 interface RankingTableProps {
   readonly rows: readonly RankingRowDto[];
   readonly discipline: string;
+  /** What the 差 column is measured from, named in its header. */
+  readonly diffBasis?: { readonly kind: "leader" | "athlete"; readonly name: string } | null;
 }
 
-/** Green when the athlete is faster than the target, red when slower. */
+/** Header for the 差 column, naming what the differences are measured from. */
+function diffHead(basis: RankingTableProps["diffBasis"]): string {
+  if (!basis) return "差";
+  return basis.kind === "leader" ? "1位との差" : `${basis.name}との差`;
+}
+
+/** Green when the athlete is faster than the basis, red when slower. */
 function diffClass(diffMs: number | null): string {
   if (diffMs === null || diffMs === 0) return "text-muted-foreground";
   return diffMs < 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]";
@@ -38,7 +46,7 @@ function diffClass(diffMs: number | null): string {
  * shared `Table` primitive keeps it inside its own horizontal scroller
  * instead of stretching the page.
  */
-export function RankingTable({ rows, discipline }: RankingTableProps) {
+export function RankingTable({ rows, discipline, diffBasis }: RankingTableProps) {
   return (
     <Table wrapperClassName="px-3">
       <caption className="sr-only">{TIME_HEADS[discipline] ?? "総合"}の順位表</caption>
@@ -49,7 +57,7 @@ export function RankingTable({ rows, discipline }: RankingTableProps) {
           <TH align="left">年齢</TH>
           <TH>{TIME_HEADS[discipline] ?? "タイム"}</TH>
           <TH>{PACE_HEADS[discipline] ?? "ペース"}</TH>
-          <TH>差</TH>
+          <TH>{diffHead(diffBasis)}</TH>
         </TR>
       </THead>
       <TBody>

@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const division = toDivision(div);
   return {
     title: division
-      ? `${division}タイプ ランキング | 佐渡トラッカー 2026`
+      ? `${division}タイプ 種目別順位 | 佐渡トラッカー 2026`
       : "ランキング | 佐渡トラッカー 2026",
   };
 }
@@ -49,10 +49,6 @@ export default async function DivisionPage({ params, searchParams }: PageProps) 
 
   return (
     <main className="mx-auto w-full max-w-[480px] pb-10">
-      <h1 className="px-4 pt-4 pb-1 font-bold text-lg">
-        部門別ランキング
-        <span className="ml-2 font-semibold text-muted-foreground text-sm">{division}タイプ</span>
-      </h1>
       <DivisionRankings
         division={division}
         initialDiscipline={first(query.discipline)}

@@ -337,6 +337,10 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
         error={raceError}
         intervalMs={intervalMs}
       />
+      <h1 className="px-4 pt-2 pb-1 font-bold text-lg">
+        全体マップ
+        <span className="ml-2 font-semibold text-muted-foreground text-sm">推定位置</span>
+      </h1>
       <Tabs
         aria-label="部門"
         className="mx-3"

@@ -59,8 +59,19 @@ export function buildRankingPage(snapshot: ComputedSnapshot, query: RankingQuery
     .map((athlete) => ({ athlete, timeMs: timeOf(athlete, discipline) as number }))
     .sort((a, b) => a.timeMs - b.timeMs);
 
-  const targetTime = targetBib
-    ? (measured.find((entry) => entry.athlete.bib === targetBib)?.timeMs ?? null)
+  // Without a chosen athlete the useful comparison is the leader: a column of
+  // dashes tells the reader nothing, and "how far behind the front" is what a
+  // results table is normally read for.
+  const target = targetBib
+    ? (measured.find((entry) => entry.athlete.bib === targetBib) ?? null)
+    : null;
+  const basisEntry = target ?? measured[0] ?? null;
+  const basisTime = basisEntry?.timeMs ?? null;
+  const diffBasis = basisEntry
+    ? {
+        kind: (target ? "athlete" : "leader") as "athlete" | "leader",
+        name: basisEntry.athlete.name,
+      }
     : null;
 
   const rows: RankingRowDto[] = measured.map((entry) => {
@@ -72,7 +83,7 @@ export function buildRankingPage(snapshot: ComputedSnapshot, query: RankingQuery
       ageGroupId: entry.athlete.ageGroup?.id ?? null,
       timeMs: entry.timeMs,
       paceText: paceText(discipline, entry.timeMs, km),
-      diffMs: targetTime === null ? null : entry.timeMs - targetTime,
+      diffMs: basisTime === null ? null : entry.timeMs - basisTime,
       isTarget: entry.athlete.bib === targetBib,
     };
   });
@@ -101,6 +112,7 @@ export function buildRankingPage(snapshot: ComputedSnapshot, query: RankingQuery
     discipline,
     ageGroupId,
     measuredAt: MEASURED_AT[discipline],
+    diffBasis,
     total: rows.length,
     page: effectivePage,
     perPage,
