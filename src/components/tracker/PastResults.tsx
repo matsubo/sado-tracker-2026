@@ -24,7 +24,7 @@ export function PastResults({ results }: PastResultsProps): React.JSX.Element {
     <ul className="flex list-none flex-col gap-1.5 p-0">
       {results.map((result) => (
         <li
-          key={`${result.year}-${result.division}`}
+          key={`${result.year}-${result.division}-${result.totalText}`}
           className="grid grid-cols-[44px_32px_1fr] items-center gap-2 rounded-lg bg-muted px-2.5 py-2 text-[12.5px] tnum"
         >
           <b className="font-bold text-[14px]">{result.year}</b>

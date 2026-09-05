@@ -101,7 +101,7 @@ export function PredictionBox({ prediction, startAt }: PredictionBoxProps): Reac
         <button
           type="button"
           aria-expanded={open}
-          aria-controls={panelId}
+          aria-controls={open ? panelId : undefined}
           aria-label="予想ゴールの計算方法を表示"
           onClick={() => setOpen((current) => !current)}
           className="ml-auto size-[26px] shrink-0 self-start rounded-full border border-border bg-card font-semibold text-[13px] text-muted-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"

@@ -18,6 +18,17 @@ export interface RankHistoryEntry {
   readonly ranks: RankSetDto;
 }
 
+/**
+ * Shortens a checkpoint label for the x axis. The eleven run points are named
+ * "ラン4km" … "ラン39km", which at this width overlap into a smear, so they drop
+ * the leg prefix and read as "4km"; the parenthetical on "ランS（本部）" goes
+ * the same way.
+ */
+function axisLabel(label: string): string {
+  const run = /^ラン(\d+(?:\.\d+)?km)$/.exec(label);
+  return run === null ? label.replace(/[（(][^）)]*[）)]/g, "") : (run[1] as string);
+}
+
 interface ChartTheme {
   readonly series: readonly [string, string, string];
   readonly text: string;
@@ -62,9 +73,14 @@ interface RankChartProps {
 /** Rank at every timing point so far, with first place at the top. */
 export function RankChart({ history, sexLabel, ageGroupLabel }: RankChartProps): React.JSX.Element {
   const theme = useChartTheme();
-  if (theme === null || history.length === 0) {
-    return <Skeleton className="h-[200px] w-full" />;
+  if (history.length === 0) {
+    return (
+      <p className="py-6 text-center text-[12px] text-muted-foreground">
+        まだ計測点を通過していません。
+      </p>
+    );
   }
+  if (theme === null) return <Skeleton className="h-[200px] w-full" />;
 
   const pick = (key: keyof RankSetDto): (number | null)[] =>
     history.map((entry) => entry.ranks[key]?.rank ?? null);
@@ -81,17 +97,19 @@ export function RankChart({ history, sexLabel, ageGroupLabel }: RankChartProps):
 
   const option = {
     animation: false,
-    grid: { left: 44, right: 12, top: 28, bottom: 46 },
+    // The legend sits above the plot so it cannot collide with the rotated
+    // checkpoint labels, which need the whole bottom margin to themselves.
+    grid: { left: 44, right: 12, top: 34, bottom: 40 },
     tooltip: { trigger: "axis" as const },
     legend: {
-      bottom: 0,
+      top: 0,
       itemWidth: 12,
       itemHeight: 3,
       textStyle: { color: theme.text, fontSize: 11 },
     },
     xAxis: {
       type: "category" as const,
-      data: history.map((entry) => entry.label),
+      data: history.map((entry) => axisLabel(entry.label)),
       axisLabel: { color: theme.text, fontSize: 9, interval: "auto" as const, rotate: 30 },
       axisLine: { lineStyle: { color: theme.line } },
       axisTick: { show: false },
@@ -101,6 +119,10 @@ export function RankChart({ history, sexLabel, ageGroupLabel }: RankChartProps):
       inverse: true,
       min: 1,
       name: "順位",
+      // The axis is inverted, so "start" is the top; the default end would
+      // drop the caption into the corner the rotated x labels occupy.
+      nameLocation: "start" as const,
+      nameGap: 12,
       nameTextStyle: { color: theme.text, fontSize: 9 },
       axisLabel: { color: theme.text, fontSize: 9 },
       splitLine: { lineStyle: { color: theme.line } },

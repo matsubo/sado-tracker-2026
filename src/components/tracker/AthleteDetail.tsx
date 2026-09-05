@@ -5,14 +5,14 @@ import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Discipline, Division } from "@/config/races";
 import { useBookmarks } from "@/hooks/useBookmarks";
-import { projectKm, useLiveClock } from "@/hooks/useLivePosition";
+import { useLiveClock } from "@/hooks/useLivePosition";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
 import type { AthleteDetailDto, RankDto } from "@/lib/api/contract";
 import { formatClock, formatClockShort, formatDuration } from "@/lib/format";
 import { CoursePositionChart } from "./CoursePositionChart";
 import { DisciplineTable } from "./DisciplineTable";
 import { PastResults } from "./PastResults";
-import { type DisciplineKm, PositionBar } from "./PositionBar";
+import { type DisciplineKm, liveKm, PositionBar } from "./PositionBar";
 import { PredictionBox } from "./PredictionBox";
 import { RankChart } from "./RankChart";
 import { SplitTable } from "./SplitTable";
@@ -112,7 +112,8 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
   const nowMs = useLiveClock();
 
   if (loading) return <DetailSkeleton />;
-  if (error !== null || detail === null) {
+  // A failed refresh keeps the last good data; only an empty page is an error.
+  if (detail === null) {
     return (
       <div className="px-4 py-10 text-center">
         <p className="text-[13px] text-muted-foreground">
@@ -136,13 +137,17 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
   const passedIndex = checkpoints.findIndex((cp) => cp.label === detail.lastCheckpointLabel);
   const nextLabel = checkpoints[passedIndex + 1]?.label ?? null;
   const finished = detail.status === "finished";
-  const estKm =
-    detail.status === "racing" ? projectKm(detail.position, nowMs) : detail.position.estKm;
+  const estKm = detail.status === "racing" ? liveKm(detail.position, nowMs) : detail.position.estKm;
   const sexLabel = detail.sex === "F" ? "女子" : detail.sex === "M" ? "男子" : "性別";
   const aiTriHref = detail._links.aiTri?.href ?? null;
 
   return (
     <div className="mx-auto w-full max-w-[480px] pb-10">
+      {error === null ? null : (
+        <p role="status" className="px-4 pt-2 text-[11.5px] text-muted-foreground">
+          最新の情報を取得できませんでした。表示は直前の内容です。
+        </p>
+      )}
       <div className="flex items-center justify-between px-4 pt-3 pb-1 text-[13px]">
         <Link
           href="/"

@@ -45,6 +45,12 @@ const RACE: RaceStateDto = {
   _links: { self: { href: "/api/race" } },
 };
 
+/** The same race state with a different set of A-division checkpoint counts. */
+const raceWithCounts = (counts: Readonly<Record<string, number>>): RaceStateDto => ({
+  ...RACE,
+  counts: { ...RACE.counts, A: counts },
+});
+
 function row(partial: Partial<RankingRowDto> & Pick<RankingRowDto, "rank" | "bib">): RankingRowDto {
   return {
     name: `選手${partial.bib}`,
@@ -122,13 +128,14 @@ const MAP_BODY = {
 };
 
 let rankingBody: RankingPageDto = page();
+let raceBody: RaceStateDto = RACE;
 
 function stubFetch(): void {
   vi.stubGlobal(
     "fetch",
     vi.fn((input: string | URL) => {
       const url = String(input);
-      if (url.includes("/api/race")) return Promise.resolve(new Response(JSON.stringify(RACE)));
+      if (url.includes("/api/race")) return Promise.resolve(new Response(JSON.stringify(raceBody)));
       if (url.includes("/api/map")) return Promise.resolve(new Response(JSON.stringify(MAP_BODY)));
       return Promise.resolve(new Response(JSON.stringify(rankingBody)));
     }),
@@ -141,6 +148,7 @@ const fetchedUrls = (): string[] =>
 
 beforeEach(() => {
   rankingBody = page();
+  raceBody = RACE;
   window.history.replaceState(null, "", "/");
   stubFetch();
 });
@@ -150,11 +158,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function renderRankings(bib: string | null = null) {
+function renderRankings(bib: string | null = null, discipline: string | null = "swim") {
   return render(
     <DivisionRankings
       division="A"
-      initialDiscipline="swim"
+      initialDiscipline={discipline}
       initialAgeGroup={null}
       initialBib={bib}
       initialPage={1}
@@ -209,6 +217,32 @@ describe("DivisionRankings", () => {
 
     renderRankings("1234");
     expect(await screen.findByRole("status")).toHaveTextContent(message);
+  });
+
+  it("opens on the furthest discipline that at least 20 athletes have completed", async () => {
+    raceBody = raceWithCounts({ swimF: 861, runS: 268, finish: 1 });
+
+    renderRankings(null, null);
+
+    await waitFor(() => {
+      const ranking = fetchedUrls().filter((url) => url.includes("/rankings"));
+      expect(ranking.length).toBeGreaterThan(0);
+      expect(ranking.every((url) => url.includes("discipline=bike"))).toBe(true);
+    });
+    // The auto-choice must not become sticky in the address bar.
+    expect(window.location.search).not.toContain("discipline");
+  });
+
+  it("opens on 総合 once the finisher field is large enough", async () => {
+    raceBody = raceWithCounts({ swimF: 861, runS: 612, finish: 267 });
+
+    renderRankings(null, null);
+
+    await waitFor(() => {
+      const ranking = fetchedUrls().filter((url) => url.includes("/rankings"));
+      expect(ranking.length).toBeGreaterThan(0);
+      expect(ranking.every((url) => url.includes("discipline=total"))).toBe(true);
+    });
   });
 
   it("refetches with discipline=bike when the discipline tab changes", async () => {

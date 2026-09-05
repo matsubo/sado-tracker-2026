@@ -40,7 +40,9 @@ interface SplitTableProps {
 /** Every timing point the athlete has passed, newest at the bottom. */
 export function SplitTable({ splits }: SplitTableProps): React.JSX.Element {
   return (
-    <Table>
+    // `min-w-max` keeps the table at its content width so the wrapper
+    // scrolls instead of squeezing the last column (区間順位) off a phone.
+    <Table className="min-w-max">
       <THead>
         <TR>
           <TH align="left">計測点</TH>

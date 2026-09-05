@@ -1,9 +1,8 @@
 "use client";
 
 import type { Discipline } from "@/config/races";
-import { projectKm } from "@/hooks/useLivePosition";
 import type { MapEntryDto } from "@/lib/api/contract";
-import { COURSE_SEGMENTS, courseFraction, type DisciplineKm } from "./PositionBar";
+import { COURSE_SEGMENTS, courseFraction, type DisciplineKm, liveKm } from "./PositionBar";
 
 /** A timing point as the race endpoint publishes it. */
 export interface CourseCheckpoint {
@@ -23,6 +22,11 @@ const BAND_Y = 20;
 const TICK_TOP = 30;
 /** Keeps the rightmost distance label inside the viewBox. */
 const FLIP_X = PLOT_LEFT + PLOT_W * 0.78;
+const LABEL_FONT = 8.5;
+/** Clear space required between two axis labels, in viewBox units. */
+const LABEL_GAP = 4;
+/** Kilometre step of the scale drawn under the run band. */
+const RUN_STEP_KM = 10;
 
 const LEG_LABEL: Record<Discipline, string> = { swim: "スイム", bike: "バイク", run: "ラン" };
 const LEG_COLOR: Record<Discipline, string> = {
@@ -42,35 +46,88 @@ const isDiscipline = (value: string): value is Discipline =>
 /** X coordinate of a course fraction. */
 const plotX = (fraction: number): number => PLOT_LEFT + fraction * PLOT_W;
 
-/** Drops labels that would collide with the previous one. */
-function spaced<T extends { x: number }>(items: readonly T[], minGap: number): T[] {
-  const kept: T[] = [];
-  let last = Number.NEGATIVE_INFINITY;
-  for (const item of items) {
-    if (item.x - last >= minGap) {
-      kept.push(item);
-      last = item.x;
-    }
+type Anchor = "start" | "middle" | "end";
+
+interface AxisLabel {
+  readonly key: string;
+  readonly text: string;
+  readonly x: number;
+  readonly anchor: Anchor;
+}
+
+/** Full-width glyphs take about one em, latin about half. */
+const CJK = /[\u3000-\u9fff\uff00-\uffef]/;
+
+/** Approximate rendered width of an axis label, in viewBox units. */
+function textWidth(text: string): number {
+  let em = 0;
+  for (const char of text) em += CJK.test(char) ? 1 : 0.55;
+  return em * LABEL_FONT;
+}
+
+/** Anchors the outermost labels inwards so they stay inside the viewBox. */
+const anchorFor = (x: number): Anchor =>
+  x <= PLOT_LEFT + 4 ? "start" : x >= PLOT_RIGHT - 4 ? "end" : "middle";
+
+/** Left and right edges of a label drawn at its anchor. */
+function edgesOf(label: AxisLabel): { left: number; right: number } {
+  const width = textWidth(label.text);
+  if (label.anchor === "start") return { left: label.x, right: label.x + width };
+  if (label.anchor === "end") return { left: label.x - width, right: label.x };
+  return { left: label.x - width / 2, right: label.x + width / 2 };
+}
+
+/**
+ * Keeps labels left to right, dropping any that would touch the one before.
+ * Two timing points can share an x — the swim finish and the bike start are
+ * the same place — so a gap test on positions alone is not enough.
+ */
+function fitLabels(labels: readonly AxisLabel[]): AxisLabel[] {
+  const kept: AxisLabel[] = [];
+  let lastRight = Number.NEGATIVE_INFINITY;
+  for (const label of labels) {
+    const { left, right } = edgesOf(label);
+    if (left < lastRight + LABEL_GAP) continue;
+    kept.push(label);
+    lastRight = right;
   }
   return kept;
 }
 
+/** Drops the parenthetical qualifier, so "ランS（本部）" reads as "ランS". */
+const shortLabel = (label: string): string => label.replace(/[（(][^）)]*[）)]/g, "");
+
+/** A leg boundary carries a label; the km marks inside the run leg do not. */
+const isLegBoundary = (checkpoint: { id: string; discipline: string }): boolean =>
+  checkpoint.discipline !== "run" || checkpoint.id === "finish";
+
 /** Estimated kilometres for one athlete at `nowMs`, within their current leg. */
 function estimateKm(entry: MapEntryDto, nowMs: number): number {
   if (entry.status === "finished") return entry.position.totalKm;
-  if (entry.status === "racing") return projectKm(entry.position, nowMs);
+  if (entry.status === "racing") return liveKm(entry.position, nowMs);
   if (entry.status === "dnf") return entry.position.estKm;
   return 0;
 }
 
+/** The timing point an athlete is next expected to reach. */
+function nextLabelOf(entry: MapEntryDto, checkpoints: readonly CourseCheckpoint[]): string | null {
+  const passed = checkpoints.findIndex((cp) => cp.label === entry.position.lastCheckpointLabel);
+  return checkpoints[passed + 1]?.label ?? null;
+}
+
 /** The text shown to the right of each dot. */
-function distanceText(entry: MapEntryDto, km: number): string {
+function distanceText(
+  entry: MapEntryDto,
+  km: number,
+  checkpoints: readonly CourseCheckpoint[],
+): string {
   if (entry.status === "finished") return "フィニッシュ";
   if (entry.status === "not_started") return "スタート前";
   if (entry.status === "dns_suspected") return "未計測";
   if (entry.status === "dnf") return "DNF";
-  if (entry.position.waiting && entry.position.lastCheckpointLabel !== null) {
-    return `${entry.position.lastCheckpointLabel} 計測待ち`;
+  if (entry.position.waiting) {
+    const next = nextLabelOf(entry, checkpoints);
+    return next === null ? "計測待ち" : `${next} 計測待ち`;
   }
   return `${LEG_LABEL[entry.position.discipline]} ${km.toFixed(1)}km`;
 }
@@ -85,6 +142,12 @@ interface CoursePositionChartProps {
 /**
  * The course as one horizontal axis with an athlete per row, so a supporter
  * can see at a glance who is ahead of their friend and by how far.
+ *
+ * The x axis is NOT distance-true. Each leg gets a fixed share of the width —
+ * swim 22 %, bike 48 %, run 30 %, the same split PositionBar uses — and an
+ * athlete's kilometres are mapped within their own leg's band. Drawing the
+ * legs to real distance would give the 4 km swim 2 % of the axis and pile
+ * every swimmer onto one edge, even though the swim is a fifth of the day.
  */
 export function CoursePositionChart({
   entries,
@@ -112,14 +175,34 @@ export function CoursePositionChart({
   const lastY = rows.length > 0 ? ROW_TOP + (rows.length - 1) * ROW_H : ROW_TOP;
   const tickBottom = lastY + 9;
   const viewH = lastY + 30;
-  const topLabels = spaced(
-    [{ id: "start", label: "START", x: PLOT_LEFT }, ...ticks.filter((t) => t.leg !== "run")],
-    26,
-  );
-  const bottomLabels = spaced(
-    ticks.filter((t) => t.leg === "run"),
-    24,
-  );
+
+  // Above the bands, only the leg boundaries are named: START, the swim
+  // finish, the bike start, 住吉 and the run start. The eleven run kilometre
+  // points stay as bare tick lines and get the sparse scale below instead,
+  // which is the only way six labels fit across a phone-width axis.
+  const topLabels = fitLabels([
+    { key: "start", text: "START", x: PLOT_LEFT, anchor: anchorFor(PLOT_LEFT) },
+    ...ticks.filter(isLegBoundary).map((tick) => ({
+      key: tick.id,
+      text: shortLabel(tick.label),
+      x: tick.x,
+      anchor: anchorFor(tick.x),
+    })),
+  ]);
+
+  // Under the run band, a kilometre scale every 10 km and then the finish.
+  // FIN is reserved first and the last kilometre mark yields to it, because
+  // the end of the race is worth more than the number just before it.
+  const runKm = totals.run;
+  const finish: AxisLabel = { key: "run-fin", text: "FIN", x: PLOT_RIGHT, anchor: "end" };
+  const finishLeft = edgesOf(finish).left;
+  const runMarks: AxisLabel[] = [];
+  for (let km = 0; km < runKm; km += RUN_STEP_KM) {
+    const x = plotX(courseFraction("run", km, totals));
+    const mark: AxisLabel = { key: `run-${km}`, text: String(km), x, anchor: anchorFor(x) };
+    if (edgesOf(mark).right + LABEL_GAP <= finishLeft) runMarks.push(mark);
+  }
+  const bottomLabels = runKm > 0 ? [...fitLabels(runMarks), finish] : [];
 
   return (
     <div className="rounded-lg border border-border bg-card px-2 pt-2.5 pb-1.5">
@@ -149,27 +232,15 @@ export function CoursePositionChart({
             <line key={tick.id} x1={tick.x} y1={TICK_TOP} x2={tick.x} y2={tickBottom} />
           ))}
         </g>
-        <g fill="var(--muted-foreground)" fontSize={8.5}>
+        <g fill="var(--muted-foreground)" fontSize={LABEL_FONT}>
           {topLabels.map((label) => (
-            <text
-              key={label.id}
-              x={label.x}
-              y={14}
-              textAnchor={
-                label.x <= PLOT_LEFT + 8 ? "start" : label.x >= PLOT_RIGHT - 8 ? "end" : "middle"
-              }
-            >
-              {label.label}
+            <text key={label.key} x={label.x} y={14} textAnchor={label.anchor}>
+              {label.text}
             </text>
           ))}
           {bottomLabels.map((label) => (
-            <text
-              key={label.id}
-              x={label.x}
-              y={lastY + 24}
-              textAnchor={label.x >= PLOT_RIGHT - 8 ? "end" : "middle"}
-            >
-              {label.label}
+            <text key={label.key} x={label.x} y={lastY + 24} textAnchor={label.anchor}>
+              {label.text}
             </text>
           ))}
         </g>
@@ -220,7 +291,7 @@ export function CoursePositionChart({
                 fill={self ? "var(--foreground)" : "var(--muted-foreground)"}
                 fontWeight={self ? 700 : 400}
               >
-                {distanceText(row.entry, row.km)}
+                {distanceText(row.entry, row.km, checkpoints)}
               </text>
             </g>
           );

@@ -15,7 +15,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "line" : "list",
   use: {
-    baseURL: `http://127.0.0.1:${PORT}`,
+    baseURL: `http://localhost:${PORT}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     locale: "ja-JP",
@@ -24,7 +24,7 @@ export default defineConfig({
   projects: [{ name: "mobile", use: { ...devices["iPhone 14"] } }],
   webServer: {
     command: `bunx next dev -p ${PORT}`,
-    url: `http://127.0.0.1:${PORT}/api/race`,
+    url: `http://localhost:${PORT}/api/race`,
     timeout: 180_000,
     reuseExistingServer: !process.env.CI,
     env: {

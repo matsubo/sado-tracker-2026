@@ -1,6 +1,8 @@
 "use client";
 
 import type { Discipline } from "@/config/races";
+import { projectKm } from "@/hooks/useLivePosition";
+import type { PositionDto } from "@/lib/api/contract";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -24,6 +26,28 @@ export const COURSE_SEGMENTS = [
 
 /** Full distance of each leg, in kilometres. */
 export type DisciplineKm = Readonly<Record<Discipline, number>>;
+
+/**
+ * The furthest the browser will extrapolate past the server's estimate. The
+ * race data is polled every 15 s, so two minutes covers a slow poll with room
+ * to spare.
+ */
+const MAX_PROJECTION_MS = 120_000;
+
+/**
+ * Move an athlete forward between server updates.
+ *
+ * The projection starts from the estimate the server already computed and is
+ * capped at two minutes of travel, rather than running from the last timing
+ * point on the browser's clock. The two clocks are not the same clock: a
+ * replay feed carries last year's timestamps, so an uncapped projection from
+ * `lastAt` advances every athlete by months and parks the whole field on the
+ * next timing point.
+ */
+export function liveKm(position: PositionDto, nowMs: number): number {
+  const elapsed = Math.min(Math.max(nowMs - position.lastAt, 0), MAX_PROJECTION_MS);
+  return projectKm({ ...position, lastKm: position.estKm, lastAt: 0 }, elapsed);
+}
 
 /** Clamps a value into the closed unit interval. */
 const unit = (value: number): number => Math.min(Math.max(value, 0), 1);

@@ -73,21 +73,21 @@ test.describe("athlete detail", () => {
     await page.goto(`/athletes/${bib}`);
 
     await expect(page.getByText(`#${bib}`)).toBeVisible();
-    await expect(page.getByText("種目")).toBeVisible();
-    await expect(page.getByText("スプリット")).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^種目/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^スプリット/ })).toBeVisible();
 
-    const help = page.getByRole("button", { name: /予想|どう計算|\?/ }).first();
-    if (await help.isVisible()) {
-      await expect(page.getByText("どう計算したか")).toBeHidden();
-      await help.click();
-      await expect(page.getByText("どう計算したか")).toBeVisible();
-    }
+    const help = page.getByRole("button", { name: /計算|説明|\?/ }).first();
+    await expect(help).toBeVisible();
+    await expect(help).toHaveAttribute("aria-expanded", "false");
+    await help.click();
+    await expect(help).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByText(/近傍|外挿/).first()).toBeVisible();
   });
 
   test("links to the external athlete page", async ({ page, request }) => {
     const bib = await racingBib(request);
     await page.goto(`/athletes/${bib}`);
-    const link = page.getByRole("link", { name: /AI TRI\+/ }).last();
+    const link = page.getByRole("link", { name: /AI TRI\+ の選手ページ/ });
     await expect(link).toHaveAttribute("href", /ai-triathlon-result\.teraren\.com\/athletes\//);
   });
 });
@@ -98,10 +98,11 @@ test.describe("division rankings", () => {
     await expect(page.getByRole("table")).toBeVisible();
     await expect(page.getByText(/名中/)).toBeVisible();
 
+    const firstRankBefore = await page.getByRole("row").nth(1).innerText();
     const next = page.getByRole("button", { name: /次へ/ });
     if (await next.isEnabled()) {
       await next.click();
-      await expect(page.getByText(/2 \/|2\//)).toBeVisible();
+      await expect(page.getByRole("row").nth(1)).not.toHaveText(firstRankBefore);
     }
   });
 });
@@ -119,7 +120,7 @@ test.describe("every page", () => {
     for (const path of ["/", "/map", "/divisions/A"]) {
       await page.goto(path);
       await expect(
-        page.getByRole("contentinfo").getByRole("link", { name: "AI TRI+" }),
+        page.getByRole("contentinfo").getByRole("link", { name: "AI TRI+", exact: true }),
       ).toBeVisible();
     }
   });

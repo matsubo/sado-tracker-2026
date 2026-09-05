@@ -56,7 +56,9 @@ interface DisciplineTableProps {
 /** Swim, bike and run side by side: time, pace, ranks and deviation score. */
 export function DisciplineTable({ rows, splits }: DisciplineTableProps): React.JSX.Element {
   return (
-    <Table>
+    // `min-w-max` keeps the table at its content width so the wrapper
+    // scrolls instead of squeezing the last column (偏差値) off a phone.
+    <Table className="min-w-max">
       <THead>
         <TR>
           <TH align="left">種目</TH>

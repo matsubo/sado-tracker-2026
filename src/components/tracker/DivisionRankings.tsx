@@ -25,6 +25,26 @@ type RankingDiscipline = (typeof DISCIPLINES)[number]["value"];
 const isDiscipline = (value: string): value is RankingDiscipline =>
   DISCIPLINES.some((item) => item.value === value);
 
+/** The checkpoint an athlete must have passed to appear in each table. */
+const END_CHECKPOINT: Readonly<Record<RankingDiscipline, string>> = {
+  swim: "swimF",
+  bike: "runS",
+  run: "finish",
+  total: "finish",
+};
+
+/** Below this, a table reads as broken rather than as an early leaderboard. */
+const MIN_RANKED = 20;
+const LADDER: readonly RankingDiscipline[] = ["total", "run", "bike", "swim"];
+
+/**
+ * Mid-race the finisher table holds one or two names, which looks like a bug.
+ * Open on the furthest discipline that a real field has completed instead.
+ */
+function autoDiscipline(counts: Readonly<Record<string, number>>): RankingDiscipline {
+  return LADDER.find((value) => (counts[END_CHECKPOINT[value]] ?? 0) >= MIN_RANKED) ?? "swim";
+}
+
 interface DivisionRankingsProps {
   readonly division: Division;
   readonly initialDiscipline: string | null;
@@ -40,9 +60,10 @@ interface KnownGroups {
 }
 
 /** Writes the current view into the address bar without adding a history entry. */
-function syncUrl(discipline: string, ageGroup: string, page: number): void {
+function syncUrl(discipline: string | null, ageGroup: string, page: number): void {
   const next = new URL(window.location.href);
-  next.searchParams.set("discipline", discipline);
+  if (discipline === null) next.searchParams.delete("discipline");
+  else next.searchParams.set("discipline", discipline);
   if (ageGroup === ALL_AGE_GROUPS) next.searchParams.delete("ageGroup");
   else next.searchParams.set("ageGroup", ageGroup);
   if (page <= 1) next.searchParams.delete("page");
@@ -51,8 +72,9 @@ function syncUrl(discipline: string, ageGroup: string, page: number): void {
 }
 
 /** Query string carried across the division tabs, page number excluded. */
-function tabQuery(discipline: string, ageGroup: string, bib: string | null): string {
-  const params = new URLSearchParams({ discipline });
+function tabQuery(discipline: string | null, ageGroup: string, bib: string | null): string {
+  const params = new URLSearchParams();
+  if (discipline !== null) params.set("discipline", discipline);
   if (ageGroup !== ALL_AGE_GROUPS) params.set("ageGroup", ageGroup);
   if (bib) params.set("bib", bib);
   return `?${params.toString()}`;
@@ -70,25 +92,36 @@ export function DivisionRankings({
   initialBib,
   initialPage,
 }: DivisionRankingsProps) {
-  const [discipline, setDiscipline] = useState<RankingDiscipline>(
-    initialDiscipline !== null && isDiscipline(initialDiscipline) ? initialDiscipline : "total",
-  );
+  const fromUrl =
+    initialDiscipline !== null && isDiscipline(initialDiscipline) ? initialDiscipline : null;
+  // Null until the race counts arrive and pick an opening discipline; an
+  // explicit choice, from the URL or a tab, is authoritative from then on.
+  const [discipline, setDiscipline] = useState<RankingDiscipline | null>(fromUrl);
+  const [explicit, setExplicit] = useState(fromUrl !== null);
   const [ageGroup, setAgeGroup] = useState(initialAgeGroup ?? ALL_AGE_GROUPS);
   const [page, setPage] = useState(initialPage);
   const [known, setKnown] = useState<KnownGroups>({ division, ids: [] });
 
-  const { fetchedAt } = useRaceState();
+  const { race, fetchedAt, error: raceError } = useRaceState();
+
+  useEffect(() => {
+    if (discipline !== null) return;
+    if (race) setDiscipline(autoDiscipline(race.counts[division]));
+    else if (raceError !== null) setDiscipline("total");
+  }, [discipline, race, raceError, division]);
 
   const url =
-    `/api/divisions/${division}/rankings?discipline=${discipline}&page=${page}` +
-    (ageGroup === ALL_AGE_GROUPS ? "" : `&ageGroup=${encodeURIComponent(ageGroup)}`) +
-    (initialBib ? `&bib=${encodeURIComponent(initialBib)}` : "");
+    discipline === null
+      ? null
+      : `/api/divisions/${division}/rankings?discipline=${discipline}&page=${page}` +
+        (ageGroup === ALL_AGE_GROUPS ? "" : `&ageGroup=${encodeURIComponent(ageGroup)}`) +
+        (initialBib ? `&bib=${encodeURIComponent(initialBib)}` : "");
 
   const { data, error, loading } = useLiveResource<RankingPageDto>(url, fetchedAt);
 
   useEffect(() => {
-    syncUrl(discipline, ageGroup, page);
-  }, [discipline, ageGroup, page]);
+    syncUrl(explicit ? discipline : null, ageGroup, page);
+  }, [explicit, discipline, ageGroup, page]);
 
   useEffect(() => {
     if (!data) return;
@@ -123,7 +156,7 @@ export function DivisionRankings({
         {DIVISIONS.map((id) => (
           <Link
             key={id}
-            href={`/divisions/${id}${tabQuery(discipline, ageGroup, initialBib)}`}
+            href={`/divisions/${id}${tabQuery(explicit ? discipline : null, ageGroup, initialBib)}`}
             aria-current={id === division ? "page" : undefined}
             className={cn(
               "flex-1 rounded-md px-2 py-2 text-center font-bold text-[13px] outline-none",
@@ -141,10 +174,11 @@ export function DivisionRankings({
         variant="pill"
         className="mx-3"
         items={DISCIPLINES}
-        value={discipline}
+        value={discipline ?? ""}
         onValueChange={(value) => {
           if (!isDiscipline(value)) return;
           setDiscipline(value);
+          setExplicit(true);
           setPage(1);
         }}
       />
@@ -154,10 +188,10 @@ export function DivisionRankings({
           {data ? (
             <>
               {data.measuredAt} <b className="text-foreground">{data.total}</b> 名中
-              {discipline === "total" ? "" : " · 暫定"}
+              {data.discipline === "total" ? "" : " · 暫定"}
             </>
           ) : (
-            (error ?? (loading ? "読み込み中" : "データがありません"))
+            (error ?? (loading || discipline === null ? "読み込み中" : "データがありません"))
           )}
         </p>
         <label className="flex shrink-0 items-center gap-1" htmlFor="age-group">
@@ -184,7 +218,9 @@ export function DivisionRankings({
         </p>
       ) : null}
 
-      {data ? <RankingTable rows={data.rows} discipline={discipline} /> : null}
+      {/* The column heads follow the payload, so they never describe a
+          discipline the rows do not belong to. */}
+      {data ? <RankingTable rows={data.rows} discipline={data.discipline} /> : null}
 
       <div className="flex items-center justify-center gap-4 py-2 font-semibold text-muted-foreground text-xs tabular-nums">
         <button

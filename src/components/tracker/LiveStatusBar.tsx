@@ -17,9 +17,13 @@ export function LiveStatusBar({
   readonly lastPolledAt: number;
   readonly error: string | null;
 }) {
-  const [now, setNow] = useState(() => Date.now());
+  // The countdown depends on the wall clock, which differs between the render
+  // on the server and the one in the browser. Starting from the poll time and
+  // only ticking after mount keeps the two markups identical.
+  const [now, setNow] = useState(lastPolledAt);
 
   useEffect(() => {
+    setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
