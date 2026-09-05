@@ -9,10 +9,10 @@ import { cn } from "@/lib/utils/cn";
 const LINKS = [
   { href: "/", label: "総合トップ", icon: Trophy, match: (path: string) => path === "/" },
   {
-    href: "/friends",
-    label: "友達一覧",
+    href: "/bookmarks",
+    label: "ブックマーク",
     icon: Star,
-    match: (path: string) => path.startsWith("/friends") || path.startsWith("/athletes"),
+    match: (path: string) => path.startsWith("/bookmarks") || path.startsWith("/athletes"),
   },
   {
     href: "/map",

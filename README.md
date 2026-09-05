@@ -10,16 +10,20 @@ Race day: 6 September 2026. Type A starts at 06:00 JST, Type B at 07:30.
 
 ## What it shows
 
-- **Friend dashboard** — bookmark athletes by bib or name. Bookmarks live in
-  the browser and in the URL, so a list can be shared by sending the link.
-  Each card shows the athlete's state, estimated position on the course,
-  per-discipline rank against the division and the age group with the size of
-  each population, deviation score, and a predicted finish.
+- **Bookmarks** — follow athletes by bib or name. Bookmarks live in the
+  browser only; nothing about who a person follows leaves their device.
+  Each card separates what the timing system measured from what the app
+  estimated: recorded splits and ranks on one side, position on the course and
+  predicted finish on the other.
 - **In-page notifications** — a bell counts checkpoint passes the reader has
   not seen. Unread is tracked per checkpoint, not by timestamp, so a pass that
   the timing site publishes late still counts as new.
-- **Athlete detail** — discipline table, prediction with a collapsible
-  explanation of how it was computed and how accurate the method has been,
+- **Leaderboard** — the front of each division, ordered by how far along the
+  course each athlete is, since ranks taken at different checkpoints are not
+  comparable.
+- **Athlete detail** — discipline table, every timing point on the course
+  whether reached or not, prediction with a collapsible explanation of how it
+  was computed and how accurate the method has been,
   the athlete's place among age-group rivals on a course strip, rank
   progression, every split, and results from past years matched by name.
 - **Division rankings** — swim, bike, run and total, filterable by age group,

@@ -52,10 +52,10 @@ export function Leaderboard() {
         <h1 className="font-bold text-[20px] tracking-tight">総合トップ</h1>
         {bibs.length > 0 ? (
           <Link
-            href="/friends"
+            href="/bookmarks"
             className="rounded font-semibold text-[12px] text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            友達 {bibs.length} 人 ›
+            ブックマーク {bibs.length} 人 ›
           </Link>
         ) : null}
       </header>
@@ -130,7 +130,7 @@ export function Leaderboard() {
                     #{athlete.bib}
                   </span>
                   {bookmarked ? (
-                    <span className="shrink-0 text-[10px] text-primary">友達</span>
+                    <span className="shrink-0 text-[10px] text-primary">ブックマーク</span>
                   ) : null}
                 </span>
                 <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11.5px] text-muted-foreground tabular-nums">

@@ -125,10 +125,10 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
             : `ゼッケン ${bib} の情報を表示できませんでした。少し時間をおいて開き直してください。`}
         </p>
         <Link
-          href="/friends"
+          href="/bookmarks"
           className="mt-3 inline-block rounded-md px-2 py-1 font-semibold text-[13px] text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          ‹ 友達一覧
+          ‹ ブックマーク
         </Link>
       </div>
     );
@@ -162,10 +162,10 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
       )}
       <div className="flex items-center justify-between px-4 pt-3 pb-1 text-[13px]">
         <Link
-          href="/friends"
+          href="/bookmarks"
           className="rounded-md px-1 py-0.5 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
-          ‹ 友達一覧
+          ‹ ブックマーク
         </Link>
         {ready ? (
           <button
@@ -174,7 +174,7 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
             onClick={() => (bookmarked ? remove(detail.bib) : add(detail.bib))}
             className="rounded-md px-1 py-0.5 font-bold text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {bookmarked ? "★ 友達に登録済み" : "☆ 友達に登録"}
+            {bookmarked ? "★ ブックマーク済み" : "☆ ブックマーク"}
           </button>
         ) : null}
       </div>

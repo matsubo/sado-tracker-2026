@@ -26,7 +26,7 @@ export function NotificationPanel({ items, friendCount, onMarkAllSeen }: Props) 
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <header className="flex items-center justify-between border-border border-b px-3.5 py-3">
-        <h2 className="font-bold text-[14px]">通知 · 友達 {friendCount} 人</h2>
+        <h2 className="font-bold text-[14px]">通知 · ブックマーク {friendCount} 人</h2>
         <button
           type="button"
           onClick={onMarkAllSeen}
@@ -38,7 +38,7 @@ export function NotificationPanel({ items, friendCount, onMarkAllSeen }: Props) 
 
       {items.length === 0 ? (
         <p className="px-3.5 py-6 text-center text-[12.5px] text-muted-foreground">
-          友達がまだ計測点を通過していません。
+          ブックマークした選手がまだ計測点を通過していません。
         </p>
       ) : (
         <ul>

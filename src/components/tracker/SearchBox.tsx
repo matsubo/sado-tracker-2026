@@ -120,8 +120,8 @@ export function SearchBox({ onAdd, isAdded }: Props) {
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder="ゼッケン番号か名前で友達を追加"
-          aria-label="ゼッケン番号か名前で友達を検索"
+          placeholder="ゼッケン番号か名前で選手を追加"
+          aria-label="ゼッケン番号か名前で選手を検索"
           className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
         />
         {query !== "" ? (

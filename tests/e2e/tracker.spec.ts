@@ -19,10 +19,10 @@ test.describe("friend dashboard", () => {
   }) => {
     const bib = await racingBib(request);
 
-    await page.goto("/friends");
-    await expect(page.getByRole("heading", { name: /友達一覧/ })).toBeVisible();
+    await page.goto("/bookmarks");
+    await expect(page.getByRole("heading", { name: /ブックマーク/ })).toBeVisible();
 
-    await page.getByLabel("ゼッケン番号か名前で友達を検索").fill(bib);
+    await page.getByLabel("ゼッケン番号か名前で選手を検索").fill(bib);
 
     // Suggestions appear as the reader types; picking one adds the athlete.
     const suggestion = page.getByRole("option").first();
@@ -42,26 +42,26 @@ test.describe("friend dashboard", () => {
     request,
   }) => {
     const bib = await racingBib(request);
-    await page.goto(`/friends?bibs=${bib}`);
+    await page.goto(`/bookmarks?bibs=${bib}`);
     await expect(page.getByText(`#${bib}`)).toBeVisible();
     await expect(page).not.toHaveURL(/bibs=/);
   });
 
   test("opens the notification panel and clears the unread badge", async ({ page, request }) => {
     const bib = await racingBib(request);
-    await page.goto(`/friends?bibs=${bib}`);
+    await page.goto(`/bookmarks?bibs=${bib}`);
 
     const bell = page.getByRole("button", { name: /通知/ });
     await expect(bell).toBeVisible();
     await bell.click();
 
-    await expect(page.getByRole("heading", { name: /通知 · 友達/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /通知 · ブックマーク/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "すべて既読にする" })).toBeVisible();
   });
 
   test("refreshes in place without a navigation", async ({ page, request }) => {
     const bib = await racingBib(request);
-    await page.goto(`/friends?bibs=${bib}`);
+    await page.goto(`/bookmarks?bibs=${bib}`);
     await expect(page.getByText(`#${bib}`)).toBeVisible();
 
     let navigations = 0;
@@ -129,7 +129,7 @@ test.describe("field map", () => {
 
 test.describe("every page", () => {
   test("carries the AI TRI+ footer", async ({ page }) => {
-    for (const path of ["/", "/friends", "/map", "/divisions/A"]) {
+    for (const path of ["/", "/bookmarks", "/map", "/divisions/A"]) {
       await page.goto(path);
       await expect(
         page.getByRole("contentinfo").getByRole("link", { name: "AI TRI+", exact: true }),
@@ -146,9 +146,9 @@ test.describe("leaderboard", () => {
 
     // The menu lives in the header and leads to the other views.
     await page.getByRole("button", { name: /メニューを開く/ }).click();
-    await expect(page.getByRole("link", { name: "友達一覧" })).toBeVisible();
-    await page.getByRole("link", { name: "友達一覧" }).click();
-    await expect(page).toHaveURL(/\/friends/);
+    await expect(page.getByRole("link", { name: "ブックマーク" })).toBeVisible();
+    await page.getByRole("link", { name: "ブックマーク" }).click();
+    await expect(page).toHaveURL(/\/bookmarks/);
   });
 
   test("shows the race clock, which in replay is not the device clock", async ({ page }) => {
@@ -160,8 +160,8 @@ test.describe("leaderboard", () => {
 
 test.describe("search", () => {
   test("suggests athletes as the reader types", async ({ page }) => {
-    await page.goto("/friends");
-    await page.getByLabel("ゼッケン番号か名前で友達を検索").fill("1");
+    await page.goto("/bookmarks");
+    await page.getByLabel("ゼッケン番号か名前で選手を検索").fill("1");
     await expect(page.getByRole("listbox")).toBeVisible();
     expect(await page.getByRole("option").count()).toBeGreaterThan(1);
   });

@@ -66,7 +66,7 @@ export function AthleteCard({ athlete, unread, nextLabel, checkpoints, legKm, on
           <button
             type="button"
             onClick={() => onRemove(athlete.bib)}
-            aria-label={`${athlete.name} を友達から外す`}
+            aria-label={`${athlete.name} のブックマークを解除`}
             className="rounded p-1 text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
           >
             <X className="h-3.5 w-3.5" />

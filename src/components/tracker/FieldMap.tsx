@@ -57,13 +57,13 @@ const DIVISION_TABS = DIVISION_IDS.map((value) => ({ value, label: value }));
 const VIEW_TABS = [
   { value: "division", label: "部門総合" },
   { value: "age", label: "エイジ別" },
-  { value: "friends", label: "友達だけ" },
+  { value: "friends", label: "ブックマークのみ" },
 ] as const;
 const LEGEND = [
   { label: "スイム中", size: "size-1.5", color: LEG.swim.color },
   { label: "バイク中", size: "size-1.5", color: LEG.bike.color },
   { label: "ラン中", size: "size-1.5", color: LEG.run.color },
-  { label: "友達", size: "size-2 bg-brand-cyan-400", color: undefined },
+  { label: "ブックマーク", size: "size-2 bg-brand-cyan-400", color: undefined },
 ];
 
 const VIEW_W = 360;
@@ -81,7 +81,7 @@ const MIN_KM_GAP = 40;
 const EMPTY_MESSAGE: Readonly<Record<View, string>> = {
   division: "計測中の選手がいません。",
   age: "この年齢区分に計測中の選手がいません。",
-  friends: "友達を登録すると、ここに並びます。",
+  friends: "選手をブックマークすると、ここに並びます。",
 };
 
 /** Transition points sit on the bike leg; everything else maps to its own leg. */

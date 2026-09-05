@@ -81,7 +81,7 @@ describe("SearchBox suggestions", () => {
 
   it("suggests athletes while typing, without a submit", async () => {
     render(<SearchBox onAdd={() => {}} isAdded={() => false} />);
-    fireEvent.change(screen.getByLabelText("ゼッケン番号か名前で友達を検索"), {
+    fireEvent.change(screen.getByLabelText("ゼッケン番号か名前で選手を検索"), {
       target: { value: "井上" },
     });
 
@@ -96,7 +96,7 @@ describe("SearchBox suggestions", () => {
 
   it("shows enough to tell two people with the same name apart", async () => {
     render(<SearchBox onAdd={() => {}} isAdded={() => false} />);
-    fireEvent.change(screen.getByLabelText("ゼッケン番号か名前で友達を検索"), {
+    fireEvent.change(screen.getByLabelText("ゼッケン番号か名前で選手を検索"), {
       target: { value: "井上" },
     });
     await waitFor(() => expect(screen.getByRole("listbox")).toBeInTheDocument());
@@ -110,7 +110,7 @@ describe("SearchBox suggestions", () => {
   it("adds the athlete the reader picks and clears the box", async () => {
     const onAdd = vi.fn();
     render(<SearchBox onAdd={onAdd} isAdded={() => false} />);
-    const input = screen.getByLabelText("ゼッケン番号か名前で友達を検索");
+    const input = screen.getByLabelText("ゼッケン番号か名前で選手を検索");
     fireEvent.change(input, { target: { value: "井上" } });
     await waitFor(() => expect(screen.getByRole("listbox")).toBeInTheDocument());
 
@@ -122,7 +122,7 @@ describe("SearchBox suggestions", () => {
   it("moves through the list with the arrow keys and picks with Enter", async () => {
     const onAdd = vi.fn();
     render(<SearchBox onAdd={onAdd} isAdded={() => false} />);
-    const input = screen.getByLabelText("ゼッケン番号か名前で友達を検索");
+    const input = screen.getByLabelText("ゼッケン番号か名前で選手を検索");
     fireEvent.change(input, { target: { value: "井上" } });
     await waitFor(() => expect(screen.getByRole("listbox")).toBeInTheDocument());
 
@@ -135,7 +135,7 @@ describe("SearchBox suggestions", () => {
   it("wraps around at the ends of the list", async () => {
     const onAdd = vi.fn();
     render(<SearchBox onAdd={onAdd} isAdded={() => false} />);
-    const input = screen.getByLabelText("ゼッケン番号か名前で友達を検索");
+    const input = screen.getByLabelText("ゼッケン番号か名前で選手を検索");
     fireEvent.change(input, { target: { value: "井上" } });
     await waitFor(() => expect(screen.getByRole("listbox")).toBeInTheDocument());
 
@@ -147,7 +147,7 @@ describe("SearchBox suggestions", () => {
   it("marks an athlete already on the list and does not add them twice", async () => {
     const onAdd = vi.fn();
     render(<SearchBox onAdd={onAdd} isAdded={(bib) => bib === "1597"} />);
-    fireEvent.change(screen.getByLabelText("ゼッケン番号か名前で友達を検索"), {
+    fireEvent.change(screen.getByLabelText("ゼッケン番号か名前で選手を検索"), {
       target: { value: "井上" },
     });
     await waitFor(() => expect(screen.getByRole("listbox")).toBeInTheDocument());
@@ -167,7 +167,7 @@ describe("SearchBox suggestions", () => {
         }),
     );
     render(<SearchBox onAdd={() => {}} isAdded={() => false} />);
-    fireEvent.change(screen.getByLabelText("ゼッケン番号か名前で友達を検索"), {
+    fireEvent.change(screen.getByLabelText("ゼッケン番号か名前で選手を検索"), {
       target: { value: "存在しない" },
     });
 
@@ -176,7 +176,7 @@ describe("SearchBox suggestions", () => {
 
   it("closes the list on Escape", async () => {
     render(<SearchBox onAdd={() => {}} isAdded={() => false} />);
-    const input = screen.getByLabelText("ゼッケン番号か名前で友達を検索");
+    const input = screen.getByLabelText("ゼッケン番号か名前で選手を検索");
     fireEvent.change(input, { target: { value: "井上" } });
     await waitFor(() => expect(screen.getByRole("listbox")).toBeInTheDocument());
 
@@ -186,7 +186,7 @@ describe("SearchBox suggestions", () => {
 
   it("issues one request per pause, not one per keystroke", async () => {
     render(<SearchBox onAdd={() => {}} isAdded={() => false} />);
-    const input = screen.getByLabelText("ゼッケン番号か名前で友達を検索");
+    const input = screen.getByLabelText("ゼッケン番号か名前で選手を検索");
     for (const value of ["井", "井上", "井上 伸"]) {
       fireEvent.change(input, { target: { value } });
     }

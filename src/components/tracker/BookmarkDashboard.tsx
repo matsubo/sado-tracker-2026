@@ -29,7 +29,7 @@ interface AthletesResponse {
  * is polled, and the heavier data is refetched only when its update time
  * changes, so the page never reloads under the reader.
  */
-export function HomeDashboard() {
+export function BookmarkDashboard() {
   const { race, fetchedAt, error: raceError, lastPolledAt, intervalMs } = useRaceState();
   const { bibs, ready, add, remove, has } = useBookmarks();
   const [panelOpen, setPanelOpen] = useState(false);
@@ -65,7 +65,7 @@ export function HomeDashboard() {
     <main className="mx-auto w-full max-w-[430px] pb-10">
       <GlobalHeader year={race?.year} />
       <header className="flex items-center justify-between px-4 pt-1 pb-2">
-        <h1 className="font-bold text-[20px] tracking-tight">友達一覧</h1>
+        <h1 className="font-bold text-[20px] tracking-tight">ブックマーク</h1>
         <div className="flex items-center gap-2.5">
           <button
             type="button"
@@ -120,7 +120,7 @@ export function HomeDashboard() {
 
         {ready && bibs.length === 0 ? (
           <div className="rounded-lg border border-border border-dashed bg-card px-4 py-8 text-center">
-            <p className="font-bold text-[14px]">応援する友達を追加してください</p>
+            <p className="font-bold text-[14px]">応援する選手をブックマークしてください</p>
             <p className="mt-1.5 text-[12.5px] text-muted-foreground leading-relaxed">
               ゼッケン番号か名前で検索できます。追加するとこのブラウザに保存され、
               次に開いたときもそのまま残ります。
