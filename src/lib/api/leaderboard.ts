@@ -1,5 +1,6 @@
-import type { Division } from "@/config/races";
+import { type Division, normalizeName } from "@/config/races";
 import type { ComputedSnapshot } from "@/lib/compute/snapshot";
+import { matchesAthlete } from "./athleteMatch";
 import type { AthleteSummaryDto } from "./contract";
 import { toAthleteSummary } from "./serialize";
 
@@ -18,8 +19,13 @@ export interface LeaderboardDto {
   /** Athletes currently counted: racing, finished or retired. */
   readonly racing: number;
   readonly finished: number;
-  /** Everyone in the field order, before this page was taken from it. */
+  /**
+   * How many rows the reader is paging through: the whole field, or the
+   * matches when a filter is set.
+   */
   readonly total: number;
+  /** The filter in force, normalised; empty when the whole field is shown. */
+  readonly query: string;
   readonly page: number;
   readonly perPage: number;
   readonly leaders: readonly LeaderRowDto[];
@@ -45,6 +51,7 @@ export function buildLeaderboard(
   division: Division,
   perPage: number,
   page = 1,
+  query = "",
 ): LeaderboardDto {
   // Until a checkpoint has fired there is nothing to order by, and an empty
   // front page says nothing about a race with 1,857 entrants. The whole
@@ -54,16 +61,34 @@ export function buildLeaderboard(
     0,
   );
   const started = readings > 0;
-  const order = started ? (snapshot.byDivision[division] ?? []) : entrantsByBib(snapshot, division);
+  const field = started ? (snapshot.byDivision[division] ?? []) : entrantsByBib(snapshot, division);
+
+  // Filtering keeps the field order and each athlete's place in it: someone
+  // looking up one name still wants to see that they are 137th, not 1st of
+  // the one row that matched.
+  const needle = normalizeName(query);
+  const order =
+    needle === ""
+      ? field.map((bib, index) => ({ bib, place: index + 1 }))
+      : field
+          .map((bib, index) => ({ bib, place: index + 1 }))
+          .filter(({ bib }) => {
+            const computed = snapshot.athletes.get(bib);
+            return computed
+              ? matchesAthlete(computed.athlete.bib, computed.athlete.nameKey, needle)
+              : false;
+          });
+
   const start = Math.max(0, (page - 1) * perPage);
   const leaders: LeaderRowDto[] = [];
 
-  // Place is the athlete's position in the whole field, not on this page.
-  order.slice(start, start + perPage).forEach((bib, index) => {
+  // Place is the athlete's position in the whole field, not on this page and
+  // not among the matches.
+  for (const { bib, place } of order.slice(start, start + perPage)) {
     const computed = snapshot.athletes.get(bib);
-    if (!computed) return;
-    leaders.push({ place: start + index + 1, athlete: toAthleteSummary(computed) });
-  });
+    if (!computed) continue;
+    leaders.push({ place, athlete: toAthleteSummary(computed) });
+  }
 
   let entrants = 0;
   for (const computed of snapshot.athletes.values()) {
@@ -78,6 +103,7 @@ export function buildLeaderboard(
     racing: snapshot.populations[division].all.length,
     finished: snapshot.counts[division].finish ?? 0,
     total: order.length,
+    query: needle,
     page,
     perPage,
     leaders,

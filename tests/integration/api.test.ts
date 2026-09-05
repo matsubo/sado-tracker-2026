@@ -333,6 +333,78 @@ describe("leaderboard", () => {
     expect(board.racing).toBeLessThanOrEqual(board.entrants);
   });
 
+  it("filters the field to the athletes whose name contains the text", () => {
+    const all = buildLeaderboard(snapshot, "A", 100, 1);
+    const someone = all.leaders[3]?.athlete;
+    if (!someone) throw new Error("fixture has no fourth athlete");
+    const fragment = someone.name.split(" ")[0] as string;
+
+    const board = buildLeaderboard(snapshot, "A", 100, 1, fragment);
+    expect(board.leaders.length).toBeGreaterThan(0);
+    for (const row of board.leaders) {
+      expect(`${row.athlete.name} ${row.athlete.bib}`).toContain(fragment);
+    }
+    expect(board.leaders.some((row) => row.athlete.bib === someone.bib)).toBe(true);
+  });
+
+  it("keeps each athlete's position in the whole field while filtered", () => {
+    const all = buildLeaderboard(snapshot, "A", 200, 1);
+    const target = all.leaders[40]?.athlete;
+    if (!target) throw new Error("fixture has no 41st athlete");
+
+    const board = buildLeaderboard(snapshot, "A", 100, 1, target.bib);
+    const row = board.leaders.find((entry) => entry.athlete.bib === target.bib);
+    // 41st in the field is still 41st when the list is filtered down to them.
+    expect(row?.place).toBe(41);
+  });
+
+  it("counts the matches, not the division, once filtered", () => {
+    const all = buildLeaderboard(snapshot, "A", 100, 1);
+    const target = all.leaders[0]?.athlete;
+    if (!target) throw new Error("fixture is empty");
+
+    const board = buildLeaderboard(snapshot, "A", 100, 1, target.bib);
+    expect(board.total).toBeLessThan(all.total);
+    expect(board.total).toBe(board.leaders.length);
+    // Everyone entered is still everyone entered.
+    expect(board.entrants).toBe(all.entrants);
+    expect(board.query).toBe(target.bib);
+  });
+
+  it("filters by part of a bib", () => {
+    const board = buildLeaderboard(snapshot, "A", 100, 1, "007");
+    for (const row of board.leaders) {
+      expect(row.athlete.bib).toContain("007");
+    }
+  });
+
+  it("returns the whole field when the box is empty", () => {
+    const all = buildLeaderboard(snapshot, "A", 100, 1);
+    for (const empty of ["", "   "]) {
+      const board = buildLeaderboard(snapshot, "A", 100, 1, empty);
+      expect(board.total).toBe(all.total);
+      expect(board.query).toBe("");
+    }
+  });
+
+  it("returns nothing, and says so, when the text matches nobody", () => {
+    const board = buildLeaderboard(snapshot, "A", 100, 1, "該当者なしのはずの文字列");
+    expect(board.leaders).toEqual([]);
+    expect(board.total).toBe(0);
+    expect(board.entrants).toBeGreaterThan(0);
+  });
+
+  it("pages through the matches rather than through the whole field", () => {
+    const board = buildLeaderboard(snapshot, "A", 2, 1, "1");
+    expect(board.leaders.length).toBeLessThanOrEqual(2);
+    if (board.total > 2) {
+      const second = buildLeaderboard(snapshot, "A", 2, 2, "1");
+      expect(second.total).toBe(board.total);
+      const firstBibs = new Set(board.leaders.map((row) => row.athlete.bib));
+      expect(second.leaders.some((row) => firstBibs.has(row.athlete.bib))).toBe(false);
+    }
+  });
+
   it("returns an empty board rather than failing for an empty division", () => {
     const board = buildLeaderboard(snapshot, "RB", 20);
     expect(board.division).toBe("RB");

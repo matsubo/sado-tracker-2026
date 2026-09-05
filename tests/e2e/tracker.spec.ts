@@ -148,11 +148,43 @@ test.describe("leaderboard", () => {
     await expect(page.getByRole("heading", { name: "総合トップ" })).toBeVisible();
     await expect(page.getByText(/先頭順/)).toBeVisible();
 
-    // The menu lives in the header and leads to the other views.
+    // The menu lives in the header and leads to the other views. The footer
+    // lists the same destinations, so the menu is named to keep them apart.
     await page.getByRole("button", { name: /メニューを開く/ }).click();
-    await expect(page.getByRole("link", { name: "ブックマーク" })).toBeVisible();
-    await page.getByRole("link", { name: "ブックマーク" }).click();
+    const menu = page.getByRole("navigation", { name: "メインメニュー" });
+    await expect(menu.getByRole("link", { name: "ブックマーク" })).toBeVisible();
+    await menu.getByRole("link", { name: "ブックマーク" }).click();
     await expect(page).toHaveURL(/\/bookmarks/);
+  });
+
+  test("narrows the field to a name and keeps each athlete's place in it", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText(/先頭順/)).toBeVisible();
+
+    const rows = page.locator('main a[href^="/athletes/"]');
+    const leader = (await rows.first().innerText()).split("\n")[0] as string;
+    const family = leader.split(" ")[0] as string;
+
+    await page.getByLabel("名前かゼッケン番号で一覧を絞り込む").fill(family);
+    await expect(page.getByText(new RegExp(`「${family}」に一致`))).toBeVisible();
+
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(0);
+    for (let i = 0; i < count; i += 1) {
+      expect(await rows.nth(i).innerText()).toContain(family);
+    }
+  });
+
+  test("says so when nothing matches, and restores the field when cleared", async ({ page }) => {
+    await page.goto("/");
+    const box = page.getByLabel("名前かゼッケン番号で一覧を絞り込む");
+
+    await box.fill("該当者のいない文字列");
+    await expect(page.getByText(/に一致する選手はいません/)).toBeVisible();
+
+    await page.getByLabel("絞り込みを解除").click();
+    await expect(page.getByText(/エントリー/)).toBeVisible();
+    expect(await page.locator('main a[href^="/athletes/"]').count()).toBeGreaterThan(1);
   });
 
   test("shows the race clock, which in replay is not the device clock", async ({ page }) => {
@@ -210,7 +242,19 @@ test.describe("help", () => {
   test("is reachable from the menu on any page", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: /メニューを開く/ }).click();
-    await page.getByRole("link", { name: "ヘルプ", exact: true }).click();
+    await page
+      .getByRole("navigation", { name: "メインメニュー" })
+      .getByRole("link", { name: "ヘルプ", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/help/);
+  });
+
+  test("is reachable from the footer without opening the menu", async ({ page }) => {
+    await page.goto("/");
+    await page
+      .getByRole("navigation", { name: "サイト内のページ" })
+      .getByRole("link", { name: "ヘルプ", exact: true })
+      .click();
     await expect(page).toHaveURL(/\/help/);
   });
 });

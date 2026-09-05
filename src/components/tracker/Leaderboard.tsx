@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs } from "@/components/ui/tabs";
@@ -11,6 +11,7 @@ import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
 import type { LeaderboardDto } from "@/lib/api/leaderboard";
 import { formatClockShort, formatDuration, formatKm } from "@/lib/format";
 import { cn } from "@/lib/utils/cn";
+import { FilterBox } from "./FilterBox";
 import { PreRaceNotice } from "./PreRaceNotice";
 import { StatusPill } from "./StatusPill";
 
@@ -38,11 +39,12 @@ export function Leaderboard() {
     useRaceState();
   const [division, setDivision] = useState("A");
   const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
   const { bibs, has } = useBookmarks();
   const now = useLiveClock();
 
   const { data: board, loading } = useLiveResource<LeaderboardDto>(
-    `/api/leaderboard?div=${division}&page=${page}`,
+    `/api/leaderboard?div=${division}&page=${page}&q=${encodeURIComponent(query)}`,
     fetchedAt,
   );
 
@@ -52,6 +54,16 @@ export function Leaderboard() {
     setDivision(next);
     setPage(1);
   };
+
+  // A narrower list has fewer pages, so page 7 of the field is rarely page 7
+  // of the matches. Going back to the first page is the only answer that is
+  // never wrong. The filter survives a change of division on purpose: the
+  // tabs narrow by division and the box by name, and someone looking for a
+  // family name usually wants it in whichever division they switch to.
+  const changeQuery = useCallback((next: string): void => {
+    setQuery(next);
+    setPage(1);
+  }, []);
 
   return (
     <main className="mx-auto w-full max-w-[430px] pb-10">
@@ -88,16 +100,35 @@ export function Leaderboard() {
         className="mt-2.5"
       />
 
+      <div className="px-3 pt-2.5">
+        <FilterBox
+          value={query}
+          onChange={changeQuery}
+          placeholder="名前かゼッケン番号で絞り込む"
+          label="名前かゼッケン番号で一覧を絞り込む"
+        />
+      </div>
+
       {board ? (
         <p className="px-4 pt-2.5 text-[12px] text-muted-foreground tabular-nums">
-          {board.label} · エントリー{" "}
-          <b className="font-semibold text-foreground">{board.entrants}</b> 名
-          {board.finished > 0 ? (
+          {board.query === "" ? (
             <>
-              {" · フィニッシュ "}
-              <b className="font-semibold text-foreground">{board.finished}</b> 名
+              {board.label} · エントリー{" "}
+              <b className="font-semibold text-foreground">{board.entrants}</b> 名
+              {board.finished > 0 ? (
+                <>
+                  {" · フィニッシュ "}
+                  <b className="font-semibold text-foreground">{board.finished}</b> 名
+                </>
+              ) : null}
             </>
-          ) : null}
+          ) : (
+            <>
+              {board.label} · 「{board.query}」に一致{" "}
+              <b className="font-semibold text-foreground">{board.total}</b> 名{" / "}
+              {board.entrants} 名中
+            </>
+          )}
           {board.order === "field" ? " · 先頭順" : " · ゼッケン順"}
         </p>
       ) : null}
@@ -107,7 +138,9 @@ export function Leaderboard() {
 
         {board?.leaders.length === 0 ? (
           <p className="rounded-lg border border-border border-dashed bg-card px-4 py-8 text-center text-[12.5px] text-muted-foreground">
-            この部門のエントリーはありません。
+            {board.query === ""
+              ? "この部門のエントリーはありません。"
+              : `「${board.query}」に一致する選手はいません。名字かゼッケン番号の一部で探せます。`}
           </p>
         ) : null}
 
@@ -129,14 +162,16 @@ export function Leaderboard() {
               {board.order === "field" ? (
                 <span
                   className={cn(
-                    "w-6 shrink-0 text-right font-bold text-[15px] tabular-nums",
+                    // The field runs past a thousand, so the column has to
+                    // hold four digits without wrapping one onto its own line.
+                    "min-w-6 shrink-0 whitespace-nowrap text-right font-bold text-[15px] tabular-nums",
                     MEDAL[place] ?? "text-muted-foreground",
                   )}
                 >
                   {place}
                 </span>
               ) : (
-                <span className="w-6 shrink-0" aria-hidden />
+                <span className="min-w-6 shrink-0" aria-hidden />
               )}
               <span className="min-w-0 flex-1">
                 <span className="flex items-baseline gap-1.5">
@@ -207,7 +242,8 @@ export function Leaderboard() {
             {board.page} / {lastPage}
             <span className="ml-1.5">
               （{(board.page - 1) * board.perPage + 1}〜
-              {Math.min(board.page * board.perPage, board.total)} 位）
+              {Math.min(board.page * board.perPage, board.total)}
+              {board.query === "" ? " 位" : " 件"}）
             </span>
           </span>
           <button
