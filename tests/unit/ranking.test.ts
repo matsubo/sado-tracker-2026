@@ -11,12 +11,25 @@ const courseA = config.divisions.A;
 const START = Date.parse("2026-09-06T06:00:00+09:00");
 const MIN = 60_000;
 
-function athlete(bib: string, passes: Record<string, number>, extra: Partial<Athlete> = {}): Athlete {
+function athlete(
+  bib: string,
+  passes: Record<string, number>,
+  extra: Partial<Athlete> = {},
+): Athlete {
   return {
-    bib, name: `選手　${bib}`, nameKey: `選手 ${bib}`, sex: "M", division: "A",
+    bib,
+    name: `選手　${bib}`,
+    nameKey: `選手 ${bib}`,
+    sex: "M",
+    division: "A",
     ageGroup: { id: "M40-44", sex: "M", min: 40, max: 44, label: "男子40-44" },
-    startAt: START, startInferred: false, passes, preRace: { waterEntry: START - MIN },
-    officialTotal: null, remark: "", ...extra,
+    startAt: START,
+    startInferred: false,
+    passes,
+    preRace: { waterEntry: START - MIN },
+    officialTotal: null,
+    remark: "",
+    ...extra,
   };
 }
 
@@ -40,8 +53,16 @@ describe("rankBy", () => {
 
 describe("disciplineRanks", () => {
   const now = START + 300 * MIN;
-  const fast = athlete("1", { swimF: START + 80 * MIN, bikeS: START + 88 * MIN, sumiyoshi: START + 250 * MIN });
-  const slow = athlete("2", { swimF: START + 95 * MIN, bikeS: START + 103 * MIN, sumiyoshi: START + 270 * MIN });
+  const fast = athlete("1", {
+    swimF: START + 80 * MIN,
+    bikeS: START + 88 * MIN,
+    sumiyoshi: START + 250 * MIN,
+  });
+  const slow = athlete("2", {
+    swimF: START + 95 * MIN,
+    bikeS: START + 103 * MIN,
+    sumiyoshi: START + 270 * MIN,
+  });
   const swimOnly = athlete("3", { swimF: START + 90 * MIN });
   const pop = buildPopulations([fast, slow, swimOnly], "A", courseA, now);
 
@@ -64,7 +85,11 @@ describe("disciplineRanks", () => {
   });
 
   it("gives a relay athlete a division rank but no sex or age rank", () => {
-    const relay = athlete("4", { swimF: START + 85 * MIN }, { sex: null, ageGroup: null, division: "RA" });
+    const relay = athlete(
+      "4",
+      { swimF: START + 85 * MIN },
+      { sex: null, ageGroup: null, division: "RA" },
+    );
     const relayPop = buildPopulations([relay], "RA", config.divisions.RA, now);
     const result = disciplineRanks(relay, "swim", relayPop, config.divisions.RA);
     expect(result.ranks.division).toEqual({ rank: 1, of: 1 });

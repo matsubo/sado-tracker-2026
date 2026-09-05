@@ -1,5 +1,5 @@
-import { toRaceState } from "@/lib/api/serialize";
 import { liveJson, notReady } from "@/lib/api/respond";
+import { toRaceState } from "@/lib/api/serialize";
 import { getSnapshot } from "@/lib/runtime/store";
 
 export const dynamic = "force-dynamic";

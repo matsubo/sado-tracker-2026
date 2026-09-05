@@ -21,8 +21,8 @@ export function PredictionSummary({ prediction }: { prediction: PredictionDto | 
       </div>
       <p className="text-[11.5px] text-muted-foreground leading-tight tabular-nums">
         総合 {formatDurationShort(prediction.totalMs)} 前後
-        <br />
-        幅 {formatClockShort(prediction.rangeLowMs + (prediction.finishAt - prediction.totalMs))}〜
+        <br />幅{" "}
+        {formatClockShort(prediction.rangeLowMs + (prediction.finishAt - prediction.totalMs))}〜
         {formatClockShort(prediction.rangeHighMs + (prediction.finishAt - prediction.totalMs))}
         {prediction.method === "neighbours"
           ? ` · 近傍 ${prediction.explanation.neighbourCount} 人`

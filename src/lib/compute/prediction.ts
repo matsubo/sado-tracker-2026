@@ -48,7 +48,10 @@ export type BacktestTable = ReadonlyMap<string, BacktestAccuracy>;
 
 function percentile(sorted: readonly number[], fraction: number): number {
   if (sorted.length === 0) return 0;
-  const index = Math.min(sorted.length - 1, Math.max(0, Math.round((sorted.length - 1) * fraction)));
+  const index = Math.min(
+    sorted.length - 1,
+    Math.max(0, Math.round((sorted.length - 1) * fraction)),
+  );
   return sorted[index] as number;
 }
 
@@ -62,12 +65,7 @@ function paceMinPerKm(ms: number, km: number): number | null {
  * whose distance changed between years can still be compared. Returns null
  * until enough of the field has been measured for a rank to mean anything.
  */
-function livePercentile(
-  athlete: Athlete,
-  discipline: Discipline,
-  course: DivisionCourse,
-  pop: Populations,
-): number | null {
+function livePercentile(athlete: Athlete, discipline: Discipline, pop: Populations): number | null {
   const bounds =
     discipline === "swim"
       ? (["start", "swimF"] as const)
@@ -121,7 +119,12 @@ function featureVector(
     paceComparable(checkpoint.discipline) &&
     !vector.has(checkpoint.discipline)
   ) {
-    const from = checkpoint.discipline === "swim" ? "start" : checkpoint.discipline === "bike" ? "bikeS" : "runS";
+    const from =
+      checkpoint.discipline === "swim"
+        ? "start"
+        : checkpoint.discipline === "bike"
+          ? "bikeS"
+          : "runS";
     const ms = splitBetween(athlete, from, latest);
     const pace = ms === null ? null : paceMinPerKm(ms, checkpoint.km);
     if (pace !== null) vector.set(`partial:${latest}`, pace);
@@ -134,7 +137,6 @@ function featureVector(
 function trainingVector(
   row: TrainingRow,
   course: DivisionCourse,
-  latest: string,
   keys: readonly string[],
 ): Map<string, number> | null {
   const vector = new Map<string, number>();
@@ -146,7 +148,9 @@ function trainingVector(
       const elapsed = row.elapsed[checkpointId];
       if (!checkpoint || elapsed === undefined) return null;
       const from =
-        checkpoint.discipline === "swim" ? 0 : row.elapsed[checkpoint.discipline === "bike" ? "bikeS" : "runS"];
+        checkpoint.discipline === "swim"
+          ? 0
+          : row.elapsed[checkpoint.discipline === "bike" ? "bikeS" : "runS"];
       if (from === undefined) return null;
       const pace = paceMinPerKm(elapsed - from, checkpoint.km);
       if (pace === null) return null;
@@ -175,7 +179,10 @@ interface Standardizer {
   readonly sd: Map<string, number>;
 }
 
-function standardizer(vectors: readonly Map<string, number>[], keys: readonly string[]): Standardizer {
+function standardizer(
+  vectors: readonly Map<string, number>[],
+  keys: readonly string[],
+): Standardizer {
   const mean = new Map<string, number>();
   const sd = new Map<string, number>();
 
@@ -243,7 +250,8 @@ function ownSegmentSpeed(athlete: Athlete, course: DivisionCourse, latest: strin
   const previous = course.checkpoints[index - 1];
   if (!checkpoint || !previous) return null;
   const ms = splitBetween(athlete, previous.id, checkpoint.id);
-  const km = checkpoint.discipline === previous.discipline ? checkpoint.km - previous.km : checkpoint.km;
+  const km =
+    checkpoint.discipline === previous.discipline ? checkpoint.km - previous.km : checkpoint.km;
   if (ms === null || ms <= 0 || km <= 0) return null;
   return km / (ms / 3_600_000);
 }
@@ -288,7 +296,7 @@ export function predictFinish(
   // Disciplines whose distance changed between years enter as a within-year
   // percentile rather than an absolute pace, so the scales stay comparable.
   for (const discipline of model.percentileFeatures[athlete.division]) {
-    const value = livePercentile(athlete, discipline, course, pop);
+    const value = livePercentile(athlete, discipline, pop);
     if (value !== null) own.set(`percentile:${discipline}`, value);
   }
 
@@ -299,7 +307,7 @@ export function predictFinish(
     for (const row of model.rows[athlete.division]) {
       const atCheckpoint = row.elapsed[latest];
       if (atCheckpoint === undefined) continue;
-      const vector = trainingVector(row, course, latest, keys);
+      const vector = trainingVector(row, course, keys);
       if (!vector) continue;
       candidates.push({ row, vector, remaining: row.totalMs - atCheckpoint });
     }
@@ -327,7 +335,10 @@ export function predictFinish(
         const from = n.row.elapsed[previous.id];
         const to = n.row.elapsed[latest];
         if (from === undefined || to === undefined || to <= from) return null;
-        const km = checkpoint.discipline === previous.discipline ? checkpoint.km - previous.km : checkpoint.km;
+        const km =
+          checkpoint.discipline === previous.discipline
+            ? checkpoint.km - previous.km
+            : checkpoint.km;
         return km / ((to - from) / 3_600_000);
       })
       .filter((v): v is number => v !== null)

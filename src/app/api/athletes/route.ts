@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { toAthleteSummary } from "@/lib/api/serialize";
-import { badRequest, liveJson, notReady } from "@/lib/api/respond";
 import { normalizeName } from "@/config/races";
+import { badRequest, liveJson, notReady } from "@/lib/api/respond";
+import { toAthleteSummary } from "@/lib/api/serialize";
 import { getSnapshot } from "@/lib/runtime/store";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +31,11 @@ export function GET(request: Request): Response {
   const { q, bibs } = parsed.data;
 
   if (bibs) {
-    const wanted = bibs.split(",").map((bib) => bib.trim()).filter(Boolean).slice(0, MAX_RESULTS);
+    const wanted = bibs
+      .split(",")
+      .map((bib) => bib.trim())
+      .filter(Boolean)
+      .slice(0, MAX_RESULTS);
     const found = wanted
       .map((bib) => snapshot.athletes.get(bib))
       .filter((computed) => computed !== undefined)
@@ -45,7 +49,12 @@ export function GET(request: Request): Response {
   }
 
   if (!q) {
-    return liveJson({ count: 0, athletes: [], missing: [], _links: { self: { href: "/api/athletes" } } });
+    return liveJson({
+      count: 0,
+      athletes: [],
+      missing: [],
+      _links: { self: { href: "/api/athletes" } },
+    });
   }
 
   const needle = normalizeName(q);

@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  getRaceConfig,
-  normalizeAgeGroup,
-  normalizeDivision,
-  normalizeName,
-} from "@/config/races";
+import { getRaceConfig, normalizeAgeGroup, normalizeDivision, normalizeName } from "@/config/races";
 
 describe("normalizeDivision", () => {
   const c2026 = getRaceConfig(2026);

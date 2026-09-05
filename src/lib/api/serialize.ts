@@ -138,10 +138,7 @@ function toPastResults(computed: ComputedAthlete): PastResultDto[] {
   }));
 }
 
-export function toMapEntry(
-  computed: ComputedAthlete,
-  isSelf = false,
-): MapEntryDto {
+export function toMapEntry(computed: ComputedAthlete, isSelf = false): MapEntryDto {
   return {
     bib: computed.athlete.bib,
     name: computed.athlete.name,

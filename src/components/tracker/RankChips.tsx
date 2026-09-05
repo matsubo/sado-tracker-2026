@@ -42,7 +42,11 @@ export function DisciplineLines({ disciplines }: { disciplines: readonly Discipl
             </dd>
             <dd className="text-[12px] text-muted-foreground leading-snug tabular-nums">
               {missing ? (
-                row.discipline === "swim" ? "未計測" : "未スタート"
+                row.discipline === "swim" ? (
+                  "未計測"
+                ) : (
+                  "未スタート"
+                )
               ) : (
                 <>
                   {row.atCheckpointLabel ? `${row.atCheckpointLabel}まで · ` : null}
@@ -76,4 +80,4 @@ export function DisciplineLines({ disciplines }: { disciplines: readonly Discipl
   );
 }
 
-export { paceText, formatBikeSpeed };
+export { formatBikeSpeed, paceText };

@@ -56,7 +56,12 @@ function median(values: readonly number[]): number | null {
     : ((sorted[mid - 1] as number) + (sorted[mid] as number)) / 2;
 }
 
-function rowFor(athlete: Athlete, year: number, division: Division, config: RaceConfig): TrainingRow | null {
+function rowFor(
+  athlete: Athlete,
+  year: number,
+  division: Division,
+  config: RaceConfig,
+): TrainingRow | null {
   const course = config.divisions[division];
   const finish = athlete.passes.finish;
   if (finish === undefined) return null;
@@ -98,7 +103,12 @@ export function buildNeighbourModel(
   // including the live one, ran the same distance. The 2025 B swim was
   // shortened to 1.35 km, so comparing its pace against a 2 km swim would be
   // a scale error rather than a measurement.
-  const swimKm: Record<Division, Set<number>> = { A: new Set(), B: new Set(), RA: new Set(), RB: new Set() };
+  const swimKm: Record<Division, Set<number>> = {
+    A: new Set(),
+    B: new Set(),
+    RA: new Set(),
+    RB: new Set(),
+  };
   const swimComparable: Record<Division, boolean> = { A: true, B: true, RA: true, RB: true };
 
   for (const division of DIVISIONS) {
@@ -164,7 +174,10 @@ export function buildNeighbourModel(
   const features: Record<Division, Discipline[]> = { A: [], B: [], RA: [], RB: [] };
   const percentileFeatures: Record<Division, Discipline[]> = { A: [], B: [], RA: [], RB: [] };
   const medianSpeedKmh: Record<Division, Partial<Record<Discipline, number>>> = {
-    A: {}, B: {}, RA: {}, RB: {},
+    A: {},
+    B: {},
+    RA: {},
+    RB: {},
   };
 
   for (const division of DIVISIONS) {

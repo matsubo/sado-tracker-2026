@@ -14,8 +14,26 @@ const OUT_DIR = "tests/fixtures";
 const YEARS = [2023, 2024, 2025] as const;
 
 const FAMILY = [
-  "佐和田", "両津", "相川", "小木", "羽茂", "真野", "畑野", "金井", "新穂", "赤泊",
-  "沢根", "水津", "住吉", "多田", "松ケ崎", "岩首", "野浦", "月布施", "北狄", "達者",
+  "佐和田",
+  "両津",
+  "相川",
+  "小木",
+  "羽茂",
+  "真野",
+  "畑野",
+  "金井",
+  "新穂",
+  "赤泊",
+  "沢根",
+  "水津",
+  "住吉",
+  "多田",
+  "松ケ崎",
+  "岩首",
+  "野浦",
+  "月布施",
+  "北狄",
+  "達者",
 ];
 const GIVEN_M = ["蓮", "湊", "陸", "樹", "悠人", "大和", "陽介", "健", "碧", "凪"];
 const GIVEN_F = ["美咲", "遥", "澪", "楓", "千夏", "結衣", "紗希", "沙耶", "葵", "詩"];
@@ -48,9 +66,7 @@ function main(): void {
     if (!header) throw new Error(`${year}: empty export`);
 
     const config = getRaceConfig(year);
-    const nameIndex = config.nameHeaders
-      .map((h) => header.indexOf(h))
-      .find((index) => index >= 0);
+    const nameIndex = config.nameHeaders.map((h) => header.indexOf(h)).find((index) => index >= 0);
     const sexIndex = header.indexOf("性別");
     const bibIndex = header.indexOf("No.");
     if (nameIndex === undefined || bibIndex < 0) throw new Error(`${year}: missing columns`);

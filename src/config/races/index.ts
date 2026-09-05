@@ -39,6 +39,6 @@ export function normalizeName(raw: string): string {
   return raw.replace(/　/g, " ").replace(/\s+/g, " ").trim();
 }
 
-export { normalizeAgeGroup, compareAgeGroups } from "../ageGroup";
 export type { AgeGroup, Sex } from "../ageGroup";
-export type { Division, Discipline, RaceConfig, DivisionCourse, CheckpointDef } from "../types";
+export { compareAgeGroups, normalizeAgeGroup } from "../ageGroup";
+export type { CheckpointDef, Discipline, Division, DivisionCourse, RaceConfig } from "../types";

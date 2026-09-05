@@ -1,7 +1,7 @@
 "use client";
 
-import type { WeatherData } from "@/lib/weather/types";
 import { formatClockShort } from "@/lib/format";
+import type { WeatherData } from "@/lib/weather/types";
 
 const ROWS = [
   { key: "weather", label: "天気" },
@@ -13,7 +13,7 @@ const ROWS = [
 
 /** Forecast for the finish area plus the nearest live observation. */
 export function WeatherPanel({ weather }: { weather: WeatherData | null }) {
-  if (!weather || !weather.available || weather.forecast.length === 0) {
+  if (!weather?.available || weather.forecast.length === 0) {
     return (
       <section className="overflow-hidden rounded-lg border border-border bg-card">
         <h2 className="px-3.5 py-2.5 font-bold text-[13px]">天気 · 佐和田</h2>

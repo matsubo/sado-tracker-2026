@@ -1,8 +1,8 @@
-import { getRaceConfig } from "@/config/races";
 import type { Division } from "@/config/races";
+import { getRaceConfig } from "@/config/races";
+import { buildPopulations } from "@/lib/compute/population";
 import type { BacktestAccuracy, BacktestTable } from "@/lib/compute/prediction";
 import { predictFinish } from "@/lib/compute/prediction";
-import { buildPopulations } from "@/lib/compute/population";
 import type { Athlete } from "@/lib/domain/types";
 import { logger } from "@/lib/runtime/logger";
 import { buildNeighbourModel } from "./model";
@@ -38,7 +38,12 @@ export function runBacktest(years: readonly HistoryYear[], holdoutYear: number):
 
   for (const division of DIVISIONS) {
     const course = config.divisions[division];
-    const pop = buildPopulations(holdout.snapshot.athletes, division, course, holdout.snapshot.fetchedAt);
+    const pop = buildPopulations(
+      holdout.snapshot.athletes,
+      division,
+      course,
+      holdout.snapshot.fetchedAt,
+    );
     const finishers = pop.atCheckpoint("finish");
 
     for (let i = 0; i < finishers.length; i += SAMPLE_STRIDE) {
@@ -59,7 +64,7 @@ export function runBacktest(years: readonly HistoryYear[], holdoutYear: number):
         };
 
         const prediction = predictFinish(partial, course, pop, model, at + 1000);
-        if (!prediction || prediction.method !== "neighbours") continue;
+        if (prediction?.method !== "neighbours") continue;
 
         const key = `${division}:${checkpoint.id}`;
         const errors = errorsByKey.get(key) ?? [];

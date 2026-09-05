@@ -20,11 +20,7 @@ function hasAbandonRemark(athlete: Athlete): boolean {
  * are not there. Water entry is the discriminator: an athlete who entered
  * the water but has no swim split abandoned during the swim and stays racing.
  */
-export function athleteStatus(
-  athlete: Athlete,
-  course: DivisionCourse,
-  nowMs: number,
-): Status {
+export function athleteStatus(athlete: Athlete, course: DivisionCourse, nowMs: number): Status {
   if (athlete.passes.finish !== undefined) return "finished";
   if (hasAbandonRemark(athlete)) return "dnf";
   if (nowMs < athlete.startAt) return "not_started";

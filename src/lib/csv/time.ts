@@ -36,7 +36,12 @@ export function waveStartToEpoch(raceDate: string, waveStart: string): number {
   const [year, month, day] = raceDate.split("-").map(Number);
   const [hour, minute] = waveStart.split(":").map(Number);
   return (
-    Date.UTC(year as number, (month as number) - 1, day as number, hour as number, minute as number) -
-    JST_OFFSET_MS
+    Date.UTC(
+      year as number,
+      (month as number) - 1,
+      day as number,
+      hour as number,
+      minute as number,
+    ) - JST_OFFSET_MS
   );
 }

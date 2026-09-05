@@ -16,17 +16,17 @@ function cell(row: readonly string[], index: number): string {
   return index >= 0 ? (row[index] ?? "").trim() : "";
 }
 
-function readTimestamp(row: readonly string[], index: number, msIndex: number | null): number | null {
+function readTimestamp(
+  row: readonly string[],
+  index: number,
+  msIndex: number | null,
+): number | null {
   const text = cell(row, index);
   if (text === "") return null;
   return parseJstTimestamp(text, msIndex === null ? "" : cell(row, msIndex));
 }
 
-function toAthlete(
-  row: readonly string[],
-  map: ColumnMap,
-  config: RaceConfig,
-): Athlete | null {
+function toAthlete(row: readonly string[], map: ColumnMap, config: RaceConfig): Athlete | null {
   const bib = cell(row, map.bib);
   if (bib === "") return null;
 

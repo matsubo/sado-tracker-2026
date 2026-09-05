@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { projectKm } from "@/hooks/useLivePosition";
-import { raceNow, resetRaceClock, setRaceClockOffset } from "@/lib/runtime/raceClock";
 import type { PositionDto } from "@/lib/api/contract";
+import { raceNow, resetRaceClock, setRaceClockOffset } from "@/lib/runtime/raceClock";
 
 afterEach(() => {
   resetRaceClock();

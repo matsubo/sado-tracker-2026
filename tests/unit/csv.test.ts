@@ -10,7 +10,9 @@ const FETCHED_AT = Date.parse("2026-09-06T12:00:00+09:00");
 
 function loadFixture() {
   const buffer = readFileSync("tests/fixtures/sample-2026.csv");
-  const text = decodeCp932(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength));
+  const text = decodeCp932(
+    buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
+  );
   return toSnapshot(parseCsv(text), config, FETCHED_AT);
 }
 
@@ -19,7 +21,9 @@ const jst = (iso: string) => Date.parse(iso);
 describe("decodeCp932", () => {
   it("recovers the Japanese headers and names", () => {
     const buffer = readFileSync("tests/fixtures/sample-2026.csv");
-    const text = decodeCp932(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength));
+    const text = decodeCp932(
+      buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
+    );
     expect(text).toContain("年齢区分");
     expect(text).toContain("佐和田　蓮");
     expect(text).toContain("ﾗﾝS（本部）");
@@ -129,21 +133,27 @@ describe("toSnapshot", () => {
 
   it("rejects a duplicate bib rather than silently keeping one row", () => {
     const buffer = readFileSync("tests/fixtures/sample-2026.csv");
-    const text = decodeCp932(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength));
+    const text = decodeCp932(
+      buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
+    );
     const rows = parseCsv(text);
     const duplicated = [...rows, rows[1] as string[]];
     expect(() => toSnapshot(duplicated, config, FETCHED_AT)).toThrow(/duplicate bib/i);
   });
 
   it("ignores an unknown header instead of throwing", () => {
-    const rows = parseCsv('"No.","名前","性別","部門","年齢区分","START",謎の列\r\n1,あ　い,男,Aタイプ,40-44歳男子,2026/09/06 06:00:00,x\r\n');
+    const rows = parseCsv(
+      '"No.","名前","性別","部門","年齢区分","START",謎の列\r\n1,あ　い,男,Aタイプ,40-44歳男子,2026/09/06 06:00:00,x\r\n',
+    );
     const snapshot = toSnapshot(rows, config, FETCHED_AT);
     expect(snapshot.athletes).toHaveLength(1);
     expect(snapshot.athletes[0]?.bib).toBe("1");
   });
 
   it("drops a row with no bib", () => {
-    const rows = parseCsv('"No.","名前","性別","部門","年齢区分","START"\r\n,あ　い,男,Aタイプ,40-44歳男子,2026/09/06 06:00:00\r\n');
+    const rows = parseCsv(
+      '"No.","名前","性別","部門","年齢区分","START"\r\n,あ　い,男,Aタイプ,40-44歳男子,2026/09/06 06:00:00\r\n',
+    );
     expect(toSnapshot(rows, config, FETCHED_AT).athletes).toHaveLength(0);
   });
 });

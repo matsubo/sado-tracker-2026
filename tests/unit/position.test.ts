@@ -10,12 +10,25 @@ const START = Date.parse("2026-09-06T06:00:00+09:00");
 const MIN = 60_000;
 const HOUR = 60 * MIN;
 
-function athlete(bib: string, passes: Record<string, number>, extra: Partial<Athlete> = {}): Athlete {
+function athlete(
+  bib: string,
+  passes: Record<string, number>,
+  extra: Partial<Athlete> = {},
+): Athlete {
   return {
-    bib, name: `選手　${bib}`, nameKey: `選手 ${bib}`, sex: "M", division: "A",
+    bib,
+    name: `選手　${bib}`,
+    nameKey: `選手 ${bib}`,
+    sex: "M",
+    division: "A",
     ageGroup: { id: "M40-44", sex: "M", min: 40, max: 44, label: "男子40-44" },
-    startAt: START, startInferred: false, passes, preRace: { waterEntry: START - MIN },
-    officialTotal: null, remark: "", ...extra,
+    startAt: START,
+    startInferred: false,
+    passes,
+    preRace: { waterEntry: START - MIN },
+    officialTotal: null,
+    remark: "",
+    ...extra,
   };
 }
 
@@ -63,7 +76,12 @@ describe("estimatePosition", () => {
 
   it("places an athlete between the swim finish and the bike start in transition", () => {
     const inT1 = athlete("3", { swimF: START + 84 * MIN });
-    const position = estimatePosition(inT1, courseA, buildPopulations([inT1], "A", courseA, now), now);
+    const position = estimatePosition(
+      inT1,
+      courseA,
+      buildPopulations([inT1], "A", courseA, now),
+      now,
+    );
     expect(position.discipline).toBe("bike");
     expect(position.estKm).toBe(0);
     expect(position.inTransition).toBe(true);
@@ -71,10 +89,18 @@ describe("estimatePosition", () => {
 
   it("places a finisher at the end of the run", () => {
     const done = athlete("4", {
-      swimF: START + 84 * MIN, bikeS: START + 92 * MIN, sumiyoshi: START + 4 * HOUR,
-      runS: START + 8 * HOUR, finish: START + 13 * HOUR,
+      swimF: START + 84 * MIN,
+      bikeS: START + 92 * MIN,
+      sumiyoshi: START + 4 * HOUR,
+      runS: START + 8 * HOUR,
+      finish: START + 13 * HOUR,
     });
-    const position = estimatePosition(done, courseA, buildPopulations([done], "A", courseA, now), now);
+    const position = estimatePosition(
+      done,
+      courseA,
+      buildPopulations([done], "A", courseA, now),
+      now,
+    );
     expect(position.discipline).toBe("run");
     expect(position.estKm).toBe(courseA.runKm);
     expect(position.waiting).toBe(false);
@@ -82,7 +108,12 @@ describe("estimatePosition", () => {
 
   it("places an athlete who has not started at the beginning of the swim", () => {
     const waiting = athlete("5", {});
-    const position = estimatePosition(waiting, courseA, buildPopulations([waiting], "A", courseA, START - HOUR), START - HOUR);
+    const position = estimatePosition(
+      waiting,
+      courseA,
+      buildPopulations([waiting], "A", courseA, START - HOUR),
+      START - HOUR,
+    );
     expect(position.discipline).toBe("swim");
     expect(position.estKm).toBe(0);
   });
@@ -113,11 +144,21 @@ describe("estimatePosition", () => {
 describe("fieldOrder", () => {
   const now = START + 6 * HOUR;
   const onRun = athlete("1", {
-    swimF: START + 84 * MIN, bikeS: START + 92 * MIN,
-    sumiyoshi: START + 3 * HOUR, runS: START + 5 * HOUR + 30 * MIN,
+    swimF: START + 84 * MIN,
+    bikeS: START + 92 * MIN,
+    sumiyoshi: START + 3 * HOUR,
+    runS: START + 5 * HOUR + 30 * MIN,
   });
-  const slowBike = athlete("2", { swimF: START + 80 * MIN, bikeS: START + 88 * MIN, sumiyoshi: START + 3 * HOUR + 30 * MIN });
-  const fastBike = athlete("3", { swimF: START + 82 * MIN, bikeS: START + 90 * MIN, sumiyoshi: START + 3 * HOUR + 10 * MIN });
+  const slowBike = athlete("2", {
+    swimF: START + 80 * MIN,
+    bikeS: START + 88 * MIN,
+    sumiyoshi: START + 3 * HOUR + 30 * MIN,
+  });
+  const fastBike = athlete("3", {
+    swimF: START + 82 * MIN,
+    bikeS: START + 90 * MIN,
+    sumiyoshi: START + 3 * HOUR + 10 * MIN,
+  });
   const noShow = athlete("4", {}, { preRace: {} });
 
   it("puts the athlete furthest along the course first, regardless of elapsed time", () => {

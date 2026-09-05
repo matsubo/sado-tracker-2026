@@ -45,10 +45,7 @@ export interface RankingQuery {
  * states how many that is, and a target athlete who has not finished it yet
  * gets a line saying where they are instead.
  */
-export function buildRankingPage(
-  snapshot: ComputedSnapshot,
-  query: RankingQuery,
-): RankingPageDto {
+export function buildRankingPage(snapshot: ComputedSnapshot, query: RankingQuery): RankingPageDto {
   const { division, discipline, ageGroupId, page, perPage, targetBib } = query;
   const course = snapshot.config.divisions[division];
   const pop = snapshot.populations[division];

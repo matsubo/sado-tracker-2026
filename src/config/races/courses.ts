@@ -76,7 +76,13 @@ export function longCourse({ swimKm, swimTimesComparable = true }: CourseOptions
       { id: "swimF", label: "スイムF", csvHeaders: ["ｽｲﾑF"], discipline: "swim", km: swimKm },
       BIKE_START,
       SUMIYOSHI_A,
-      { id: "runS", label: "ランS（本部）", csvHeaders: [...RUN_START_HEADERS], discipline: "bike", km: 190 },
+      {
+        id: "runS",
+        label: "ランS（本部）",
+        csvHeaders: [...RUN_START_HEADERS],
+        discipline: "bike",
+        km: 190,
+      },
       ...[4, 9, 10, 14, 19, 20, 24, 29, 30, 34, 39].map(runCheckpoint),
       { id: "finish", label: "FINISH", csvHeaders: ["FINISH"], discipline: "run", km: 42.2 },
     ],
@@ -84,7 +90,10 @@ export function longCourse({ swimKm, swimTimesComparable = true }: CourseOptions
 }
 
 /** B and RB share the middle course: 108 km bike, 21.1 km run. */
-export function middleCourse({ swimKm, swimTimesComparable = true }: CourseOptions): DivisionCourse {
+export function middleCourse({
+  swimKm,
+  swimTimesComparable = true,
+}: CourseOptions): DivisionCourse {
   return {
     swimKm,
     bikeKm: 108,
@@ -97,7 +106,13 @@ export function middleCourse({ swimKm, swimTimesComparable = true }: CourseOptio
       { id: "swimF", label: "スイムF", csvHeaders: ["ｽｲﾑF"], discipline: "swim", km: swimKm },
       BIKE_START,
       SUMIYOSHI_B,
-      { id: "runS", label: "ランS（本部）", csvHeaders: [...RUN_START_HEADERS], discipline: "bike", km: 108 },
+      {
+        id: "runS",
+        label: "ランS（本部）",
+        csvHeaders: [...RUN_START_HEADERS],
+        discipline: "bike",
+        km: 108,
+      },
       ...[4, 9, 10, 14, 19].map(runCheckpoint),
       { id: "finish", label: "FINISH", csvHeaders: ["FINISH"], discipline: "run", km: 21.1 },
     ],

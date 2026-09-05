@@ -1,12 +1,12 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { getRaceConfig } from "@/config/races";
-import { computeSnapshot } from "@/lib/compute/snapshot";
 import { buildRankingPage } from "@/lib/api/rankings";
 import { aiTriHref, toAthleteDetail, toAthleteSummary, toRaceState } from "@/lib/api/serialize";
+import type { ComputedSnapshot } from "@/lib/compute/snapshot";
+import { computeSnapshot } from "@/lib/compute/snapshot";
 import { buildNeighbourModel } from "@/lib/history/model";
 import { buildNameIndex, type HistoryYear } from "@/lib/history/nameIndex";
 import { loadFixtureSnapshot } from "@/lib/testing/fixtures";
-import type { ComputedSnapshot } from "@/lib/compute/snapshot";
 
 const MID_RACE = Date.parse("2025-09-07T13:00:00+09:00");
 let snapshot: ComputedSnapshot;
@@ -94,7 +94,10 @@ describe("athlete serialization", () => {
   });
 
   it("rounds displayed speeds instead of leaking float noise", () => {
-    const detail = toAthleteDetail(snapshot, snapshot.athletes.get(snapshot.byDivision.A[5] as string) as never);
+    const detail = toAthleteDetail(
+      snapshot,
+      snapshot.athletes.get(snapshot.byDivision.A[5] as string) as never,
+    );
     for (const split of detail.splits) {
       if (split.segmentSpeedKmh === null) continue;
       expect(split.segmentSpeedKmh).toBe(Math.round(split.segmentSpeedKmh * 10) / 10);
@@ -105,7 +108,12 @@ describe("athlete serialization", () => {
 describe("ranking pages", () => {
   it("ranks the swim and reports the population", () => {
     const page = buildRankingPage(snapshot, {
-      division: "A", discipline: "swim", ageGroupId: null, page: 1, perPage: 50, targetBib: null,
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
+      targetBib: null,
     });
     expect(page.total).toBeGreaterThan(700);
     expect(page.rows).toHaveLength(50);
@@ -115,7 +123,12 @@ describe("ranking pages", () => {
 
   it("orders rows fastest first", () => {
     const page = buildRankingPage(snapshot, {
-      division: "A", discipline: "swim", ageGroupId: null, page: 1, perPage: 50, targetBib: null,
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
+      targetBib: null,
     });
     for (let i = 1; i < page.rows.length; i += 1) {
       expect((page.rows[i - 1] as { timeMs: number }).timeMs).toBeLessThanOrEqual(
@@ -126,10 +139,20 @@ describe("ranking pages", () => {
 
   it("filters to one age group", () => {
     const all = buildRankingPage(snapshot, {
-      division: "A", discipline: "swim", ageGroupId: null, page: 1, perPage: 50, targetBib: null,
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
+      targetBib: null,
     });
     const group = buildRankingPage(snapshot, {
-      division: "A", discipline: "swim", ageGroupId: "M50-54", page: 1, perPage: 50, targetBib: null,
+      division: "A",
+      discipline: "swim",
+      ageGroupId: "M50-54",
+      page: 1,
+      perPage: 50,
+      targetBib: null,
     });
     expect(group.total).toBeLessThan(all.total);
     expect(group.rows.every((row) => row.ageGroupId === "M50-54")).toBe(true);
@@ -137,11 +160,21 @@ describe("ranking pages", () => {
 
   it("makes differences relative to the target athlete and jumps to their page", () => {
     const first = buildRankingPage(snapshot, {
-      division: "A", discipline: "swim", ageGroupId: null, page: 1, perPage: 50, targetBib: null,
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
+      targetBib: null,
     });
     const target = first.rows[20]?.bib as string;
     const focused = buildRankingPage(snapshot, {
-      division: "A", discipline: "swim", ageGroupId: null, page: 1, perPage: 50, targetBib: target,
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
+      targetBib: target,
     });
     const targetRow = focused.rows.find((row) => row.isTarget);
     expect(targetRow?.diffMs).toBe(0);
@@ -153,7 +186,11 @@ describe("ranking pages", () => {
       (c) => c.status === "racing" && c.athlete.division === "A" && c.lastCheckpointId !== null,
     );
     const page = buildRankingPage(snapshot, {
-      division: "A", discipline: "run", ageGroupId: null, page: 1, perPage: 50,
+      division: "A",
+      discipline: "run",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
       targetBib: stillRacing?.athlete.bib ?? null,
     });
     expect(page.targetElsewhere?.message).toContain("通過");
@@ -161,7 +198,12 @@ describe("ranking pages", () => {
 
   it("returns an empty table rather than failing when nobody has finished", () => {
     const page = buildRankingPage(snapshot, {
-      division: "A", discipline: "total", ageGroupId: null, page: 1, perPage: 50, targetBib: null,
+      division: "A",
+      discipline: "total",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
+      targetBib: null,
     });
     expect(page.total).toBe(0);
     expect(page.rows).toEqual([]);

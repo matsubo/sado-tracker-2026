@@ -523,7 +523,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
       {clump ? (
         <p className="mx-4 text-[11px] text-muted-foreground">
           うち <b className="text-foreground">{clump.count}</b> 名は {clump.label}{" "}
-          を通過したところまでが計測済みで、次の計測点までは位置が確定しません。
+          から次の計測点までの区間にいます。正確な位置は計測待ちです。
         </p>
       ) : null}
 

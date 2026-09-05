@@ -26,7 +26,12 @@ export function GET(request: Request): Response {
   const order = snapshot.byDivision[div];
   if (!order) return notFound(`部門 ${div} はありません。`);
 
-  const friends = new Set((bibs ?? "").split(",").map((bib) => bib.trim()).filter(Boolean));
+  const friends = new Set(
+    (bibs ?? "")
+      .split(",")
+      .map((bib) => bib.trim())
+      .filter(Boolean),
+  );
 
   const entries = order
     .map((bib) => snapshot.athletes.get(bib))

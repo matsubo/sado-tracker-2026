@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { getRaceConfig, HISTORY_YEARS } from "@/config/races";
-import { computeSnapshot } from "@/lib/compute/snapshot";
 import type { BacktestTable } from "@/lib/compute/prediction";
+import { computeSnapshot } from "@/lib/compute/snapshot";
 import { decodeCp932 } from "@/lib/csv/decode";
 import { fetchCsv } from "@/lib/csv/fetch";
 import { toSnapshot } from "@/lib/csv/normalize";
@@ -98,12 +98,8 @@ function applyReplayCutoff(snapshot: RaceSnapshot, nowMs: number): RaceSnapshot 
     ...snapshot,
     athletes: snapshot.athletes.map((athlete) => ({
       ...athlete,
-      passes: Object.fromEntries(
-        Object.entries(athlete.passes).filter(([, at]) => at <= nowMs),
-      ),
-      preRace: Object.fromEntries(
-        Object.entries(athlete.preRace).filter(([, at]) => at <= nowMs),
-      ),
+      passes: Object.fromEntries(Object.entries(athlete.passes).filter(([, at]) => at <= nowMs)),
+      preRace: Object.fromEntries(Object.entries(athlete.preRace).filter(([, at]) => at <= nowMs)),
     })),
   };
 }

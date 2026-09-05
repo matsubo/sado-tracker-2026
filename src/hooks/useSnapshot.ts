@@ -69,7 +69,10 @@ export function useRaceState(): SnapshotState & { refresh: () => void } {
  * Fetch a URL again whenever the race data changes. The update time is part
  * of the request so a browser cache can never serve an older body.
  */
-export function useLiveResource<T>(url: string | null, fetchedAt: number | null): {
+export function useLiveResource<T>(
+  url: string | null,
+  fetchedAt: number | null,
+): {
   data: T | null;
   error: string | null;
   loading: boolean;

@@ -49,11 +49,13 @@ export function NotificationPanel({ items, friendCount, onMarkAllSeen }: Props) 
                 className="grid grid-cols-[14px_44px_1fr] items-start gap-2 px-3.5 py-2.5 hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring focus-visible:-outline-offset-2"
               >
                 <span
+                  {...(item.unread
+                    ? { role: "img", "aria-label": "未読" }
+                    : { "aria-hidden": true })}
                   className={cn(
                     "mt-1.5 h-2 w-2 rounded-full",
                     item.unread ? "bg-destructive" : "bg-transparent",
                   )}
-                  aria-label={item.unread ? "未読" : undefined}
                 />
                 <span className="pt-px font-semibold text-[13px] text-muted-foreground tabular-nums">
                   {formatClockShort(item.passedAt)}
@@ -80,7 +82,9 @@ export function NotificationPanel({ items, friendCount, onMarkAllSeen }: Props) 
                       {item.checkpointLabel}
                     </span>
                     通過 · 経過{" "}
-                    <b className="font-semibold text-foreground">{formatDuration(item.elapsedMs)}</b>
+                    <b className="font-semibold text-foreground">
+                      {formatDuration(item.elapsedMs)}
+                    </b>
                     {item.divisionRank ? (
                       <>
                         {" · 部門 "}

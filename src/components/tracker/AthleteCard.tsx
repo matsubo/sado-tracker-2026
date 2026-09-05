@@ -1,14 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { Star, X } from "lucide-react";
+import Link from "next/link";
+import { projectKm, useLiveClock } from "@/hooks/useLivePosition";
 import type { AthleteSummaryDto } from "@/lib/api/contract";
 import { formatClock, formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils/cn";
-import { projectKm, useLiveClock } from "@/hooks/useLivePosition";
-import { DisciplineLines } from "./RankChips";
 import { PositionBar } from "./PositionBar";
 import { PredictionSummary } from "./PredictionSummary";
+import { DisciplineLines } from "./RankChips";
 import { StatusPill } from "./StatusPill";
 
 const STRIPE: Record<string, string> = {
@@ -35,14 +35,20 @@ export function AthleteCard({ athlete, unread, nextLabel, onRemove }: Props) {
     <article
       className={cn(
         "relative overflow-hidden rounded-lg border bg-card",
-        unread ? "border-[color:var(--brand-ring,#00d3f2)] ring-2 ring-[#00d3f2]/25" : "border-border",
+        unread
+          ? "border-[color:var(--brand-ring,#00d3f2)] ring-2 ring-[#00d3f2]/25"
+          : "border-border",
       )}
     >
       <span className={cn("absolute inset-y-0 left-0 w-1", stripe)} aria-hidden />
 
       <div className="flex items-baseline gap-2 py-3 pr-3 pl-4">
         {unread ? (
-          <span className="h-2 w-2 shrink-0 self-center rounded-full bg-destructive" aria-label="新着" />
+          <span
+            role="img"
+            aria-label="新着"
+            className="h-2 w-2 shrink-0 self-center rounded-full bg-destructive"
+          />
         ) : null}
         <Link
           href={`/athletes/${athlete.bib}`}
@@ -79,7 +85,9 @@ export function AthleteCard({ athlete, unread, nextLabel, onRemove }: Props) {
         ) : (
           <span>まだ計測されていません</span>
         )}
-        {athlete.elapsedMs !== null ? <span>· 経過 {formatDuration(athlete.elapsedMs)}</span> : null}
+        {athlete.elapsedMs !== null ? (
+          <span>· 経過 {formatDuration(athlete.elapsedMs)}</span>
+        ) : null}
       </div>
 
       {athlete.status === "not_started" || athlete.status === "dns_suspected" ? null : (

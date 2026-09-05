@@ -23,7 +23,9 @@ function readSeen(): Set<string> {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return new Set();
     const parsed: unknown = JSON.parse(raw);
-    return new Set(Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : []);
+    return new Set(
+      Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [],
+    );
   } catch {
     return new Set();
   }

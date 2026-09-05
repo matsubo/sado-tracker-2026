@@ -45,7 +45,9 @@ describe("buildNameIndex", () => {
   });
 
   it("leaves relay finishers without an age rank", () => {
-    const relays = [...index.values()].flat().filter((r) => r.division === "RA" || r.division === "RB");
+    const relays = [...index.values()]
+      .flat()
+      .filter((r) => r.division === "RA" || r.division === "RB");
     expect(relays.length).toBeGreaterThan(0);
     for (const relay of relays) expect(relay.ageRank).toBeNull();
   });

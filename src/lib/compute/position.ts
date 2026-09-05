@@ -29,7 +29,12 @@ export interface PositionEstimate {
 }
 
 /** Advance from a known point at a known speed, without passing the cap. */
-export function projectKm(lastKm: number, speedKmh: number, sinceMs: number, capKm: number): number {
+export function projectKm(
+  lastKm: number,
+  speedKmh: number,
+  sinceMs: number,
+  capKm: number,
+): number {
   if (sinceMs <= 0 || speedKmh <= 0) return lastKm;
   const travelled = (speedKmh * sinceMs) / 3_600_000;
   return Math.min(lastKm + travelled, Math.max(lastKm, capKm - CHECKPOINT_MARGIN_KM));
@@ -40,7 +45,7 @@ function median(values: readonly number[]): number | null {
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   if (sorted.length % 2 === 1) return sorted[mid] as number;
-  return (((sorted[mid - 1] as number) + (sorted[mid] as number)) / 2);
+  return ((sorted[mid - 1] as number) + (sorted[mid] as number)) / 2;
 }
 
 function speedKmh(km: number, ms: number): number | null {

@@ -29,7 +29,8 @@ export function SearchBox({ onAdd, isAdded }: Props) {
       if (!response.ok) throw new Error(String(response.status));
       const body = (await response.json()) as { athletes: AthleteSummaryDto[] };
       setResults(body.athletes);
-      if (body.athletes.length === 0) setMessage("見つかりませんでした。ゼッケン番号か名前で探せます。");
+      if (body.athletes.length === 0)
+        setMessage("見つかりませんでした。ゼッケン番号か名前で探せます。");
     } catch {
       setMessage("検索できませんでした。少し待って試してください。");
     } finally {

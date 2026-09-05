@@ -1,5 +1,5 @@
-import { toAthleteDetail } from "@/lib/api/serialize";
 import { liveJson, notFound, notReady } from "@/lib/api/respond";
+import { toAthleteDetail } from "@/lib/api/serialize";
 import { getSnapshot } from "@/lib/runtime/store";
 
 export const dynamic = "force-dynamic";

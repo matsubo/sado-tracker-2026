@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { raceNow } from "@/lib/runtime/raceClock";
 import type { PositionDto } from "@/lib/api/contract";
+import { raceNow } from "@/lib/runtime/raceClock";
 
 const TICK_MS = 10_000;
 

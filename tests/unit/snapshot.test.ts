@@ -60,7 +60,8 @@ describe("computeSnapshot", () => {
 
   it("gives every racing athlete on the bike a prediction", () => {
     const onBike = [...snapshot.athletes.values()].filter(
-      (c) => c.status === "racing" && c.position.discipline === "bike" && c.lastCheckpointId !== null,
+      (c) =>
+        c.status === "racing" && c.position.discipline === "bike" && c.lastCheckpointId !== null,
     );
     expect(onBike.length).toBeGreaterThan(100);
     const withPrediction = onBike.filter((c) => c.prediction !== null);
@@ -83,7 +84,9 @@ describe("computeSnapshot", () => {
       if (!rank) continue;
       expect(rank.rank).toBeGreaterThanOrEqual(1);
       expect(rank.rank).toBeLessThanOrEqual(rank.of);
-      expect(rank.of).toBe(snapshot.counts[computed.athlete.division][computed.lastCheckpointId as string]);
+      expect(rank.of).toBe(
+        snapshot.counts[computed.athlete.division][computed.lastCheckpointId as string],
+      );
     }
   });
 

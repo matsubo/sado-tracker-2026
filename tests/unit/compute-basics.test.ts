@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getRaceConfig } from "@/config/races";
-import { buildPopulations, latestCheckpoint } from "@/lib/compute/population";
 import { disciplineTime, elapsedAt, splitBetween } from "@/lib/compute/elapsed";
+import { buildPopulations, latestCheckpoint } from "@/lib/compute/population";
 import { athleteStatus } from "@/lib/compute/status";
 import type { Athlete } from "@/lib/domain/types";
 import { loadFixtureSnapshot } from "@/lib/testing/fixtures";
@@ -14,10 +14,19 @@ const MINUTE = 60_000;
 
 function athlete(overrides: Partial<Athlete> = {}): Athlete {
   return {
-    bib: "1", name: "テスト　太郎", nameKey: "テスト 太郎", sex: "M", division: "A",
+    bib: "1",
+    name: "テスト　太郎",
+    nameKey: "テスト 太郎",
+    sex: "M",
+    division: "A",
     ageGroup: { id: "M40-44", sex: "M", min: 40, max: 44, label: "男子40-44" },
-    startAt: START_A, startInferred: false, passes: {}, preRace: {},
-    officialTotal: null, remark: "", ...overrides,
+    startAt: START_A,
+    startInferred: false,
+    passes: {},
+    preRace: {},
+    officialTotal: null,
+    remark: "",
+    ...overrides,
   };
 }
 
@@ -64,7 +73,9 @@ describe("disciplineTime", () => {
   });
 
   it("returns null while the discipline is still in progress", () => {
-    const midBike = athlete({ passes: { swimF: START_A + 90 * MINUTE, bikeS: START_A + 98 * MINUTE } });
+    const midBike = athlete({
+      passes: { swimF: START_A + 90 * MINUTE, bikeS: START_A + 98 * MINUTE },
+    });
     expect(disciplineTime(midBike, "bike", courseA)).toBeNull();
   });
 });
@@ -133,7 +144,11 @@ describe("latestCheckpoint", () => {
 describe("buildPopulations", () => {
   const now = START_A + 300 * MINUTE;
   const racing = athlete({ bib: "1", passes: { swimF: START_A + 90 * MINUTE } });
-  const dnf = athlete({ bib: "2", passes: { swimF: START_A + 95 * MINUTE }, remark: "DNF/本部(15:00)" });
+  const dnf = athlete({
+    bib: "2",
+    passes: { swimF: START_A + 95 * MINUTE },
+    remark: "DNF/本部(15:00)",
+  });
   const noShow = athlete({ bib: "3" });
   const other = athlete({ bib: "4", division: "B" });
 

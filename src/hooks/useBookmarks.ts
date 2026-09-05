@@ -18,7 +18,12 @@ function readStorage(): string[] {
 
 function readUrl(): string[] {
   const value = new URLSearchParams(window.location.search).get("bibs");
-  return value ? value.split(",").map((bib) => bib.trim()).filter(Boolean) : [];
+  return value
+    ? value
+        .split(",")
+        .map((bib) => bib.trim())
+        .filter(Boolean)
+    : [];
 }
 
 /**
@@ -39,7 +44,8 @@ export function useBookmarks(): {
 
   useEffect(() => {
     const fromUrl = readUrl();
-    const merged = fromUrl.length > 0 ? [...new Set([...fromUrl, ...readStorage()])] : readStorage();
+    const merged =
+      fromUrl.length > 0 ? [...new Set([...fromUrl, ...readStorage()])] : readStorage();
     setBibs(merged.slice(0, MAX_BOOKMARKS));
     setReady(true);
   }, []);
@@ -58,7 +64,9 @@ export function useBookmarks(): {
   }, [bibs, ready]);
 
   const add = useCallback((bib: string) => {
-    setBibs((current) => (current.includes(bib) ? current : [...current, bib].slice(0, MAX_BOOKMARKS)));
+    setBibs((current) =>
+      current.includes(bib) ? current : [...current, bib].slice(0, MAX_BOOKMARKS),
+    );
   }, []);
 
   const remove = useCallback((bib: string) => {

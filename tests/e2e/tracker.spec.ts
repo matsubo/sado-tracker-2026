@@ -1,15 +1,22 @@
 import { expect, test } from "@playwright/test";
 
 /** A bib that is racing at the replayed moment; resolved once per run. */
-async function racingBib(request: { get: (url: string) => Promise<{ json: () => Promise<unknown> }> }) {
+async function racingBib(request: {
+  get: (url: string) => Promise<{ json: () => Promise<unknown> }>;
+}) {
   const response = await request.get("/api/map?div=A");
-  const body = (await response.json()) as { entries: { bib: string; position: { discipline: string } }[] };
+  const body = (await response.json()) as {
+    entries: { bib: string; position: { discipline: string } }[];
+  };
   const onBike = body.entries.find((entry) => entry.position.discipline === "bike");
   return onBike?.bib ?? (body.entries[0]?.bib as string);
 }
 
 test.describe("friend dashboard", () => {
-  test("adds a friend, shows their card, and keeps them after a reload", async ({ page, request }) => {
+  test("adds a friend, shows their card, and keeps them after a reload", async ({
+    page,
+    request,
+  }) => {
     const bib = await racingBib(request);
 
     await page.goto("/");

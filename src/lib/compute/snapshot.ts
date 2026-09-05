@@ -1,18 +1,12 @@
-import {
-  type Discipline,
-  type Division,
-  type DivisionCourse,
-  type RaceConfig,
-} from "@/config/races";
-import type { Athlete } from "@/lib/domain/types";
-import type { RaceSnapshot } from "@/lib/domain/types";
-import type { NameIndex, PastResult } from "@/lib/history/nameIndex";
+import type { Discipline, Division, DivisionCourse, RaceConfig } from "@/config/races";
+import type { Athlete, RaceSnapshot } from "@/lib/domain/types";
 import type { NeighbourModel } from "@/lib/history/model";
+import type { NameIndex, PastResult } from "@/lib/history/nameIndex";
 import { findPastResults } from "@/lib/history/nameIndex";
 import { deviationScore } from "./deviation";
 import { disciplineKm, disciplineStart, elapsedAt, splitBetween } from "./elapsed";
-import { estimatePosition, fieldOrder, type PositionEstimate } from "./position";
 import { buildPopulations, latestCheckpoint, type Populations } from "./population";
+import { estimatePosition, fieldOrder, type PositionEstimate } from "./position";
 import { type BacktestTable, type Prediction, predictFinish } from "./prediction";
 import {
   cumulativeRanks,
@@ -111,9 +105,7 @@ function computeDisciplines(
             .filter((value): value is number => value !== null);
 
     const partialKm =
-      measuredAt === null
-        ? km
-        : (course.checkpoints.find((c) => c.id === measuredAt)?.km ?? km);
+      measuredAt === null ? km : (course.checkpoints.find((c) => c.id === measuredAt)?.km ?? km);
 
     return {
       discipline,
@@ -152,7 +144,8 @@ function computeSplits(
 
     const segmentMs = previousId === null ? null : splitBetween(athlete, previousId, checkpoint.id);
     const sameLeg = previousDiscipline === checkpoint.discipline;
-    const segmentKm = previousId === null ? checkpoint.km : sameLeg ? checkpoint.km - previousKm : checkpoint.km;
+    const segmentKm =
+      previousId === null ? checkpoint.km : sameLeg ? checkpoint.km - previousKm : checkpoint.km;
 
     splits.push({
       checkpointId: checkpoint.id,
