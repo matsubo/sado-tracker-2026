@@ -35,7 +35,6 @@ const leg = (
   provisional: false,
   atCheckpointLabel: null,
   ranks: NO_RANKS,
-  deviation: null,
   speedKmh: null,
   ...over,
 });
@@ -76,6 +75,7 @@ const raceState: RaceStateDto = {
   now: 1_757_000_000_000,
   stale: false,
   replay: false,
+  pollIntervalMs: 60_000,
   counts: { A: {}, B: {}, RA: {}, RB: {} },
   divisions: [
     {
@@ -111,7 +111,7 @@ const detail: AthleteDetailDto = {
     ageGroup: { rank: 7, of: 23 },
   },
   disciplines: [
-    leg({ discipline: "swim", label: "スイム", km: 4, timeMs: SWIM_MS, deviation: 54 }),
+    leg({ discipline: "swim", label: "スイム", km: 4, timeMs: SWIM_MS }),
     leg({
       discipline: "bike",
       label: "バイク",
@@ -120,7 +120,6 @@ const detail: AthleteDetailDto = {
       provisional: true,
       atCheckpointLabel: "住吉",
       ranks: ranks(201, 412),
-      deviation: 56,
       speedKmh: 37.3,
     }),
     leg({ discipline: "run", label: "ラン", km: 42.2 }),
@@ -238,7 +237,7 @@ describe("AthleteDetail", () => {
 
   it("keeps the prediction explanation collapsed until the ? button is pressed", async () => {
     await renderDetail();
-    const button = screen.getByRole("button", { name: "予想ゴールの計算方法を表示" });
+    const button = screen.getByRole("button", { name: "ゴール予想の計算方法を表示" });
 
     expect(screen.queryByText("近傍 20 人法")).not.toBeInTheDocument();
     expect(screen.queryByText("どう計算したか")).not.toBeInTheDocument();

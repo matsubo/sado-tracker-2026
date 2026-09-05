@@ -31,26 +31,46 @@ export function rankBy<T>(items: readonly T[], value: (item: T) => number, targe
   return { rank: ahead + 1, of: items.length };
 }
 
+/**
+ * Ranks for one athlete against three nested groups. The tables are built
+ * once per group per refresh and shared, so this is a lookup rather than a
+ * scan of the whole division.
+ */
 function ranksAgainst(
   athlete: Athlete,
   checkpointId: string,
   pop: Populations,
+  valueKey: string,
   value: (a: Athlete) => number | null,
 ): RankSet {
-  const own = value(athlete);
-  if (own === null) return EMPTY_RANKS;
+  if (value(athlete) === null) return EMPTY_RANKS;
 
-  const measured = (group: readonly Athlete[]) => group.filter((a) => value(a) !== null);
-  const rank = (group: readonly Athlete[]) =>
-    rankBy(measured(group), (a) => value(a) as number, athlete);
+  const division =
+    pop
+      .rankTable(`${valueKey}|${checkpointId}|div`, pop.atCheckpoint(checkpointId), value)
+      .get(athlete.bib) ?? null;
 
-  return {
-    division: rank(pop.atCheckpoint(checkpointId)),
-    sex: athlete.sex ? rank(pop.atCheckpointBySex(checkpointId, athlete.sex)) : null,
-    ageGroup: athlete.ageGroup
-      ? rank(pop.atCheckpointByAgeGroup(checkpointId, athlete.ageGroup.id))
-      : null,
-  };
+  const sex = athlete.sex
+    ? (pop
+        .rankTable(
+          `${valueKey}|${checkpointId}|sex:${athlete.sex}`,
+          pop.atCheckpointBySex(checkpointId, athlete.sex),
+          value,
+        )
+        .get(athlete.bib) ?? null)
+    : null;
+
+  const ageGroup = athlete.ageGroup
+    ? (pop
+        .rankTable(
+          `${valueKey}|${checkpointId}|age:${athlete.ageGroup.id}`,
+          pop.atCheckpointByAgeGroup(checkpointId, athlete.ageGroup.id),
+          value,
+        )
+        .get(athlete.bib) ?? null)
+    : null;
+
+  return { division, sex, ageGroup };
 }
 
 /** Ranks by elapsed time at one checkpoint, against everyone who reached it. */
@@ -59,7 +79,7 @@ export function ranksAtCheckpoint(
   checkpointId: string,
   pop: Populations,
 ): RankSet {
-  return ranksAgainst(athlete, checkpointId, pop, (a) => elapsedAt(a, checkpointId));
+  return ranksAgainst(athlete, checkpointId, pop, "elapsed", (a) => elapsedAt(a, checkpointId));
 }
 
 export interface DisciplineRankResult {
@@ -90,7 +110,7 @@ export function disciplineRanks(
   const complete = splitBetween(athlete, from, to);
   if (complete !== null) {
     return {
-      ranks: ranksAgainst(athlete, to, pop, (a) => splitBetween(a, from, to)),
+      ranks: ranksAgainst(athlete, to, pop, `split:${from}`, (a) => splitBetween(a, from, to)),
       provisional: false,
       atCheckpoint: to,
       timeMs: complete,
@@ -110,7 +130,9 @@ export function disciplineRanks(
   }
 
   return {
-    ranks: ranksAgainst(athlete, latest, pop, (a) => splitBetween(a, from, latest)),
+    ranks: ranksAgainst(athlete, latest, pop, `split:${from}`, (a) =>
+      splitBetween(a, from, latest),
+    ),
     provisional: true,
     atCheckpoint: latest,
     timeMs: splitBetween(athlete, from, latest),
@@ -152,8 +174,9 @@ export function splitRank(
   to: string,
   pop: Populations,
 ): Rank | null {
-  const own = splitBetween(athlete, from, to);
-  if (own === null) return null;
-  const measured = pop.atCheckpoint(to).filter((a) => splitBetween(a, from, to) !== null);
-  return rankBy(measured, (a) => splitBetween(a, from, to) as number, athlete);
+  return (
+    pop
+      .rankTable(`segment:${from}->${to}`, pop.atCheckpoint(to), (a) => splitBetween(a, from, to))
+      .get(athlete.bib) ?? null
+  );
 }

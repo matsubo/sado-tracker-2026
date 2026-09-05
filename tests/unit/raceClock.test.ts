@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { projectKm } from "@/hooks/useLivePosition";
 import type { PositionDto } from "@/lib/api/contract";
-import { raceNow, resetRaceClock, setRaceClockOffset } from "@/lib/runtime/raceClock";
+import { replayClock, systemClock } from "@/lib/runtime/clock";
+import { hasRaceClock, raceNow, resetRaceClock, setRaceClockOffset } from "@/lib/runtime/raceClock";
 
 afterEach(() => {
   resetRaceClock();
@@ -23,8 +24,9 @@ const position: PositionDto = {
 };
 
 describe("race clock", () => {
-  it("follows the device clock until a server time arrives", () => {
-    expect(Math.abs(raceNow() - Date.now())).toBeLessThan(50);
+  it("reports itself unknown until a server time arrives", () => {
+    expect(hasRaceClock()).toBe(false);
+    expect(raceNow()).toBe(0);
   });
 
   it("adopts the server's time, so replay and clock skew both track correctly", () => {
@@ -35,7 +37,16 @@ describe("race clock", () => {
 
   it("ignores a nonsensical server time", () => {
     setRaceClockOffset(Number.NaN);
-    expect(Math.abs(raceNow() - Date.now())).toBeLessThan(50);
+    expect(hasRaceClock()).toBe(false);
+    expect(raceNow()).toBe(0);
+  });
+
+  it("holds the server estimate for the moment before the clock is known", () => {
+    // Reproduces the flash where every leader briefly showed the next timing
+    // point: the projection ran on the device clock before the first response.
+    expect(projectKm(position, raceNow())).toBe(position.estKm);
+    setRaceClockOffset(position.lastAt + 60 * 60 * 1000);
+    expect(projectKm(position, raceNow())).toBeCloseTo(130, 0);
   });
 });
 
@@ -61,5 +72,33 @@ describe("projectKm on the race clock", () => {
     expect(projectKm(position, deviceNow)).toBeCloseTo(189.9, 5);
     const serverNow = position.lastAt + 90 * 60 * 1000;
     expect(projectKm(position, serverNow)).toBeCloseTo(145, 5);
+  });
+});
+
+describe("replay clock", () => {
+  it("loops back to the start rather than sitting on a finished race", () => {
+    const start = "2025-09-07T06:00:00+09:00";
+    const startMs = Date.parse(start);
+    const realNow = Date.now();
+    // 420x, a fourteen-hour window: one loop takes two real minutes.
+    const clock = replayClock(start, 420, { windowMs: 14 * 3_600_000, realNow });
+
+    vi.useFakeTimers();
+    vi.setSystemTime(realNow + 60_000);
+    expect(clock.now() - startMs).toBeCloseTo(7 * 3_600_000, -3);
+
+    vi.setSystemTime(realNow + 130_000);
+    // Past the end of the window, so back near the start of the race.
+    expect(clock.now() - startMs).toBeLessThan(2 * 3_600_000);
+    expect(clock.now()).toBeGreaterThanOrEqual(startMs);
+  });
+
+  it("reports its speed so the server can extrapolate between refreshes", () => {
+    expect(replayClock("2025-09-07T06:00:00+09:00", 60).speed).toBe(60);
+    expect(systemClock.speed).toBe(1);
+  });
+
+  it("rejects a start time it cannot read", () => {
+    expect(() => replayClock("not a date", 60)).toThrow(/REPLAY_START/);
   });
 });

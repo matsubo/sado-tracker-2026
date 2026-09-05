@@ -235,16 +235,24 @@ export function CoursePositionChart({
           const flip = row.x > FLIP_X;
           return (
             <g key={row.entry.bib}>
-              <text
-                x={PLOT_LEFT - 8}
-                y={row.y + 3}
-                textAnchor="end"
-                fontSize={10}
-                fill={self ? "var(--foreground)" : "var(--muted-foreground)"}
-                fontWeight={self ? 700 : 400}
+              {/* A name is the obvious thing to tap, so it opens that athlete. */}
+              <a
+                href={`/athletes/${row.entry.bib}`}
+                aria-label={`${row.entry.name} の詳細`}
+                className="cursor-pointer outline-none focus-visible:underline"
               >
-                {row.entry.name}
-              </text>
+                <text
+                  x={PLOT_LEFT - 8}
+                  y={row.y + 3}
+                  textAnchor="end"
+                  fontSize={10}
+                  fill={self ? "var(--foreground)" : "var(--muted-foreground)"}
+                  fontWeight={self ? 700 : 400}
+                  className="hover:underline"
+                >
+                  {row.entry.name}
+                </text>
+              </a>
               <circle
                 cx={row.x}
                 cy={row.y}

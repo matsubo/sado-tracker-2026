@@ -19,7 +19,27 @@ function paceText(row: DisciplineDto): string | null {
 }
 
 /** One line per discipline: time, then who the athlete is ahead of. */
-export function DisciplineLines({ disciplines }: { disciplines: readonly DisciplineDto[] }) {
+const ORDER: readonly string[] = ["swim", "bike", "run"];
+
+/**
+ * A leg with no time is either still ahead of the athlete or already under
+ * way with nothing measured yet. Saying "not started" for the second case
+ * contradicts the status pill right above it.
+ */
+function emptyLabel(row: DisciplineDto, current: string): string {
+  const at = ORDER.indexOf(row.discipline);
+  const now = ORDER.indexOf(current);
+  if (at > now) return "未スタート";
+  return "計測待ち";
+}
+
+export function DisciplineLines({
+  disciplines,
+  current,
+}: {
+  readonly disciplines: readonly DisciplineDto[];
+  readonly current: string;
+}) {
   return (
     <dl className="divide-y divide-border border-border border-t">
       {disciplines.map((row) => {
@@ -42,11 +62,7 @@ export function DisciplineLines({ disciplines }: { disciplines: readonly Discipl
             </dd>
             <dd className="text-[12px] text-muted-foreground leading-snug tabular-nums">
               {missing ? (
-                row.discipline === "swim" ? (
-                  "未計測"
-                ) : (
-                  "未スタート"
-                )
+                emptyLabel(row, current)
               ) : (
                 <>
                   {row.atCheckpointLabel ? `${row.atCheckpointLabel}まで · ` : null}
@@ -65,11 +81,6 @@ export function DisciplineLines({ disciplines }: { disciplines: readonly Discipl
                     </>
                   ) : null}
                   {pace ? ` · ${pace}` : null}
-                  {row.deviation !== null ? (
-                    <span className="ml-1 rounded bg-muted px-1.5 py-px text-[11px]">
-                      偏 {row.deviation}
-                    </span>
-                  ) : null}
                 </>
               )}
             </dd>

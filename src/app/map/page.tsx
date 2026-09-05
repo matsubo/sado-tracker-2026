@@ -29,10 +29,6 @@ export default async function MapPage({ searchParams }: PageProps) {
 
   return (
     <main className="mx-auto w-full max-w-[480px] pb-10">
-      <h1 className="px-4 pt-4 pb-1 font-bold text-lg">
-        全体マップ
-        <span className="ml-2 font-semibold text-muted-foreground text-sm">推定位置</span>
-      </h1>
       <FieldMap initialDivision={division} />
     </main>
   );

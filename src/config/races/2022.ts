@@ -19,10 +19,12 @@ export const race2022: RaceConfig = {
   },
   divisionAliases: {
     ATYPE: "A",
+    // The elite long race; the championship is the middle-distance one.
     "ATYPE ELITE": "A",
-    CHAMPIONSHIP: "A",
+    CHAMPIONSHIP: "B",
     BTYPE: "B",
-    RTYPE: "RA",
+    // The year had one relay class, and its times are middle distance.
+    RTYPE: "RB",
     予備: null,
   },
   nameHeaders: ["氏名", "名前"],

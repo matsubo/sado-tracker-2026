@@ -13,11 +13,36 @@ import { buildNeighbourModel, type NeighbourModel } from "@/lib/history/model";
 import { buildNameIndex, type HistoryYear, type NameIndex } from "@/lib/history/nameIndex";
 import { getWeather } from "@/lib/weather";
 import { type Clock, clockFromEnv } from "./clock";
-import { logger } from "./logger";
-import { claimPollerStart, markStale, setSnapshot } from "./store";
+import { logger, logOnce } from "./logger";
+import {
+  claimPollerStart,
+  getPollerRuntime,
+  getSnapshot,
+  markStale,
+  setPollerRuntime,
+  setSnapshot,
+} from "./store";
 
-const POLL_INTERVAL_MS = 60_000;
+const DEFAULT_POLL_INTERVAL_MS = 60_000;
+const MIN_POLL_INTERVAL_MS = 500;
 const WEATHER_INTERVAL_MS = 300_000;
+
+/**
+ * How often the field is recomputed. The live race is polled once a minute,
+ * which is as fast as the timing site publishes. A replay reads from disk, so
+ * it can run far faster and needs to when a whole race is compressed into a
+ * couple of minutes.
+ */
+export function pollIntervalMs(env: NodeJS.ProcessEnv = process.env): number {
+  const configured = Number(env.POLL_INTERVAL_MS);
+  if (Number.isFinite(configured) && configured >= MIN_POLL_INTERVAL_MS) return configured;
+  if (!env.REPLAY_START) return DEFAULT_POLL_INTERVAL_MS;
+
+  // Keep roughly one frame per five minutes of race time in replay.
+  const speed = Number(env.REPLAY_SPEED ?? "60");
+  const perFrame = (5 * 60_000) / (Number.isFinite(speed) && speed > 0 ? speed : 60);
+  return Math.max(MIN_POLL_INTERVAL_MS, Math.min(DEFAULT_POLL_INTERVAL_MS, Math.round(perFrame)));
+}
 
 function dataDir(): string {
   return process.env.DATA_DIR ?? ".data";
@@ -26,6 +51,51 @@ function dataDir(): string {
 function raceYear(): number {
   const year = Number(process.env.RACE_YEAR ?? "2026");
   return Number.isFinite(year) ? year : 2026;
+}
+
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/**
+ * The window in which the timing site is worth asking. Outside it the race is
+ * either hours away or long over, and every request is load on someone else's
+ * server for a file that will not have changed.
+ *
+ * Both ends are hours of the race day in Asia/Tokyo, inclusive of the start
+ * and exclusive of the end. Set FETCH_WINDOW to "off" to poll around the
+ * clock, which is what replay and local development do.
+ */
+export function fetchWindow(env: Partial<NodeJS.ProcessEnv> = process.env): {
+  readonly fromHour: number;
+  readonly toHour: number;
+} | null {
+  if ((env.FETCH_WINDOW ?? "").toLowerCase() === "off") return null;
+  if (env.REPLAY_START) return null;
+
+  const fromHour = Number(env.FETCH_FROM_HOUR ?? "7");
+  const toHour = Number(env.FETCH_TO_HOUR ?? "23");
+  if (!Number.isFinite(fromHour) || !Number.isFinite(toHour)) return null;
+  return { fromHour, toHour };
+}
+
+/**
+ * True when the timing site should be asked right now: the race day, between
+ * the first wave and the cut-off. The date comes from the year's own config,
+ * so nothing has to be reset for the next edition.
+ */
+export function shouldFetch(
+  raceDate: string,
+  nowMs: number,
+  env: Partial<NodeJS.ProcessEnv> = process.env,
+): boolean {
+  const window = fetchWindow(env);
+  if (!window) return true;
+
+  const tokyo = new Date(nowMs + JST_OFFSET_MS);
+  const day = tokyo.toISOString().slice(0, 10);
+  if (day !== raceDate) return false;
+
+  const hour = tokyo.getUTCHours();
+  return hour >= window.fromHour && hour < window.toHour;
 }
 
 function readCsvFile(path: string): string {
@@ -104,18 +174,47 @@ function applyReplayCutoff(snapshot: RaceSnapshot, nowMs: number): RaceSnapshot 
   };
 }
 
-async function refresh(runtime: Runtime): Promise<void> {
+async function refresh(runtime: Runtime, force = false): Promise<void> {
   const year = raceYear();
   const config = getRaceConfig(year);
+  const nowMs = runtime.clock.now();
+
+  // Always fetch once, whatever the hour: a server started outside the window
+  // would otherwise serve nothing at all, including the entry list.
+  const outsideWindow =
+    !force && getSnapshot() !== null && !shouldFetch(config.raceDate, Date.now());
+
+  if (outsideWindow) {
+    logOnce(
+      `outside-window:${new Date(Date.now() + JST_OFFSET_MS).toISOString().slice(0, 13)}`,
+      "Outside the fetch window, leaving the snapshot as it is",
+      { raceDate: config.raceDate },
+    );
+
+    // Recompute anyway so estimated positions and the clock keep moving from
+    // the records already held, without asking the timing site again.
+    const held = getSnapshot();
+    if (held) {
+      const computed = computeSnapshot(held.raw, config, runtime.model, runtime.nameIndex, nowMs, {
+        replay: runtime.clock.replay,
+        backtest: runtime.backtest,
+        pollIntervalMs: pollIntervalMs(),
+        clockSpeed: runtime.clock.speed,
+      });
+      setSnapshot(computed);
+    }
+    return;
+  }
 
   try {
     const raw = await fetchLive(year);
-    const nowMs = runtime.clock.now();
     const visible = runtime.clock.replay ? applyReplayCutoff(raw, nowMs) : raw;
 
     const computed = computeSnapshot(visible, config, runtime.model, runtime.nameIndex, nowMs, {
       replay: runtime.clock.replay,
       backtest: runtime.backtest,
+      pollIntervalMs: pollIntervalMs(),
+      clockSpeed: runtime.clock.speed,
     });
     setSnapshot(computed);
 
@@ -134,6 +233,18 @@ async function refresh(runtime: Runtime): Promise<void> {
   }
 }
 
+/**
+ * Fetch now, whatever the hour. Exposed so an operator can pull the current
+ * records outside the window, which is the only way to seed a server started
+ * before the race or restarted after it.
+ */
+export async function refreshNow(): Promise<boolean> {
+  const runtime = getPollerRuntime<Runtime>();
+  if (!runtime) return false;
+  await refresh(runtime, true);
+  return true;
+}
+
 /** Start the background pollers exactly once per process. */
 export async function startPollers(): Promise<void> {
   if (!claimPollerStart()) return;
@@ -150,9 +261,19 @@ export async function startPollers(): Promise<void> {
     history.length >= 2 && holdout !== undefined ? runBacktest(history, holdout) : new Map();
 
   const runtime: Runtime = { clock, model, nameIndex, backtest };
+  setPollerRuntime(runtime);
 
-  await refresh(runtime);
-  setInterval(() => void refresh(runtime), POLL_INTERVAL_MS);
+  await refresh(runtime, true);
+  const interval = pollIntervalMs();
+  logger.info("Poll interval chosen", { intervalMs: interval, replay: clock.replay });
+
+  // Chain rather than use a fixed interval: a refresh that runs long must not
+  // stack up behind itself when the replay is fast.
+  const tick = async (): Promise<void> => {
+    await refresh(runtime);
+    setTimeout(() => void tick(), interval);
+  };
+  setTimeout(() => void tick(), interval);
 
   void getWeather();
   setInterval(() => void getWeather(), WEATHER_INTERVAL_MS);

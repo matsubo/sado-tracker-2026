@@ -64,10 +64,11 @@ describe("toSnapshot", () => {
     expect(a?.startAt).toBe(jst("2026-09-06T06:00:00+09:00"));
   });
 
-  it("normalizes the full-width space in names", () => {
+  it("shows names with a single ASCII space, not the source's wide one", () => {
     const a = loadFixture().athletes.find((x) => x.bib === "1001");
-    expect(a?.name).toBe("佐和田　蓮");
+    expect(a?.name).toBe("佐和田 蓮");
     expect(a?.nameKey).toBe("佐和田 蓮");
+    expect(a?.name).not.toContain("　");
   });
 
   it("maps divisions and age groups", () => {

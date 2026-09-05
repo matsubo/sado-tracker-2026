@@ -3,11 +3,16 @@ import type { Athlete, RaceSnapshot } from "@/lib/domain/types";
 import type { NeighbourModel } from "@/lib/history/model";
 import type { NameIndex, PastResult } from "@/lib/history/nameIndex";
 import { findPastResults } from "@/lib/history/nameIndex";
-import { deviationScore } from "./deviation";
-import { disciplineKm, disciplineStart, elapsedAt, splitBetween } from "./elapsed";
+import { disciplineKm, elapsedAt, splitBetween } from "./elapsed";
 import { buildPopulations, latestCheckpoint, type Populations } from "./population";
 import { estimatePosition, fieldOrder, type PositionEstimate } from "./position";
-import { type BacktestTable, type Prediction, predictFinish } from "./prediction";
+import {
+  type BacktestTable,
+  type CandidateCache,
+  createCandidateCache,
+  type Prediction,
+  predictFinish,
+} from "./prediction";
 import {
   cumulativeRanks,
   disciplineRanks,
@@ -36,7 +41,6 @@ export interface ComputedDiscipline {
   readonly provisional: boolean;
   readonly atCheckpointLabel: string | null;
   readonly ranks: RankSet;
-  readonly deviation: number | null;
   readonly speedKmh: number | null;
 }
 
@@ -78,7 +82,13 @@ export interface ComputedSnapshot {
   readonly computedAt: number;
   readonly stale: boolean;
   readonly replay: boolean;
+  /** Milliseconds between refreshes, so clients can match the cadence. */
+  readonly pollIntervalMs: number;
+  /** Race seconds per real second; 1 outside replay. */
+  readonly clockSpeed: number;
   readonly config: RaceConfig;
+  /** The parsed records this was computed from, so a recompute needs no refetch. */
+  readonly raw: RaceSnapshot;
   readonly athletes: ReadonlyMap<string, ComputedAthlete>;
   readonly byDivision: Readonly<Record<Division, readonly string[]>>;
   readonly counts: Readonly<Record<Division, Readonly<Record<string, number>>>>;
@@ -93,16 +103,7 @@ function computeDisciplines(
   return ALL_DISCIPLINES.map((discipline) => {
     const result = disciplineRanks(athlete, discipline, pop, course);
     const km = disciplineKm(discipline, course);
-    const from = disciplineStart(discipline);
     const measuredAt = result.atCheckpoint;
-
-    const peers =
-      measuredAt === null
-        ? []
-        : pop
-            .atCheckpoint(measuredAt)
-            .map((other) => splitBetween(other, from, measuredAt))
-            .filter((value): value is number => value !== null);
 
     const partialKm =
       measuredAt === null ? km : (course.checkpoints.find((c) => c.id === measuredAt)?.km ?? km);
@@ -118,7 +119,6 @@ function computeDisciplines(
           ? (course.checkpoints.find((c) => c.id === measuredAt)?.label ?? null)
           : null,
       ranks: result.ranks,
-      deviation: result.timeMs === null ? null : deviationScore(peers, result.timeMs),
       speedKmh:
         discipline === "bike" && result.timeMs !== null && result.timeMs > 0
           ? (result.provisional ? partialKm : km) / (result.timeMs / 3_600_000)
@@ -184,9 +184,17 @@ export function computeSnapshot(
   model: NeighbourModel,
   nameIndex: NameIndex,
   nowMs: number,
-  options: { stale?: boolean; replay?: boolean; backtest?: BacktestTable } = {},
+  options: {
+    stale?: boolean;
+    replay?: boolean;
+    backtest?: BacktestTable;
+    pollIntervalMs?: number;
+    clockSpeed?: number;
+  } = {},
 ): ComputedSnapshot {
   const athletes = new Map<string, ComputedAthlete>();
+  // Athletes standing at the same timing point share one candidate set.
+  const candidateCache: CandidateCache = createCandidateCache();
   const byDivision: Record<Division, string[]> = { A: [], B: [], RA: [], RB: [] };
   const counts: Record<Division, Record<string, number>> = { A: {}, B: {}, RA: {}, RB: {} };
   const populations: Record<Division, Populations> = {} as Record<Division, Populations>;
@@ -225,7 +233,15 @@ export function computeSnapshot(
           : { division: null, sex: null, ageGroup: null },
         disciplines: computeDisciplines(athlete, course, pop),
         position: estimatePosition(athlete, course, pop, nowMs, model.medianSpeedKmh[division]),
-        prediction: predictFinish(athlete, course, pop, model, nowMs, options.backtest),
+        prediction: predictFinish(
+          athlete,
+          course,
+          pop,
+          model,
+          nowMs,
+          options.backtest,
+          candidateCache,
+        ),
         splits: computeSplits(athlete, course, pop),
         rankHistory: cumulativeRanks(athlete, pop, course),
         pastResults: findPastResults(nameIndex, athlete.nameKey),
@@ -240,7 +256,10 @@ export function computeSnapshot(
     computedAt: nowMs,
     stale: options.stale === true,
     replay: options.replay === true,
+    pollIntervalMs: options.pollIntervalMs ?? 60_000,
+    clockSpeed: options.clockSpeed ?? 1,
     config,
+    raw: snapshot,
     athletes,
     byDivision,
     counts,

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { getRaceConfig } from "@/config/races";
-import { deviationScore } from "@/lib/compute/deviation";
 import { buildPopulations } from "@/lib/compute/population";
 import { cumulativeRanks, disciplineRanks, rankBy, splitRank } from "@/lib/compute/ranking";
 import type { Athlete } from "@/lib/domain/types";
@@ -125,25 +124,6 @@ describe("splitRank", () => {
   it("ranks the segment itself, not the cumulative time", () => {
     expect(splitRank(b, "bikeS", "sumiyoshi", pop)).toEqual({ rank: 1, of: 2 });
     expect(splitRank(a, "bikeS", "sumiyoshi", pop)).toEqual({ rank: 2, of: 2 });
-  });
-});
-
-describe("deviationScore", () => {
-  it("gives 60 to a value one standard deviation faster than the mean", () => {
-    const values = [10, 20, 20, 20, 30];
-    expect(deviationScore(values, 20 - Math.sqrt(40))).toBeCloseTo(60, 5);
-  });
-
-  it("gives 50 at the mean", () => {
-    expect(deviationScore([10, 20, 30, 40, 50], 30)).toBeCloseTo(50, 5);
-  });
-
-  it("hides the score when fewer than five athletes have been measured", () => {
-    expect(deviationScore([10, 20, 30, 40], 20)).toBeNull();
-  });
-
-  it("hides the score when everyone recorded the same time", () => {
-    expect(deviationScore([20, 20, 20, 20, 20], 20)).toBeNull();
   });
 });
 

@@ -4,7 +4,6 @@ import {
   formatClock,
   formatClockShort,
   formatDateTime,
-  formatDeviation,
   formatDiff,
   formatDuration,
   formatDurationShort,
@@ -188,11 +187,5 @@ describe("rank formatting", () => {
     expect(formatRankOrDash(null, 412)).toBe(DASH);
     expect(formatRankOrDash(201, null)).toBe(DASH);
     expect(formatRankOrDash(null, null)).toBe(DASH);
-  });
-
-  it("renders a deviation score as an integer", () => {
-    expect(formatDeviation(58)).toBe("58");
-    expect(formatDeviation(58.7)).toBe("59");
-    expect(formatDeviation(null)).toBe(DASH);
   });
 });

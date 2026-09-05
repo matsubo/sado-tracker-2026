@@ -16,17 +16,24 @@ describe("normalizeDivision", () => {
   it("maps full-width labels used in 2023", () => {
     expect(normalizeDivision("Ａタイプ", c2023)).toBe("A");
     expect(normalizeDivision("Ｂタイプ", c2023)).toBe("B");
-    expect(normalizeDivision("Ｒタイプ", c2023)).toBe("RA");
+    // The single relay class of 2023 raced the middle distance.
+    expect(normalizeDivision("Ｒタイプ", c2023)).toBe("RB");
   });
 
   it("maps the ASCII labels used in 2022", () => {
     expect(normalizeDivision("ATYPE", c2022)).toBe("A");
     expect(normalizeDivision("BTYPE", c2022)).toBe("B");
-    expect(normalizeDivision("RTYPE", c2022)).toBe("RA");
+    expect(normalizeDivision("RTYPE", c2022)).toBe("RB");
   });
 
-  it("maps championship and elite entries to A for past results", () => {
-    expect(normalizeDivision("チャンピオンシップ", c2023)).toBe("A");
+  it("files the championship under the middle distance it actually races", () => {
+    // Championship finishers median 5.4 hours; A type medians 14.2. Filing
+    // them under A would divide their times by long-course distances.
+    expect(normalizeDivision("チャンピオンシップ", c2023)).toBe("B");
+    expect(normalizeDivision("CHAMPIONSHIP", c2022)).toBe("B");
+  });
+
+  it("keeps the elite long race under A", () => {
     expect(normalizeDivision("ATYPE ELITE", c2022)).toBe("A");
   });
 

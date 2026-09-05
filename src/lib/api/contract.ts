@@ -32,7 +32,6 @@ export interface DisciplineDto {
   readonly provisional: boolean;
   readonly atCheckpointLabel: string | null;
   readonly ranks: RankSetDto;
-  readonly deviation: number | null;
   /** Speed in km/h for bike, null for swim and run which use pace. */
   readonly speedKmh: number | null;
 }
@@ -89,13 +88,26 @@ export interface PredictionDto {
   };
 }
 
+export interface PastDisciplineDto {
+  readonly discipline: Discipline;
+  readonly label: string;
+  readonly timeMs: number;
+  /** Distance raced that year; the course has not always been the same. */
+  readonly km: number;
+  readonly paceText: string;
+  readonly divisionRank: RankDto | null;
+  readonly ageRank: RankDto | null;
+}
+
 export interface PastResultDto {
   readonly year: number;
   readonly division: Division;
   readonly totalText: string;
+  readonly totalMs: number;
   readonly divisionRank: RankDto;
   readonly ageRank: RankDto | null;
   readonly ageGroupId: string | null;
+  readonly disciplines: readonly PastDisciplineDto[];
 }
 
 /** The shape used by friend cards and search results. */
@@ -153,6 +165,8 @@ export interface RaceStateDto {
   readonly now: number;
   readonly stale: boolean;
   readonly replay: boolean;
+  /** How often the server recomputes, so the client never polls slower. */
+  readonly pollIntervalMs: number;
   /** Counts of athletes measured at each checkpoint, per division. */
   readonly counts: Readonly<Record<Division, Readonly<Record<string, number>>>>;
   readonly divisions: readonly {
@@ -183,6 +197,12 @@ export interface RankingPageDto {
   readonly discipline: Discipline | "total";
   readonly ageGroupId: string | null;
   readonly measuredAt: string;
+  /** What the 差 column is measured from. */
+  readonly diffBasis: {
+    readonly kind: "leader" | "athlete";
+    /** Name of the athlete the differences are relative to. */
+    readonly name: string;
+  } | null;
   readonly total: number;
   readonly page: number;
   readonly perPage: number;

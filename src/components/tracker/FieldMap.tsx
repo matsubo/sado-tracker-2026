@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { type KeyboardEvent, useMemo, useRef, useState } from "react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
 import { type AgeGroup, compareAgeGroups, type Division, normalizeAgeGroup } from "@/config/races";
@@ -55,13 +56,13 @@ const DIVISION_TABS = DIVISION_IDS.map((value) => ({ value, label: value }));
 const VIEW_TABS = [
   { value: "division", label: "部門総合" },
   { value: "age", label: "エイジ別" },
-  { value: "friends", label: "友達だけ" },
+  { value: "friends", label: "ブックマークのみ" },
 ] as const;
 const LEGEND = [
   { label: "スイム中", size: "size-1.5", color: LEG.swim.color },
   { label: "バイク中", size: "size-1.5", color: LEG.bike.color },
   { label: "ラン中", size: "size-1.5", color: LEG.run.color },
-  { label: "友達", size: "size-2 bg-brand-cyan-400", color: undefined },
+  { label: "ブックマーク", size: "size-2 bg-brand-cyan-400", color: undefined },
 ];
 
 const VIEW_W = 360;
@@ -79,7 +80,7 @@ const MIN_KM_GAP = 40;
 const EMPTY_MESSAGE: Readonly<Record<View, string>> = {
   division: "計測中の選手がいません。",
   age: "この年齢区分に計測中の選手がいません。",
-  friends: "友達を登録すると、ここに並びます。",
+  friends: "選手をブックマークすると、ここに並びます。",
 };
 
 /** Transition points sit on the bike leg; everything else maps to its own leg. */
@@ -207,7 +208,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
   const [focusIndex, setFocusIndex] = useState(0);
   const dots = useRef(new Map<string, SVGGElement>());
 
-  const { race, fetchedAt } = useRaceState();
+  const { race, fetchedAt, error: raceError, lastPolledAt, intervalMs } = useRaceState();
   const { bibs, ready } = useBookmarks();
   const now = useLiveClock();
 
@@ -235,7 +236,10 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
   const activeAge =
     ageOptions.find((option) => option.value === ageGroup)?.value ?? ageOptions[0]?.value ?? null;
 
-  const named = view !== "division";
+  // Every view names its rows. The division view runs to hundreds of rows and
+  // the page becomes very long, which is the point: a dot with no name tells
+  // a supporter nothing about who is where.
+  const named = true;
   const entries = useMemo(() => {
     const all = data?.entries ?? [];
     if (view === "friends") return all.filter((e) => e.isSelf === true);
@@ -274,7 +278,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
           filled: position.waiting || position.inTransition || position.speedKmh <= 0,
         };
       }),
-    [entries, axis, named, now],
+    [entries, axis, now],
   );
 
   const yTicks = useMemo(() => {
@@ -290,7 +294,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
    * Without a word of explanation that column reads as a rendering fault.
    */
   const clump = useMemo(() => {
-    if (named || placed.length === 0) return null;
+    if (placed.length === 0) return null;
     const counts = new Map<string, number>();
     for (const p of placed) {
       if (!p.entry.position.waiting) continue;
@@ -300,7 +304,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
     const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
     if (!top || top[1] < placed.length * CLUMP_SHARE) return null;
     return { label: top[0], count: top[1] };
-  }, [placed, named]);
+  }, [placed]);
 
   const activeIndex = Math.min(focusIndex, Math.max(0, placed.length - 1));
   const tip = placed.find((p) => p.entry.bib === selected) ?? null;
@@ -328,6 +332,14 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
 
   return (
     <div className="flex flex-col gap-2">
+      <PageHeader
+        title="全体マップ"
+        subtitle="推定位置"
+        race={race}
+        lastPolledAt={lastPolledAt}
+        error={raceError}
+        intervalMs={intervalMs}
+      />
       <Tabs
         aria-label="部門"
         className="mx-3"
@@ -424,14 +436,23 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
               <g fill="var(--muted-foreground)" fontSize={named ? 9.5 : 8.5} textAnchor="end">
                 {named
                   ? placed.map((p, index) => (
-                      <text
+                      // A name is the obvious thing to tap, so it goes
+                      // straight to the athlete rather than to a tooltip.
+                      <a
                         key={p.entry.bib}
-                        x={x0 - 8}
-                        y={p.y + 3}
-                        fill={p.entry.isSelf === true ? "var(--foreground)" : undefined}
+                        href={`/athletes/${p.entry.bib}`}
+                        aria-label={`${p.entry.name} の詳細`}
+                        className="cursor-pointer outline-none focus-visible:underline"
                       >
-                        {index + 1} {p.entry.name}
-                      </text>
+                        <text
+                          x={x0 - 8}
+                          y={p.y + 3}
+                          fill={p.entry.isSelf === true ? "var(--foreground)" : undefined}
+                          className="hover:underline"
+                        >
+                          {index + 1} {p.entry.name}
+                        </text>
+                      </a>
                     ))
                   : yTicks.map((value, index) => (
                       <text key={value} x={x0 - 6} y={rowY(value - 1, entries.length, false) + 3}>
@@ -472,10 +493,23 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
                       strokeDasharray={p.filled ? undefined : "2 2"}
                     />
                     {friend && !named ? (
-                      <text x={p.x + 8} y={p.y + 3} fontSize={9} fill="var(--foreground)">
-                        {p.entry.name}
-                        {p.entry.divisionRank ? ` ${p.entry.divisionRank.rank}位` : ""}
-                      </text>
+                      <a
+                        href={`/athletes/${p.entry.bib}`}
+                        aria-label={`${p.entry.name} の詳細`}
+                        className="cursor-pointer outline-none focus-visible:underline"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <text
+                          x={p.x + 8}
+                          y={p.y + 3}
+                          fontSize={9}
+                          fill="var(--foreground)"
+                          className="hover:underline"
+                        >
+                          {p.entry.name}
+                          {p.entry.divisionRank ? ` ${p.entry.divisionRank.rank}位` : ""}
+                        </text>
+                      </a>
                     ) : null}
                   </g>
                 );
@@ -490,17 +524,17 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
                   top: `${((tip.y - 6) / height) * 100}%`,
                 }}
               >
-                <p className="font-bold text-[12px]">{tip.entry.name}</p>
+                <Link
+                  href={`/athletes/${tip.entry.bib}`}
+                  className="rounded-sm font-bold text-[12px] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {tip.entry.name}
+                  <span className="ml-1 font-bold text-[11px] text-primary">›</span>
+                </Link>
                 <p className="text-[11px] text-muted-foreground tabular-nums">
                   {tipRank ? `部門 ${tipRank.rank}/${tipRank.of} · ` : ""}
                   {placed.indexOf(tip) + 1} 番目 · {LEG[tip.leg].label} {tip.km.toFixed(1)} km
                 </p>
-                <Link
-                  href={`/athletes/${tip.entry.bib}`}
-                  className="rounded-sm font-bold text-[11px] text-primary underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  詳細 ›
-                </Link>
               </div>
             ) : null}
           </div>

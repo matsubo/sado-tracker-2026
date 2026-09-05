@@ -36,6 +36,7 @@ const RACE: RaceStateDto = {
   now: 1_000,
   stale: false,
   replay: false,
+  pollIntervalMs: 60_000,
   counts: { A: {}, B: {}, RA: {}, RB: {} },
   divisions: [
     { id: "A", label: "Aタイプ", entrants: 3, racing: 3, checkpoints: CHECKPOINTS },
@@ -70,6 +71,7 @@ function page(partial: Partial<RankingPageDto> = {}): RankingPageDto {
     discipline: "swim",
     ageGroupId: null,
     measuredAt: "スイム完了",
+    diffBasis: { kind: "leader", name: "先頭 選手" },
     total: 3,
     page: 1,
     perPage: 50,

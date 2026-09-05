@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Discipline, Division } from "@/config/races";
@@ -12,7 +13,7 @@ import { formatClock, formatClockShort, formatDuration } from "@/lib/format";
 import { CoursePositionChart } from "./CoursePositionChart";
 import { DisciplineTable } from "./DisciplineTable";
 import { PastResults } from "./PastResults";
-import { type DisciplineKm, liveKm, PositionBar } from "./PositionBar";
+import { barCheckpoints, type DisciplineKm, liveKm, PositionBar } from "./PositionBar";
 import { PredictionBox } from "./PredictionBox";
 import { RankChart } from "./RankChart";
 import { SplitTable } from "./SplitTable";
@@ -102,7 +103,7 @@ interface AthleteDetailProps {
 
 /** Everything known about one athlete, ordered the way a supporter reads it. */
 export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
-  const { race, fetchedAt } = useRaceState();
+  const { race, fetchedAt, error: raceError, lastPolledAt, intervalMs } = useRaceState();
   const {
     data: detail,
     loading,
@@ -123,10 +124,10 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
             : `ゼッケン ${bib} の情報を表示できませんでした。少し時間をおいて開き直してください。`}
         </p>
         <Link
-          href="/"
+          href="/bookmarks"
           className="mt-3 inline-block rounded-md px-2 py-1 font-semibold text-[13px] text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          ‹ 友達一覧
+          ‹ ブックマーク
         </Link>
       </div>
     );
@@ -146,38 +147,36 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
 
   return (
     <div className="mx-auto w-full max-w-[480px] pb-10">
+      <PageHeader
+        title={detail.name}
+        subtitle={`#${detail.bib}`}
+        back={{ href: "/bookmarks", label: "ブックマーク" }}
+        race={race}
+        lastPolledAt={lastPolledAt}
+        error={raceError}
+        intervalMs={intervalMs}
+        action={
+          ready ? (
+            <button
+              type="button"
+              aria-pressed={bookmarked}
+              onClick={() => (bookmarked ? remove(detail.bib) : add(detail.bib))}
+              className="rounded-md px-1 py-0.5 font-bold text-[12px] text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {bookmarked ? "★ ブックマーク済み" : "☆ ブックマーク"}
+            </button>
+          ) : null
+        }
+      />
+
       {error === null ? null : (
         <p role="status" className="px-4 pt-2 text-[11.5px] text-muted-foreground">
           最新の情報を取得できませんでした。表示は直前の内容です。
         </p>
       )}
-      <div className="flex items-center justify-between px-4 pt-3 pb-1 text-[13px]">
-        <Link
-          href="/"
-          className="rounded-md px-1 py-0.5 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          ‹ 友達一覧
-        </Link>
-        {ready ? (
-          <button
-            type="button"
-            aria-pressed={bookmarked}
-            onClick={() => (bookmarked ? remove(detail.bib) : add(detail.bib))}
-            className="rounded-md px-1 py-0.5 font-bold text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {bookmarked ? "★ 友達に登録済み" : "☆ 友達に登録"}
-          </button>
-        ) : null}
-      </div>
 
-      <div className="px-4 pt-1">
-        <h1 className="flex items-baseline gap-2 font-bold text-[24px] leading-tight">
-          {detail.name}
-          <span className="font-semibold text-[14px] text-muted-foreground tnum">
-            #{detail.bib}
-          </span>
-        </h1>
-        <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+      <div className="px-4 pt-1.5">
+        <p className="text-[12.5px] text-muted-foreground">
           {DIVISION_LABELS[detail.division]} · {detail.ageGroupLabel ?? "年齢区分なし"} ·{" "}
           {formatClockShort(detail.startAt)} スタート
         </p>
@@ -193,18 +192,36 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
         {detail.elapsedMs !== null ? <span>経過 {formatDuration(detail.elapsedMs)}</span> : null}
       </div>
 
-      <div className="px-4 pt-2.5">
-        <PositionBar
-          discipline={detail.position.discipline}
-          estKm={estKm}
-          totalKm={detail.position.totalKm}
-          waiting={detail.position.waiting}
-          finished={finished}
-          nextLabel={nextLabel}
-        />
-      </div>
+      <section className="mx-3 mt-3 rounded-md border border-border border-dashed bg-muted/40 px-3 py-2.5">
+        <p className="flex items-center gap-1.5 font-semibold text-[10px] text-muted-foreground uppercase tracking-wider">
+          推定
+          <span className="h-px flex-1 bg-border" aria-hidden />
+        </p>
+        <div className="mt-1.5">
+          <PositionBar
+            discipline={detail.position.discipline}
+            estKm={estKm}
+            totalKm={detail.position.totalKm}
+            waiting={detail.position.waiting}
+            finished={finished}
+            nextLabel={nextLabel}
+            checkpoints={barCheckpoints(checkpoints)}
+            legKm={totals}
+          />
+        </div>
+        {detail.prediction === null ? null : (
+          <div className="mt-2.5">
+            <PredictionBox prediction={detail.prediction} startAt={detail.startAt} />
+          </div>
+        )}
+      </section>
 
-      <div className="grid grid-cols-3 gap-1.5 px-3 pt-3">
+      <p className="mx-3 mt-3.5 flex items-center gap-1.5 font-semibold text-[10px] text-muted-foreground uppercase tracking-wider">
+        計測
+        <span className="h-px flex-1 bg-border" aria-hidden />
+      </p>
+
+      <div className="grid grid-cols-3 gap-1.5 px-3 pt-2">
         <RankTile
           label={
             detail.lastCheckpointLabel === null
@@ -224,14 +241,10 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
         <Heading title="種目" note="暫定 = 進行中の区間" />
         <DisciplineTable rows={detail.disciplines} splits={detail.splits} />
 
-        {detail.prediction === null ? null : (
-          <>
-            <Heading title="予想ゴール" />
-            <PredictionBox prediction={detail.prediction} startAt={detail.startAt} />
-          </>
-        )}
-
-        <Heading title="コース上の位置" note="10 秒ごとに再計算" />
+        <Heading
+          title="コース上の位置"
+          note={`推定 · ${detail.ageGroupLabel ?? `${detail.division}タイプ`}の前後`}
+        />
         <CoursePositionChart
           entries={detail.neighbours}
           checkpoints={checkpoints}
@@ -242,6 +255,7 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
         <Heading title="順位推移" note={`部門総合 · ${sexLabel} · エイジ`} />
         <div className="rounded-lg border border-border bg-card px-2 py-2">
           <RankChart
+            checkpoints={checkpoints}
             history={detail.rankHistory}
             sexLabel={sexLabel}
             ageGroupLabel={detail.ageGroupLabel}
@@ -249,7 +263,7 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
         </div>
 
         <Heading title="スプリット" note="区間順位は同区間を計測済みの同部門内" />
-        <SplitTable splits={detail.splits} />
+        <SplitTable splits={detail.splits} checkpoints={checkpoints} />
 
         <Heading title="過去の成績" note="同じ名前で検索" />
         <PastResults results={detail.pastResults} />

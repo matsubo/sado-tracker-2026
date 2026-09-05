@@ -4,6 +4,7 @@ import { derivePassEvents, eventKey } from "@/lib/compute/events";
 import { computeSnapshot } from "@/lib/compute/snapshot";
 import { buildNeighbourModel } from "@/lib/history/model";
 import { buildNameIndex, type HistoryYear } from "@/lib/history/nameIndex";
+import { shouldFetch } from "@/lib/runtime/poller";
 import { loadFixtureSnapshot } from "@/lib/testing/fixtures";
 
 const YEARS: HistoryYear[] = [2023, 2024].map((year) => ({
@@ -133,5 +134,52 @@ describe("derivePassEvents", () => {
 
   it("keys an event by bib and checkpoint so late data is still detected", () => {
     expect(eventKey({ bib: "123", checkpointId: "sumiyoshi" })).toBe("123:sumiyoshi");
+  });
+});
+
+describe("fetch window", () => {
+  const RACE_DAY = "2026-09-06";
+  const at = (iso: string) => Date.parse(iso);
+
+  it("asks the timing site only between the first wave and the cut-off", () => {
+    expect(shouldFetch(RACE_DAY, at("2026-09-06T07:00:00+09:00"), {})).toBe(true);
+    expect(shouldFetch(RACE_DAY, at("2026-09-06T14:30:00+09:00"), {})).toBe(true);
+    expect(shouldFetch(RACE_DAY, at("2026-09-06T22:59:00+09:00"), {})).toBe(true);
+  });
+
+  it("stays quiet before the window and after it", () => {
+    expect(shouldFetch(RACE_DAY, at("2026-09-06T06:59:00+09:00"), {})).toBe(false);
+    expect(shouldFetch(RACE_DAY, at("2026-09-06T23:00:00+09:00"), {})).toBe(false);
+    expect(shouldFetch(RACE_DAY, at("2026-09-06T03:00:00+09:00"), {})).toBe(false);
+  });
+
+  it("stays quiet on every other day", () => {
+    expect(shouldFetch(RACE_DAY, at("2026-09-05T12:00:00+09:00"), {})).toBe(false);
+    expect(shouldFetch(RACE_DAY, at("2026-09-07T12:00:00+09:00"), {})).toBe(false);
+  });
+
+  it("reads the day in Tokyo, not in the server's timezone", () => {
+    // 23:30 UTC on the 5th is already 08:30 on race day in Tokyo.
+    expect(shouldFetch(RACE_DAY, at("2026-09-05T23:30:00Z"), {})).toBe(true);
+  });
+
+  it("polls around the clock when the window is switched off", () => {
+    expect(shouldFetch(RACE_DAY, at("2026-09-01T03:00:00+09:00"), { FETCH_WINDOW: "off" })).toBe(
+      true,
+    );
+  });
+
+  it("polls around the clock in replay, where the day is not today", () => {
+    expect(
+      shouldFetch(RACE_DAY, at("2026-09-01T03:00:00+09:00"), {
+        REPLAY_START: "2025-09-07T06:00:00+09:00",
+      }),
+    ).toBe(true);
+  });
+
+  it("honours a window given in the environment", () => {
+    const env = { FETCH_FROM_HOUR: "5", FETCH_TO_HOUR: "9" };
+    expect(shouldFetch(RACE_DAY, at("2026-09-06T05:30:00+09:00"), env)).toBe(true);
+    expect(shouldFetch(RACE_DAY, at("2026-09-06T09:30:00+09:00"), env)).toBe(false);
   });
 });

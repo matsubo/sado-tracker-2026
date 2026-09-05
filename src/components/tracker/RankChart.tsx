@@ -68,10 +68,23 @@ interface RankChartProps {
   readonly history: readonly RankHistoryEntry[];
   readonly sexLabel: string;
   readonly ageGroupLabel: string | null;
+  /** Every timing point of the course, so the axis does not grow as the athlete moves. */
+  readonly checkpoints?: readonly { readonly id: string; readonly label: string }[];
 }
 
-/** Rank at every timing point so far, with first place at the top. */
-export function RankChart({ history, sexLabel, ageGroupLabel }: RankChartProps): React.JSX.Element {
+/**
+ * Rank at every timing point, first place at the top.
+ *
+ * The axis is the whole course from the start, not the points passed so
+ * far: an axis that grows underneath the reader makes each refresh look
+ * like a different chart, and hides how much of the race is still to come.
+ */
+export function RankChart({
+  history,
+  sexLabel,
+  ageGroupLabel,
+  checkpoints,
+}: RankChartProps): React.JSX.Element {
   const theme = useChartTheme();
   if (history.length === 0) {
     return (
@@ -82,8 +95,16 @@ export function RankChart({ history, sexLabel, ageGroupLabel }: RankChartProps):
   }
   if (theme === null) return <Skeleton className="h-[200px] w-full" />;
 
+  // Fall back to the points passed so far when the course is not known.
+  const axis =
+    checkpoints && checkpoints.length > 0
+      ? checkpoints
+      : history.map((entry) => ({ id: entry.checkpointId, label: entry.label }));
+
+  const byCheckpoint = new Map(history.map((entry) => [entry.checkpointId, entry]));
+
   const pick = (key: keyof RankSetDto): (number | null)[] =>
-    history.map((entry) => entry.ranks[key]?.rank ?? null);
+    axis.map((point) => byCheckpoint.get(point.id)?.ranks[key]?.rank ?? null);
 
   const series = [
     { name: "部門総合", data: pick("division"), color: theme.series[0] },
@@ -109,7 +130,7 @@ export function RankChart({ history, sexLabel, ageGroupLabel }: RankChartProps):
     },
     xAxis: {
       type: "category" as const,
-      data: history.map((entry) => axisLabel(entry.label)),
+      data: axis.map((point) => axisLabel(point.label)),
       axisLabel: { color: theme.text, fontSize: 9, interval: "auto" as const, rotate: 30 },
       axisLine: { lineStyle: { color: theme.line } },
       axisTick: { show: false },

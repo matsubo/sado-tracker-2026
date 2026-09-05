@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { getRaceConfig } from "@/config/races";
+import { buildLeaderboard } from "@/lib/api/leaderboard";
 import { buildRankingPage } from "@/lib/api/rankings";
 import { aiTriHref, toAthleteDetail, toAthleteSummary, toRaceState } from "@/lib/api/serialize";
 import type { ComputedSnapshot } from "@/lib/compute/snapshot";
@@ -278,5 +279,205 @@ describe("ranking pagination", () => {
     });
     expect(centred.page).toBe(5);
     expect(centred.rows.some((row) => row.isTarget)).toBe(true);
+  });
+});
+
+describe("leaderboard", () => {
+  it("lists the front of a division in field order", () => {
+    const board = buildLeaderboard(snapshot, "A", 20);
+    expect(board.division).toBe("A");
+    expect(board.leaders).toHaveLength(20);
+    expect(board.leaders[0]?.place).toBe(1);
+    expect(board.leaders.at(-1)?.place).toBe(20);
+    expect(board.total).toBeGreaterThan(700);
+  });
+
+  it("pages through the whole field, numbering places across pages", () => {
+    const first = buildLeaderboard(snapshot, "A", 100, 1);
+    const second = buildLeaderboard(snapshot, "A", 100, 2);
+
+    expect(first.leaders).toHaveLength(100);
+    expect(first.leaders[0]?.place).toBe(1);
+    expect(second.leaders[0]?.place).toBe(101);
+    expect(second.page).toBe(2);
+    expect(second.total).toBe(first.total);
+
+    // No athlete appears on both pages.
+    const firstBibs = new Set(first.leaders.map((row) => row.athlete.bib));
+    expect(second.leaders.some((row) => firstBibs.has(row.athlete.bib))).toBe(false);
+  });
+
+  it("returns an empty page past the end rather than failing", () => {
+    const board = buildLeaderboard(snapshot, "A", 100, 99);
+    expect(board.leaders).toEqual([]);
+    expect(board.total).toBeGreaterThan(0);
+  });
+
+  it("puts athletes further along the course ahead of faster ones behind them", () => {
+    const board = buildLeaderboard(snapshot, "A", 20);
+    const kms = board.leaders.map((row) => row.athlete.position.estKm);
+    expect(kms[0]).toBeGreaterThan(0);
+    // Leaders are on the same or a later leg than those behind them.
+    const legOrder = { swim: 0, bike: 1, run: 2 } as const;
+    for (let i = 1; i < board.leaders.length; i += 1) {
+      const ahead = legOrder[board.leaders[i - 1]?.athlete.position.discipline as "swim"];
+      const behind = legOrder[board.leaders[i]?.athlete.position.discipline as "swim"];
+      expect(ahead).toBeGreaterThanOrEqual(behind);
+    }
+  });
+
+  it("counts everyone entered, not only those on the board", () => {
+    const board = buildLeaderboard(snapshot, "A", 5);
+    expect(board.leaders).toHaveLength(5);
+    expect(board.entrants).toBeGreaterThan(900);
+    expect(board.racing).toBeLessThanOrEqual(board.entrants);
+  });
+
+  it("returns an empty board rather than failing for an empty division", () => {
+    const board = buildLeaderboard(snapshot, "RB", 20);
+    expect(board.division).toBe("RB");
+    expect(Array.isArray(board.leaders)).toBe(true);
+  });
+});
+
+describe("the difference column", () => {
+  it("measures from the leader when no athlete is chosen", () => {
+    const page = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
+      targetBib: null,
+    });
+    expect(page.diffBasis?.kind).toBe("leader");
+    expect(page.rows[0]?.diffMs).toBe(0);
+    // Everyone behind the leader is slower, so the differences are positive.
+    for (const row of page.rows.slice(1)) {
+      expect(row.diffMs).toBeGreaterThan(0);
+    }
+  });
+
+  it("measures from the chosen athlete when one is given", () => {
+    const first = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
+      targetBib: null,
+    });
+    const target = first.rows[20]?.bib as string;
+    const focused = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: null,
+      perPage: 50,
+      targetBib: target,
+    });
+    expect(focused.diffBasis?.kind).toBe("athlete");
+    expect(focused.rows.find((row) => row.isTarget)?.diffMs).toBe(0);
+    expect(focused.rows.some((row) => (row.diffMs as number) < 0)).toBe(true);
+  });
+
+  it("names the athlete the differences are measured from", () => {
+    const first = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
+      targetBib: null,
+    });
+    expect(first.diffBasis?.name).toBe(first.rows[0]?.name);
+  });
+
+  it("reports no basis when nobody has been measured", () => {
+    const page = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "total",
+      ageGroupId: null,
+      page: 1,
+      perPage: 50,
+      targetBib: null,
+    });
+    expect(page.total).toBe(0);
+    expect(page.diffBasis).toBeNull();
+  });
+});
+
+describe("past results", () => {
+  it("never reports a physically impossible pace", () => {
+    // A championship entry filed under the long course produced 71 km/h on
+    // the bike, because middle-distance times were divided by 190 km.
+    let checked = 0;
+    for (const computed of snapshot.athletes.values()) {
+      for (const result of computed.pastResults) {
+        for (const leg of result.disciplines) {
+          const hours = leg.timeMs / 3_600_000;
+          if (hours <= 0) continue;
+          const kmh = leg.km / hours;
+          checked += 1;
+          if (leg.discipline === "bike") expect(kmh).toBeLessThan(50);
+          if (leg.discipline === "run") expect(kmh).toBeLessThan(22);
+          if (leg.discipline === "swim") expect(kmh).toBeLessThan(8);
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(50);
+  });
+
+  it("carries the distance raced that year alongside each time", () => {
+    const withHistory = [...snapshot.athletes.values()].find(
+      (computed) => computed.pastResults.length > 0,
+    );
+    const legs = withHistory?.pastResults[0]?.disciplines ?? [];
+    expect(legs.length).toBeGreaterThan(0);
+    for (const leg of legs) expect(leg.km).toBeGreaterThan(0);
+  });
+});
+
+describe("course neighbours", () => {
+  it("shows age-group rivals for an athlete who has an age group", () => {
+    const withAge = [...snapshot.athletes.values()].find(
+      (c) => c.athlete.ageGroup !== null && c.fieldOrder !== Number.MAX_SAFE_INTEGER,
+    );
+    const detail = toAthleteDetail(snapshot, withAge as never);
+    expect(detail.neighbours.length).toBeGreaterThan(1);
+    for (const entry of detail.neighbours) {
+      expect(entry.ageGroupId).toBe(detail.ageGroupId);
+    }
+  });
+
+  it("falls back to the division for a relay, which has no age group", () => {
+    // A relay grouped by age group could only ever see itself.
+    const relay = [...snapshot.athletes.values()].find(
+      (c) =>
+        (c.athlete.division === "RA" || c.athlete.division === "RB") &&
+        c.fieldOrder !== Number.MAX_SAFE_INTEGER,
+    );
+    if (!relay) return;
+    const detail = toAthleteDetail(snapshot, relay);
+    expect(detail.neighbours.length).toBeGreaterThan(1);
+    expect(detail.neighbours.some((entry) => entry.isSelf)).toBe(true);
+  });
+});
+
+describe("displayed names", () => {
+  it("never carries the source's ideographic space", () => {
+    let checked = 0;
+    for (const computed of snapshot.athletes.values()) {
+      expect(computed.athlete.name).not.toContain("　");
+      checked += 1;
+    }
+    expect(checked).toBeGreaterThan(1000);
+  });
+
+  it("keeps the external link keyed by the same single-space name", () => {
+    expect(aiTriHref("松倉　友樹")).toBe(
+      "https://ai-triathlon-result.teraren.com/athletes/%E6%9D%BE%E5%80%89%20%E5%8F%8B%E6%A8%B9",
+    );
+    expect(aiTriHref("松倉 友樹")).toBe(aiTriHref("松倉　友樹"));
   });
 });

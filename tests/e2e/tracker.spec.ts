@@ -19,44 +19,53 @@ test.describe("friend dashboard", () => {
   }) => {
     const bib = await racingBib(request);
 
-    await page.goto("/");
-    await expect(page.getByRole("heading", { name: /佐渡トラッカー/ })).toBeVisible();
+    await page.goto("/bookmarks");
+    await expect(page.getByRole("heading", { name: /ブックマーク/ })).toBeVisible();
 
-    await page.getByLabel("ゼッケン番号か名前で友達を検索").fill(bib);
-    await page.getByRole("button", { name: "追加" }).first().click();
+    await page.getByLabel("ゼッケン番号か名前で選手を検索").fill(bib);
 
-    const addToList = page.getByRole("button", { name: "追加" }).nth(1);
-    await expect(addToList).toBeVisible();
-    await addToList.click();
+    // Suggestions appear as the reader types; picking one adds the athlete.
+    const suggestion = page.getByRole("option").first();
+    await expect(suggestion).toBeVisible();
+    await suggestion.click();
 
     await expect(page.getByText(`#${bib}`)).toBeVisible();
-    await expect(page).toHaveURL(new RegExp(`bibs=${bib}`));
+    // The list is private to the browser and deliberately not put in the URL.
+    await expect(page).not.toHaveURL(/bibs=/);
 
     await page.reload();
     await expect(page.getByText(`#${bib}`)).toBeVisible();
   });
 
-  test("shares the friend list through the URL", async ({ page, request }) => {
+  test("accepts a list handed over in a link but does not keep it in the URL", async ({
+    page,
+    request,
+  }) => {
     const bib = await racingBib(request);
-    await page.goto(`/?bibs=${bib}`);
+    await page.goto(`/bookmarks?bibs=${bib}`);
     await expect(page.getByText(`#${bib}`)).toBeVisible();
+    await expect(page).not.toHaveURL(/bibs=/);
   });
 
-  test("opens the notification panel and clears the unread badge", async ({ page, request }) => {
+  test("opens the notification panel from the header on any page", async ({ page, request }) => {
     const bib = await racingBib(request);
-    await page.goto(`/?bibs=${bib}`);
+
+    // The bell is global, so it works from the leaderboard as well.
+    await page.goto(`/bookmarks?bibs=${bib}`);
+    await expect(page.getByText(`#${bib}`)).toBeVisible();
+    await page.goto("/");
 
     const bell = page.getByRole("button", { name: /通知/ });
     await expect(bell).toBeVisible();
     await bell.click();
 
-    await expect(page.getByRole("heading", { name: /通知 · 友達/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /通知 · ブックマーク/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "すべて既読にする" })).toBeVisible();
   });
 
   test("refreshes in place without a navigation", async ({ page, request }) => {
     const bib = await racingBib(request);
-    await page.goto(`/?bibs=${bib}`);
+    await page.goto(`/bookmarks?bibs=${bib}`);
     await expect(page.getByText(`#${bib}`)).toBeVisible();
 
     let navigations = 0;
@@ -124,11 +133,94 @@ test.describe("field map", () => {
 
 test.describe("every page", () => {
   test("carries the AI TRI+ footer", async ({ page }) => {
-    for (const path of ["/", "/map", "/divisions/A"]) {
+    for (const path of ["/", "/bookmarks", "/map", "/divisions/A"]) {
       await page.goto(path);
       await expect(
         page.getByRole("contentinfo").getByRole("link", { name: "AI TRI+", exact: true }),
       ).toBeVisible();
     }
+  });
+});
+
+test.describe("leaderboard", () => {
+  test("opens on the front of the field and links to the friend list", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: "総合トップ" })).toBeVisible();
+    await expect(page.getByText(/先頭順/)).toBeVisible();
+
+    // The menu lives in the header and leads to the other views.
+    await page.getByRole("button", { name: /メニューを開く/ }).click();
+    await expect(page.getByRole("link", { name: "ブックマーク" })).toBeVisible();
+    await page.getByRole("link", { name: "ブックマーク" }).click();
+    await expect(page).toHaveURL(/\/bookmarks/);
+  });
+
+  test("shows the race clock, which in replay is not the device clock", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText("リプレイ")).toBeVisible();
+    await expect(page.getByText(/現在 · 最終更新/)).toBeVisible();
+  });
+});
+
+test.describe("search", () => {
+  test("suggests athletes as the reader types", async ({ page }) => {
+    await page.goto("/bookmarks");
+    // The countdown only renders once the client has hydrated; typing before
+    // that sets the value without firing the handler that opens the list.
+    await expect(page.getByText(/秒後に確認/)).toBeVisible();
+    await page.getByLabel("ゼッケン番号か名前で選手を検索").fill("1");
+    await expect(page.getByRole("listbox")).toBeVisible();
+    expect(await page.getByRole("option").count()).toBeGreaterThan(1);
+  });
+});
+
+test.describe("athlete splits", () => {
+  test("lists every timing point, including the ones not yet reached", async ({
+    page,
+    request,
+  }) => {
+    const bib = await racingBib(request);
+    await page.goto(`/athletes/${bib}`);
+    await expect(page.getByRole("heading", { name: /^スプリット/ })).toBeVisible();
+    // A racing athlete has points ahead of them, shown as pending rows.
+    await expect(page.getByText("未通過").first()).toBeVisible();
+  });
+});
+
+test.describe("help", () => {
+  test("explains where the data comes from and how often it updates", async ({ page }) => {
+    await page.goto("/help");
+    await expect(page.getByRole("heading", { name: "ヘルプ" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "データの取得" })).toBeVisible();
+    await expect(page.getByText(/秒.*ごとに全選手のデータを取得/)).toBeVisible();
+  });
+
+  test("links to the issue tracker and the repository", async ({ page }) => {
+    await page.goto("/help");
+    await expect(page.getByRole("link", { name: /GitHub Issues/ })).toHaveAttribute(
+      "href",
+      "https://github.com/matsubo/sado-tracker-2026/issues",
+    );
+    await expect(page.getByRole("link", { name: /matsubo\/sado-tracker-2026/ })).toHaveAttribute(
+      "href",
+      "https://github.com/matsubo/sado-tracker-2026",
+    );
+  });
+
+  test("is reachable from the menu on any page", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: /メニューを開く/ }).click();
+    await page.getByRole("link", { name: "ヘルプ", exact: true }).click();
+    await expect(page).toHaveURL(/\/help/);
+  });
+});
+
+test.describe("manual refresh", () => {
+  test("fetches on demand, whatever the hour", async ({ request }) => {
+    const response = await request.post("/api/refresh");
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as { refreshed: boolean; year: number };
+    expect(body.refreshed).toBe(true);
+    expect(body.year).toBeGreaterThan(2000);
   });
 });

@@ -1,5 +1,6 @@
 import type { Division } from "@/config/races";
 import type { ComputedAthlete, ComputedSnapshot } from "@/lib/compute/snapshot";
+import { formatBikeSpeed, formatDuration, formatRunPace, formatSwimPace } from "@/lib/format";
 import type {
   AthleteDetailDto,
   AthleteSummaryDto,
@@ -22,9 +23,14 @@ const DIVISION_LABELS: Record<Division, string> = {
   RB: "RBタイプ（リレー）",
 };
 
-/** External athlete page on the sibling results site. */
+/**
+ * External athlete page on the sibling results site, which keys athletes by
+ * name with a single space. Names arrive normalized, but an ideographic space
+ * is replaced again here so the link cannot break if that ever changes.
+ */
 export function aiTriHref(name: string): string {
-  return `https://ai-triathlon-result.teraren.com/athletes/${encodeURIComponent(name.replace(/　/g, " "))}`;
+  const normalized = name.replace(/　/g, " ").replace(/\s+/g, " ").trim();
+  return `https://ai-triathlon-result.teraren.com/athletes/${encodeURIComponent(normalized)}`;
 }
 
 function athleteLinks(computed: ComputedAthlete): Links {
@@ -85,7 +91,6 @@ function toDisciplines(computed: ComputedAthlete): DisciplineDto[] {
     provisional: d.provisional,
     atCheckpointLabel: d.atCheckpointLabel,
     ranks: d.ranks,
-    deviation: d.deviation === null ? null : Math.round(d.deviation),
     speedKmh: d.speedKmh === null ? null : round(d.speedKmh, 1),
   }));
 }
@@ -127,14 +132,36 @@ function toSplits(computed: ComputedAthlete): SplitDto[] {
   }));
 }
 
+const DISCIPLINE_LABELS: Record<string, string> = {
+  swim: "スイム",
+  bike: "バイク",
+  run: "ラン",
+};
+
+function paceOf(discipline: string, timeMs: number, km: number): string {
+  if (discipline === "swim") return formatSwimPace(timeMs, km);
+  if (discipline === "bike") return formatBikeSpeed(timeMs, km);
+  return formatRunPace(timeMs, km);
+}
+
 function toPastResults(computed: ComputedAthlete): PastResultDto[] {
   return computed.pastResults.map((r) => ({
     year: r.year,
     division: r.division,
-    totalText: r.totalText ?? "",
+    totalText: r.totalText ?? formatDuration(r.totalMs),
+    totalMs: r.totalMs,
     divisionRank: r.divisionRank,
     ageRank: r.ageRank,
     ageGroupId: r.ageGroupId,
+    disciplines: r.disciplines.map((d) => ({
+      discipline: d.discipline,
+      label: DISCIPLINE_LABELS[d.discipline] ?? d.discipline,
+      timeMs: d.timeMs,
+      km: d.km,
+      paceText: paceOf(d.discipline, d.timeMs, d.km),
+      divisionRank: d.divisionRank,
+      ageRank: d.ageRank,
+    })),
   }));
 }
 
@@ -152,22 +179,25 @@ export function toMapEntry(computed: ComputedAthlete, isSelf = false): MapEntryD
 }
 
 /**
- * Age-group rivals immediately ahead of and behind an athlete, chosen by
- * estimated position so the strip reads as a live picture of the course.
+ * The athletes immediately ahead of and behind this one, chosen by estimated
+ * position so the strip reads as a live picture of the course.
+ *
+ * Age group is the natural comparison, but relay teams have none: grouping
+ * only by age group left a relay looking at an empty strip containing itself.
+ * They fall back to the division, which for a relay is the other teams.
  */
 export function neighbourEntries(
   snapshot: ComputedSnapshot,
   computed: ComputedAthlete,
   each = 5,
 ): MapEntryDto[] {
-  const ageGroupId = computed.athlete.ageGroup?.id;
-  if (!ageGroupId) return [toMapEntry(computed, true)];
+  const ageGroupId = computed.athlete.ageGroup?.id ?? null;
 
   const rivals = [...snapshot.athletes.values()]
     .filter(
       (other) =>
         other.athlete.division === computed.athlete.division &&
-        other.athlete.ageGroup?.id === ageGroupId &&
+        (ageGroupId === null || other.athlete.ageGroup?.id === ageGroupId) &&
         other.fieldOrder !== Number.MAX_SAFE_INTEGER,
     )
     .sort((a, b) => a.fieldOrder - b.fieldOrder);
@@ -209,9 +239,14 @@ export function toRaceState(snapshot: ComputedSnapshot): RaceStateDto {
   return {
     year: snapshot.year,
     fetchedAt: snapshot.fetchedAt,
-    now: snapshot.replay ? snapshot.computedAt + (Date.now() - snapshot.fetchedAt) : Date.now(),
+    // In replay the race clock runs faster than the wall clock, so carry the
+    // last computed race time forward at the replay speed rather than at 1x.
+    now: snapshot.replay
+      ? snapshot.computedAt + (Date.now() - snapshot.fetchedAt) * snapshot.clockSpeed
+      : Date.now(),
     stale: snapshot.stale,
     replay: snapshot.replay,
+    pollIntervalMs: snapshot.pollIntervalMs,
     counts: snapshot.counts,
     divisions: DIVISIONS.map((id) => ({
       id,

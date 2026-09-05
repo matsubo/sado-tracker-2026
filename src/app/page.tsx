@@ -1,7 +1,7 @@
-import { HomeDashboard } from "@/components/tracker/HomeDashboard";
+import { Leaderboard } from "@/components/tracker/Leaderboard";
 
 export const dynamic = "force-dynamic";
 
 export default function HomePage() {
-  return <HomeDashboard />;
+  return <Leaderboard />;
 }

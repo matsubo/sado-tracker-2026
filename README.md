@@ -8,18 +8,24 @@ doing against their division and age group, and when will they finish.
 
 Race day: 6 September 2026. Type A starts at 06:00 JST, Type B at 07:30.
 
+Live at [sado-tracker-2026.teraren.com](https://sado-tracker-2026.teraren.com/).
+
 ## What it shows
 
-- **Friend dashboard** — bookmark athletes by bib or name. Bookmarks live in
-  the browser and in the URL, so a list can be shared by sending the link.
-  Each card shows the athlete's state, estimated position on the course,
-  per-discipline rank against the division and the age group with the size of
-  each population, deviation score, and a predicted finish.
+- **Bookmarks** — follow athletes by bib or name. Bookmarks live in the
+  browser only; nothing about who a person follows leaves their device.
+  Each card separates what the timing system measured from what the app
+  estimated: recorded splits and ranks on one side, position on the course and
+  predicted finish on the other.
 - **In-page notifications** — a bell counts checkpoint passes the reader has
   not seen. Unread is tracked per checkpoint, not by timestamp, so a pass that
   the timing site publishes late still counts as new.
-- **Athlete detail** — discipline table, prediction with a collapsible
-  explanation of how it was computed and how accurate the method has been,
+- **Leaderboard** — the front of each division, ordered by how far along the
+  course each athlete is, since ranks taken at different checkpoints are not
+  comparable.
+- **Athlete detail** — discipline table, every timing point on the course
+  whether reached or not, prediction with a collapsible explanation of how it
+  was computed and how accurate the method has been,
   the athlete's place among age-group rivals on a course strip, rank
   progression, every split, and results from past years matched by name.
 - **Division rankings** — swim, bike, run and total, filterable by age group,
@@ -28,6 +34,8 @@ Race day: 6 September 2026. Type A starts at 06:00 JST, Type B at 07:30.
   ordered by how far along they are.
 - **Weather** — Open-Meteo forecast for the finish area and the latest JMA
   AMeDAS observation from Aikawa on Sado.
+- **Help** — where the data comes from, what a rank's denominator means, how
+  far the prediction can be trusted, and where to report a problem.
 
 ## How the numbers are produced
 
@@ -85,14 +93,44 @@ mise run accuracy   # print the prediction backtest table
 Replay mode reveals a past race gradually, which is how the live code paths
 are exercised before race day.
 
+### Showing it to someone else
+
+Use a production build, not `mise run dev`. The dev server refuses to serve
+its own client bundle to any host it does not recognise, so opening it through
+a LAN address or a Tailscale name returns HTML that never hydrates and looks
+like a broken page.
+
+```sh
+mise run serve-replay   # builds, then serves on 0.0.0.0:3111
+```
+
+Over Tailscale, `tailscale serve --bg --https=443 http://127.0.0.1:3111`
+publishes it at `https://<host>.<tailnet>.ts.net/` for the tailnet only.
+
 ### Environment
 
 | Variable | Meaning |
 |---|---|
 | `RACE_YEAR` | Race to display, default 2026 |
 | `DATA_DIR` | Where past exports and the snapshot are cached, default `.data` |
+| `POLL_INTERVAL_MS` | How often the field is recomputed, default 60000 |
+| `FETCH_FROM_HOUR` | First hour of race day the timing site is asked, default 7 |
+| `FETCH_TO_HOUR` | Hour it stops, exclusive, default 23 |
+| `FETCH_WINDOW` | `off` to poll around the clock |
+| `REFRESH_TOKEN` | Required by `POST /api/refresh` when set |
 | `REPLAY_START` | Virtual start time; set to enable replay mode |
 | `REPLAY_SPEED` | Replay multiplier, default 60 |
+| `REPLAY_HOURS` | Race hours covered before looping, default 14 |
+
+Production runs with `RACE_YEAR`, `TZ` and `DATA_DIR` only. Setting any
+`REPLAY_*` variable switches the server to a past race, so they must be absent
+on race day.
+
+The timing site is only asked between 07:00 and 23:00 Tokyo time on the race
+date itself: before and after that the file cannot have changed, and polling it
+is load on someone else's server for nothing. A start-up always fetches once
+whatever the hour, so a server brought up the night before still serves the
+entry list, and `POST /api/refresh` fetches on demand.
 
 ## Data
 

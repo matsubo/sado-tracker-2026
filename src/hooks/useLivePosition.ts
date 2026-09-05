@@ -24,8 +24,10 @@ export function projectKm(position: PositionDto, nowMs: number): number {
 
 /**
  * A slow clock on the race's timeline, for components that animate positions.
- * It starts at zero so the server and client render identical markup, then
- * takes the race clock once mounted.
+ * It stays at zero until a server response has established what time the race
+ * is on, and callers treat zero as "use the estimate the server sent". The
+ * device clock is never a stand-in: in replay it is a year out, and projecting
+ * from it pins the whole field to the next timing point.
  */
 export function useLiveClock(intervalMs = TICK_MS): number {
   const [now, setNow] = useState(0);
