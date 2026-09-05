@@ -5,16 +5,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   AthleteDetailDto,
   DisciplineDto,
-  MapEntryDto,
   PositionDto,
   RaceStateDto,
   RankSetDto,
   SplitDto,
 } from "@/lib/api/contract";
 
-vi.mock("@/components/tracker/RankChart", () => ({
-  RankChart: (): null => null,
-}));
+vi.mock("@/components/tracker/RankChart", () => ({ RankChart: (): null => null }));
 
 const { AthleteDetail } = await import("@/components/tracker/AthleteDetail");
 
@@ -29,12 +26,11 @@ const AI_TRI_HREF = "https://ai-triathlon-result.teraren.com/athletes/misaki";
 const EMPTY_RANKS: RankSetDto = { division: null, sex: null, ageGroup: null };
 
 const ranks = (rank: number, of: number): RankSetDto => ({
+  ...EMPTY_RANKS,
   division: { rank, of },
-  sex: null,
-  ageGroup: null,
 });
 
-/** A discipline row, defaulting to "no time yet". */
+/** A discipline row, defaulting to "not measured yet". */
 const leg = (
   over: Partial<DisciplineDto> & Pick<DisciplineDto, "discipline" | "label" | "km">,
 ): DisciplineDto => ({
@@ -47,7 +43,7 @@ const leg = (
   ...over,
 });
 
-/** Somewhere on the bike leg, having last been measured at 住吉. */
+/** Somewhere on the bike leg, last measured at 住吉. */
 const onBike = (estKm: number, lastAt: number, speedKmh: number): PositionDto => ({
   discipline: "bike",
   lastCheckpointLabel: "住吉",
@@ -77,24 +73,6 @@ const split = (
   ...over,
 });
 
-/** An age-group rival on the course strip. */
-const neighbour = (
-  bib: string,
-  name: string,
-  rank: number,
-  position: PositionDto,
-  isSelf?: true,
-): MapEntryDto => ({
-  bib,
-  name,
-  ageGroupId: "F45-49",
-  status: "racing",
-  fieldOrder: rank,
-  divisionRank: { rank, of: 412 },
-  position,
-  ...(isSelf === undefined ? {} : { isSelf }),
-});
-
 const raceState: RaceStateDto = {
   year: 2026,
   fetchedAt: 1_757_000_000_000,
@@ -106,11 +84,10 @@ const raceState: RaceStateDto = {
       id: "A",
       label: "Aタイプ",
       entrants: 1004,
+      racing: 980,
       checkpoints: [
         { id: "swimF", label: "スイムF", km: 4, discipline: "swim" },
-        { id: "bikeS", label: "バイクS", km: 0, discipline: "bike" },
         { id: "sumiyoshi", label: "住吉", km: 100, discipline: "bike" },
-        { id: "runS", label: "ランS（本部）", km: 190, discipline: "bike" },
         { id: "finish", label: "FINISH", km: 42.2, discipline: "run" },
       ],
     },
@@ -136,14 +113,7 @@ const detail: AthleteDetailDto = {
     ageGroup: { rank: 7, of: 23 },
   },
   disciplines: [
-    leg({
-      discipline: "swim",
-      label: "スイム",
-      km: 4,
-      timeMs: SWIM_MS,
-      ranks: ranks(234, 980),
-      deviation: 54,
-    }),
+    leg({ discipline: "swim", label: "スイム", km: 4, timeMs: SWIM_MS, deviation: 54 }),
     leg({
       discipline: "bike",
       label: "バイク",
@@ -188,9 +158,6 @@ const detail: AthleteDetailDto = {
       discipline: "swim",
       km: 4,
       elapsedMs: SWIM_MS,
-      segmentMs: SWIM_MS,
-      segmentKm: 4,
-      segmentRank: { rank: 228, of: 980 },
     }),
     split({
       checkpointId: "bikeS",
@@ -198,7 +165,6 @@ const detail: AthleteDetailDto = {
       discipline: "transition",
       km: 0,
       elapsedMs: T1_MS,
-      segmentMs: T1_MS - SWIM_MS,
     }),
     split({
       checkpointId: "sumiyoshi",
@@ -219,27 +185,28 @@ const detail: AthleteDetailDto = {
   ],
   pastResults: [],
   neighbours: [
-    neighbour("1200", "畑野 結衣", 150, onBike(143, START_AT + SUMIYOSHI_MS - 600_000, 33.4)),
-    neighbour("1234", "両津 美咲", 198, onBike(132, START_AT + SUMIYOSHI_MS, 32.1), true),
+    {
+      bib: "1200",
+      name: "畑野 結衣",
+      ageGroupId: "F45-49",
+      status: "racing",
+      fieldOrder: 4,
+      divisionRank: { rank: 150, of: 412 },
+      position: onBike(143, START_AT + SUMIYOSHI_MS - 600_000, 33.4),
+    },
+    {
+      bib: "1234",
+      name: "両津 美咲",
+      ageGroupId: "F45-49",
+      status: "racing",
+      fieldOrder: 5,
+      divisionRank: { rank: 198, of: 412 },
+      position: onBike(132, START_AT + SUMIYOSHI_MS, 32.1),
+      isSelf: true,
+    },
   ],
-  _links: {
-    self: { href: "/api/athletes/1234" },
-    page: { href: "/athletes/1234" },
-    aiTri: { href: AI_TRI_HREF },
-  },
+  _links: { self: { href: "/api/athletes/1234" }, aiTri: { href: AI_TRI_HREF } },
 };
-
-/** Serves the race endpoint and the athlete endpoint from the fixtures above. */
-function stubFetch(): void {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      const body = url.includes("/api/race") ? raceState : detail;
-      return { ok: true, status: 200, json: async () => body } as unknown as Response;
-    }),
-  );
-}
 
 /** Renders the page and waits for the athlete data to land. */
 async function renderDetail(): Promise<void> {
@@ -247,24 +214,23 @@ async function renderDetail(): Promise<void> {
   await screen.findByRole("heading", { level: 1 });
 }
 
-/** The tile whose label matches, as an element its values can be searched in. */
+/** The element containing the values of the tile with the given label. */
 function tile(label: string): HTMLElement {
-  const heading = screen.getByText(label);
-  const parent = heading.parentElement;
+  const parent = screen.getByText(label).parentElement;
   if (parent === null) throw new Error(`tile ${label} has no container`);
   return parent;
 }
 
-/** The table row containing the given label cell. */
-function row(label: string): HTMLElement {
-  const cell = screen.getByText(label).closest("tr");
-  if (cell === null) throw new Error(`no row for ${label}`);
-  return cell;
-}
-
 describe("AthleteDetail", () => {
+  // Serves the race endpoint and the athlete endpoint from the fixtures above.
   beforeEach(() => {
-    stubFetch();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const body = String(input).includes("/api/race") ? raceState : detail;
+        return { ok: true, status: 200, json: async () => body } as unknown as Response;
+      }),
+    );
   });
 
   afterEach(() => {
@@ -285,12 +251,6 @@ describe("AthleteDetail", () => {
     expect(screen.getByText("近傍 20 人法")).toBeInTheDocument();
     expect(screen.getByText("どう計算したか")).toBeInTheDocument();
     expect(button).toHaveAttribute("aria-expanded", "true");
-  });
-
-  it("shows the neighbour distribution and the closing note once expanded", async () => {
-    await renderDetail();
-    fireEvent.click(screen.getByRole("button", { name: "予想ゴールの計算方法を表示" }));
-
     expect(screen.getByText("近傍の残り時間")).toBeInTheDocument();
     expect(screen.getByText("2025: 9 人 · 2024: 6 人 · 2023: 5 人")).toBeInTheDocument();
     expect(screen.getByText("中央値 18 分 · 52% が ±25 分以内")).toBeInTheDocument();
@@ -299,12 +259,14 @@ describe("AthleteDetail", () => {
 
   it("marks a discipline still in progress as 暫定", async () => {
     await renderDetail();
-    expect(within(row("バイク 190km")).getByText("暫定")).toBeInTheDocument();
+    const bike = screen.getByRole("row", { name: /バイク 190km/ });
+    expect(within(bike).getByText("暫定")).toBeInTheDocument();
   });
 
   it("renders an em dash for a discipline with no time yet", async () => {
     await renderDetail();
-    expect(within(row("ラン 42.2km")).getAllByText("—").length).toBeGreaterThan(0);
+    const run = screen.getByRole("row", { name: /ラン 42.2km/ });
+    expect(within(run).getAllByText("—").length).toBeGreaterThan(0);
   });
 
   it("renders the empty state when there are no past results", async () => {

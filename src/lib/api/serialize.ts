@@ -201,6 +201,14 @@ export function toAthleteDetail(
 }
 
 export function toRaceState(snapshot: ComputedSnapshot): RaceStateDto {
+  // Count everyone entered, not just those currently scored: before the start
+  // nobody is racing yet, and a division showing zero entrants reads as a
+  // failure rather than as a race that has not begun.
+  const entrants: Record<Division, number> = { A: 0, B: 0, RA: 0, RB: 0 };
+  for (const computed of snapshot.athletes.values()) {
+    entrants[computed.athlete.division] += 1;
+  }
+
   return {
     year: snapshot.year,
     fetchedAt: snapshot.fetchedAt,
@@ -210,7 +218,8 @@ export function toRaceState(snapshot: ComputedSnapshot): RaceStateDto {
     divisions: DIVISIONS.map((id) => ({
       id,
       label: DIVISION_LABELS[id],
-      entrants: snapshot.populations[id].all.length,
+      entrants: entrants[id],
+      racing: snapshot.populations[id].all.length,
       checkpoints: snapshot.config.divisions[id].checkpoints
         .filter((c) => c.id !== "start")
         .map((c) => ({ id: c.id, label: c.label, km: c.km, discipline: c.discipline })),

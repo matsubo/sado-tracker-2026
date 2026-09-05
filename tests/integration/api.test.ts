@@ -44,10 +44,18 @@ describe("race state", () => {
     expect(state._links.self.href).toBe("/api/race");
   });
 
+  it("counts everyone entered, not only those currently scored", () => {
+    const state = toRaceState(snapshot);
+    const total = state.divisions.reduce((sum, d) => sum + d.entrants, 0);
+    expect(total).toBe(snapshot.athletes.size);
+  });
+
   it("lists each division with its checkpoints in course order", () => {
     const state = toRaceState(snapshot);
     const a = state.divisions.find((d) => d.id === "A");
-    expect(a?.entrants).toBeGreaterThan(700);
+    expect(a?.entrants).toBeGreaterThan(900);
+    expect(a?.racing).toBeGreaterThan(700);
+    expect(a?.racing).toBeLessThanOrEqual(a?.entrants as number);
     expect(a?.checkpoints[0]?.id).toBe("swimL");
     expect(a?.checkpoints.at(-1)?.id).toBe("finish");
     const b = state.divisions.find((d) => d.id === "B");

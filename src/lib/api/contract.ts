@@ -153,7 +153,10 @@ export interface RaceStateDto {
   readonly divisions: readonly {
     readonly id: Division;
     readonly label: string;
+    /** Everyone entered in the division. */
     readonly entrants: number;
+    /** Those currently counted in rankings: racing, finished or retired. */
+    readonly racing: number;
     readonly checkpoints: readonly { id: string; label: string; km: number; discipline: string }[];
   }[];
   readonly _links: Links;

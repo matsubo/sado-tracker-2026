@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils/cn";
 import { AthleteCard } from "./AthleteCard";
 import { LiveStatusBar } from "./LiveStatusBar";
 import { NotificationPanel } from "./NotificationPanel";
+import { PreRaceNotice } from "./PreRaceNotice";
 import { SearchBox } from "./SearchBox";
 import { WeatherPanel } from "./WeatherPanel";
 
@@ -113,6 +114,10 @@ export function HomeDashboard() {
 
       <div className="px-3 pt-2.5">
         <SearchBox onAdd={add} isAdded={has} />
+      </div>
+
+      <div className="px-3 pt-2.5 empty:hidden">
+        <PreRaceNotice race={race} />
       </div>
 
       {panelOpen ? (
