@@ -58,7 +58,7 @@ checkpoints. They never enter ranking or position logic.
 | Age-group label | `40-44男子` (2025), `40-44歳男子` (2026), `M40-44` / `F40-44` (2022–2023), `24歳以下男子`, `80-84女子` |
 | Name column | `名前` (2024+), `氏名` (2022–2023) |
 | Run-start column | `ﾗﾝS（本部）` vs `ﾗﾝS(本部)` |
-| Swim distance | 2025 B swim shortened by an unknown amount (median 24.8 min vs 43–45 min); `swimKm: null` in config |
+| Swim distance | Official every year: A 4.0 km, B 2.0 km. 2025 B split times are anomalous (see §6.1) |
 | 住吉 bike km | inferred from split ratios: A ≈ 100 km all years; B ≈ 21 km (2023–24), ≈ 18 km (2025) |
 
 ### 2.3 Course model (2026, per division)
@@ -300,14 +300,21 @@ Feature vector at the athlete's latest checkpoint `cp`:
 - pace so far in the current discipline (`passes[cp] − passes[disciplineStart]`)
   / km of `cp`.
 
-**B-division swim is excluded from the feature vector.** The 2025 B swim was
-shortened by an unknown amount (median 24.8 min vs 43–45 min in 2023, 2024),
-so its pace cannot be normalized against a distance we do not know. Swim is
-about 5 % of a B race, so dropping the feature costs little and removes a
-wrong-by-construction number. A-division swim is unchanged across years and
-stays in. The 2025 config records `swimKm: null, swimShortened: true` for B;
-any code path that would divide by it must handle `null` explicitly (unit
-tested).
+**B-division swim is excluded from the feature vector.** Official distances
+are A 4.0 km and B 2.0 km in every year, and the config records those. But
+2025 B split times do not fit that distance: median `ｽｲﾑF − START` was
+24.8 min, i.e. 1:14 /100m, against 2:10 /100m in 2024 and 2:09 /100m in 2023
+for the same nominal 2.0 km. Whatever the cause (shortened course on the day,
+a current-assisted point-to-point swim, or a moved timing mat), the 2025 B
+swim pace is not comparable across years, so it must not become a prediction
+feature. The 2025 config carries `swimTimesComparable: false` for B, and the
+prediction drops the swim feature for the whole B division. Swim is about 5 %
+of a B race, so this costs little. A-division swim is consistent across years
+(82.9–94.1 min median) and stays in.
+
+The displayed swim pace on the athlete page always uses the official distance
+and is therefore correct for the year being displayed; only the cross-year
+prediction feature is dropped.
 
 Distance: Euclidean on z-scored features. Take k = 20 nearest. Each
 neighbour contributes `remaining = finish − passes[cp]` in its own year,
