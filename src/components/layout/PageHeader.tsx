@@ -18,6 +18,9 @@ interface PageHeaderProps {
   readonly lastPolledAt: number;
   readonly error: string | null;
   readonly intervalMs?: number;
+  readonly auto?: boolean;
+  readonly onAutoChange?: (value: boolean) => void;
+  readonly onRefresh?: () => void;
 }
 
 /**
@@ -39,6 +42,9 @@ export function PageHeader({
   lastPolledAt,
   error,
   intervalMs,
+  auto,
+  onAutoChange,
+  onRefresh,
 }: PageHeaderProps) {
   return (
     <header>
@@ -71,6 +77,9 @@ export function PageHeader({
         lastPolledAt={lastPolledAt}
         error={error}
         intervalMs={intervalMs}
+        auto={auto}
+        onAutoChange={onAutoChange}
+        onRefresh={onRefresh}
       />
     </header>
   );

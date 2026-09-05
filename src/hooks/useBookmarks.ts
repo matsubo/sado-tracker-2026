@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { track } from "@/lib/analytics";
 
 const STORAGE_KEY = "sado2026.bookmarks";
 const MAX_BOOKMARKS = 50;
@@ -35,8 +36,9 @@ function readUrl(): string[] {
 export function useBookmarks(): {
   bibs: string[];
   ready: boolean;
-  add: (bib: string) => void;
-  remove: (bib: string) => void;
+  /** `source` records which screen the action came from, never who took it. */
+  add: (bib: string, source?: string) => void;
+  remove: (bib: string, source?: string) => void;
   has: (bib: string) => boolean;
 } {
   const [bibs, setBibs] = useState<string[]>([]);

@@ -103,7 +103,16 @@ export function DivisionRankings({
   const [page, setPage] = useState(initialPage);
   const [known, setKnown] = useState<KnownGroups>({ division, ids: [] });
 
-  const { race, fetchedAt, error: raceError, lastPolledAt, intervalMs } = useRaceState();
+  const {
+    race,
+    fetchedAt,
+    error: raceError,
+    lastPolledAt,
+    intervalMs,
+    auto,
+    setAuto,
+    refresh,
+  } = useRaceState();
 
   useEffect(() => {
     if (discipline !== null) return;
@@ -160,6 +169,9 @@ export function DivisionRankings({
         lastPolledAt={lastPolledAt}
         error={raceError}
         intervalMs={intervalMs}
+        auto={auto}
+        onAutoChange={setAuto}
+        onRefresh={refresh}
       />
       <nav aria-label="部門" className="mx-3 flex gap-[3px] rounded-lg bg-muted p-[3px]">
         {DIVISIONS.map((id) => (

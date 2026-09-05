@@ -76,7 +76,7 @@ test.describe("friend dashboard", () => {
     // The replay runs at 30x, so a checkpoint or two lands inside this window.
     await page.waitForTimeout(20_000);
     expect(navigations).toBe(0);
-    await expect(page.getByText(/最終更新/)).toBeVisible();
+    await expect(page.getByText(/現在 · 更新/)).toBeVisible();
   });
 });
 
@@ -158,16 +158,16 @@ test.describe("leaderboard", () => {
   test("shows the race clock, which in replay is not the device clock", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText("リプレイ")).toBeVisible();
-    await expect(page.getByText(/現在 · 最終更新/)).toBeVisible();
+    await expect(page.getByText(/現在 · 更新/)).toBeVisible();
   });
 });
 
 test.describe("search", () => {
   test("suggests athletes as the reader types", async ({ page }) => {
     await page.goto("/bookmarks");
-    // The countdown only renders once the client has hydrated; typing before
-    // that sets the value without firing the handler that opens the list.
-    await expect(page.getByText(/秒後に確認/)).toBeVisible();
+    // The refresh control only renders once the client has hydrated; typing
+    // before that sets the value without firing the handler that opens the list.
+    await expect(page.getByRole("checkbox", { name: "自動更新" })).toBeVisible();
     await page.getByLabel("ゼッケン番号か名前で選手を検索").fill("1");
     await expect(page.getByRole("listbox")).toBeVisible();
     expect(await page.getByRole("option").count()).toBeGreaterThan(1);
@@ -222,5 +222,52 @@ test.describe("manual refresh", () => {
     const body = (await response.json()) as { refreshed: boolean; year: number };
     expect(body.refreshed).toBe(true);
     expect(body.year).toBeGreaterThan(2000);
+  });
+});
+
+test.describe("refresh control", () => {
+  test("turns the automatic refresh off and back on, and remembers the choice", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const auto = page.getByRole("checkbox", { name: "自動更新" });
+    await expect(auto).toBeChecked();
+
+    await auto.uncheck();
+    await expect(auto).not.toBeChecked();
+
+    await page.reload();
+    await expect(page.getByRole("checkbox", { name: "自動更新" })).not.toBeChecked();
+
+    await page.getByRole("checkbox", { name: "自動更新" }).check();
+    await page.reload();
+    await expect(page.getByRole("checkbox", { name: "自動更新" })).toBeChecked();
+  });
+
+  test("refreshes on demand while automatic refresh is off", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("checkbox", { name: "自動更新" }).uncheck();
+    await page.getByRole("button", { name: "いま更新する" }).click();
+    await expect(page.getByText(/現在 · 更新/)).toBeVisible();
+  });
+});
+
+test.describe("social card", () => {
+  test("renders an Open Graph image and points the tags at it", async ({ page, request }) => {
+    const image = await request.get("/opengraph-image");
+    expect(image.status()).toBe(200);
+    expect(image.headers()["content-type"]).toContain("image/png");
+
+    await page.goto("/");
+    const og = page.locator('meta[property="og:image"]');
+    await expect(og).toHaveAttribute("content", /opengraph-image/);
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+      "content",
+      /佐渡トラッカー/,
+    );
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
+      "content",
+      "summary_large_image",
+    );
   });
 });

@@ -26,7 +26,16 @@ interface AthletesResponse {
  * changes, so the page never reloads under the reader.
  */
 export function BookmarkDashboard() {
-  const { race, fetchedAt, error: raceError, lastPolledAt, intervalMs } = useRaceState();
+  const {
+    race,
+    fetchedAt,
+    error: raceError,
+    lastPolledAt,
+    intervalMs,
+    auto,
+    setAuto,
+    refresh,
+  } = useRaceState();
   const { bibs, ready, add, remove, has } = useBookmarks();
   // The bell lives in the header; the cards only need to know what is new.
   const { items } = useBookmarkNotifications();
@@ -66,10 +75,13 @@ export function BookmarkDashboard() {
         lastPolledAt={lastPolledAt}
         error={raceError}
         intervalMs={intervalMs}
+        auto={auto}
+        onAutoChange={setAuto}
+        onRefresh={refresh}
       />
 
       <div className="px-3 pt-2.5">
-        <SearchBox onAdd={add} isAdded={has} />
+        <SearchBox onAdd={(bib) => add(bib, "search")} isAdded={has} />
       </div>
 
       <div className="px-3 pt-2.5 empty:hidden">
@@ -105,7 +117,7 @@ export function BookmarkDashboard() {
             nextLabel={nextLabelOf(athlete)}
             checkpoints={barCheckpoints(divisionOf(athlete)?.checkpoints)}
             legKm={legKmOf(athlete)}
-            onRemove={remove}
+            onRemove={(bib) => remove(bib, "card")}
           />
         ))}
 

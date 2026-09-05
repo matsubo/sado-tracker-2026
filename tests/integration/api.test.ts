@@ -481,3 +481,30 @@ describe("displayed names", () => {
     expect(aiTriHref("松倉 友樹")).toBe(aiTriHref("松倉　友樹"));
   });
 });
+
+describe("the leaderboard before the start", () => {
+  it("lists every entrant by bib when nobody has been measured", () => {
+    // A snapshot taken before the first wave: no checkpoint has fired.
+    const preRace = computeSnapshot(
+      { ...snapshot.raw, athletes: snapshot.raw.athletes.map((a) => ({ ...a, passes: {} })) },
+      getRaceConfig(2025),
+      buildNeighbourModel([], getRaceConfig(2025)),
+      new Map(),
+      Date.parse("2025-09-07T05:00:00+09:00"),
+    );
+
+    const board = buildLeaderboard(preRace, "A", 100, 1);
+    expect(board.order).toBe("bib");
+    expect(board.total).toBeGreaterThan(900);
+    expect(board.leaders).toHaveLength(100);
+
+    const bibs = board.leaders.map((row) => row.athlete.bib);
+    const sorted = [...bibs].sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
+    expect(bibs).toEqual(sorted);
+  });
+
+  it("switches to progress order once anyone is measured", () => {
+    const board = buildLeaderboard(snapshot, "A", 100, 1);
+    expect(board.order).toBe("field");
+  });
+});

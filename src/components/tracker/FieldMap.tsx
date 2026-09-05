@@ -208,7 +208,16 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
   const [focusIndex, setFocusIndex] = useState(0);
   const dots = useRef(new Map<string, SVGGElement>());
 
-  const { race, fetchedAt, error: raceError, lastPolledAt, intervalMs } = useRaceState();
+  const {
+    race,
+    fetchedAt,
+    error: raceError,
+    lastPolledAt,
+    intervalMs,
+    auto,
+    setAuto,
+    refresh,
+  } = useRaceState();
   const { bibs, ready } = useBookmarks();
   const now = useLiveClock();
 
@@ -339,6 +348,9 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
         lastPolledAt={lastPolledAt}
         error={raceError}
         intervalMs={intervalMs}
+        auto={auto}
+        onAutoChange={setAuto}
+        onRefresh={refresh}
       />
       <Tabs
         aria-label="部門"

@@ -16,8 +16,21 @@ function clientPollMs(serverIntervalMs: number | undefined): number {
   return Math.max(MIN_POLL_MS, Math.min(DEFAULT_POLL_MS, serverIntervalMs));
 }
 
+const AUTO_KEY = "sado2026.autoRefresh";
+
+function readAuto(): boolean {
+  try {
+    return window.localStorage.getItem(AUTO_KEY) !== "off";
+  } catch {
+    return true;
+  }
+}
+
 export interface SnapshotState {
   readonly race: RaceStateDto | null;
+  /** Whether the page is refreshing itself. */
+  readonly auto: boolean;
+  readonly setAuto: (value: boolean) => void;
   /** How often this client is checking, in milliseconds. */
   readonly intervalMs: number;
   /** Update time of the data currently displayed; changes drive refetches. */
@@ -35,7 +48,19 @@ export function useRaceState(): SnapshotState & { refresh: () => void } {
   const [race, setRace] = useState<RaceStateDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastPolledAt, setLastPolledAt] = useState(() => Date.now());
+  const [auto, setAutoState] = useState(true);
   const inFlight = useRef(false);
+
+  useEffect(() => setAutoState(readAuto()), []);
+
+  const setAuto = useCallback((value: boolean) => {
+    setAutoState(value);
+    try {
+      window.localStorage.setItem(AUTO_KEY, value ? "on" : "off");
+    } catch {
+      // A browser with storage disabled still works; it just forgets.
+    }
+  }, []);
 
   const poll = useCallback(async () => {
     if (inFlight.current) return;
@@ -59,6 +84,10 @@ export function useRaceState(): SnapshotState & { refresh: () => void } {
 
   useEffect(() => {
     void poll();
+  }, [poll]);
+
+  useEffect(() => {
+    if (!auto) return;
     const timer = setInterval(() => void poll(), intervalMs);
     const onVisible = () => {
       if (document.visibilityState === "visible") void poll();
@@ -68,10 +97,12 @@ export function useRaceState(): SnapshotState & { refresh: () => void } {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [poll, intervalMs]);
+  }, [poll, intervalMs, auto]);
 
   return {
     race,
+    auto,
+    setAuto,
     intervalMs,
     fetchedAt: race?.fetchedAt ?? null,
     error,

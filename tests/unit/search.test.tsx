@@ -194,3 +194,25 @@ describe("SearchBox suggestions", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("bookmark analytics", () => {
+  it("reports an add once, with the screen it came from", async () => {
+    const gtag = vi.fn();
+    vi.stubGlobal("gtag", gtag);
+    const { track } = await import("@/lib/analytics");
+
+    track("bookmark_add", { source: "search" });
+    expect(gtag).toHaveBeenCalledWith("event", "bookmark_add", { source: "search" });
+
+    track("bookmark_remove", { source: "card" });
+    expect(gtag).toHaveBeenCalledWith("event", "bookmark_remove", { source: "card" });
+    expect(gtag).toHaveBeenCalledTimes(2);
+  });
+
+  it("stays silent when analytics is switched off", async () => {
+    vi.unstubAllGlobals();
+    const { track } = await import("@/lib/analytics");
+    // No gtag on the page: nothing is sent and nothing throws.
+    expect(() => track("bookmark_add", { source: "search" })).not.toThrow();
+  });
+});
