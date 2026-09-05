@@ -11,6 +11,8 @@ export interface LeaderRowDto {
 export interface LeaderboardDto {
   readonly division: Division;
   readonly label: string;
+  /** How the rows are ordered: by progress once anyone is measured, else by bib. */
+  readonly order: "field" | "bib";
   /** Everyone entered in the division. */
   readonly entrants: number;
   /** Athletes currently counted: racing, finished or retired. */
@@ -44,7 +46,15 @@ export function buildLeaderboard(
   perPage: number,
   page = 1,
 ): LeaderboardDto {
-  const order = snapshot.byDivision[division] ?? [];
+  // Until a checkpoint has fired there is nothing to order by, and an empty
+  // front page says nothing about a race with 1,857 entrants. The whole
+  // division is listed by bib until the first reading gives it a real order.
+  const readings = Object.values(snapshot.counts[division] ?? {}).reduce(
+    (total, count) => total + count,
+    0,
+  );
+  const started = readings > 0;
+  const order = started ? (snapshot.byDivision[division] ?? []) : entrantsByBib(snapshot, division);
   const start = Math.max(0, (page - 1) * perPage);
   const leaders: LeaderRowDto[] = [];
 
@@ -63,6 +73,7 @@ export function buildLeaderboard(
   return {
     division,
     label: LABELS[division],
+    order: started ? "field" : "bib",
     entrants,
     racing: snapshot.populations[division].all.length,
     finished: snapshot.counts[division].finish ?? 0,
@@ -75,4 +86,12 @@ export function buildLeaderboard(
 
 export function leaderboardDivisions(): readonly Division[] {
   return DIVISIONS;
+}
+
+/** Everyone entered in a division, in bib order. */
+function entrantsByBib(snapshot: ComputedSnapshot, division: Division): string[] {
+  return [...snapshot.athletes.values()]
+    .filter((computed) => computed.athlete.division === division)
+    .map((computed) => computed.athlete.bib)
+    .sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
 }

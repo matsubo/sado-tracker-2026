@@ -1,3 +1,4 @@
+import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Footer } from "@/components/layout/Footer";
@@ -21,6 +22,13 @@ export const viewport: Viewport = {
   ],
 };
 
+/**
+ * Analytics is opt-in through the environment. Nothing is sent when the id is
+ * unset, which is the case for local development and for anyone running their
+ * own copy, and no measurement id is baked into a public repository.
+ */
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+
 /** Applies the stored theme before first paint so the page never flashes. */
 const THEME_SCRIPT = `(function(){try{
 var stored=localStorage.getItem('sado2026.theme');
@@ -40,6 +48,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <div className="flex-1">{children}</div>
           <Footer />
         </div>
+        {GA_ID ? <GoogleAnalytics gaId={GA_ID} /> : null}
       </body>
     </html>
   );

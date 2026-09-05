@@ -54,7 +54,7 @@ function External({ href, children }: { readonly href: string; readonly children
  * measured so far, will read the screen as more certain than it is.
  */
 export function HelpContent() {
-  const { race, lastPolledAt, error, intervalMs } = useRaceState();
+  const { race, lastPolledAt, error, intervalMs, auto, setAuto, refresh } = useRaceState();
   const seconds = Math.round((race?.pollIntervalMs ?? 60_000) / 1000);
   const year = race?.year ?? 2026;
   // History is every past race the app can load, which is the year before the
@@ -69,6 +69,9 @@ export function HelpContent() {
         lastPolledAt={lastPolledAt}
         error={error}
         intervalMs={intervalMs}
+        auto={auto}
+        onAutoChange={setAuto}
+        onRefresh={refresh}
       />
 
       <Section title="このサイトについて">
@@ -109,6 +112,13 @@ export function HelpContent() {
           <p>
             いいえ。取得はサーバーが一括で行い、結果を全員で共有しています。
             何人が同時に見ても、計測サイトへのアクセスは {seconds} 秒に 1 回のままです。
+          </p>
+        </Question>
+        <Question q="自動更新を止められますか">
+          <p>
+            画面上部の「自動更新」のチェックを外すと、勝手に書き換わらなくなります。
+            表を読んでいる途中で並びが変わるのが煩わしいときに使ってください。
+            隣の秒数を押せば、そのときだけ手動で更新できます。設定はこのブラウザに残ります。
           </p>
         </Question>
         <Question q="いつ取得していますか">
@@ -178,6 +188,13 @@ export function HelpContent() {
             お使いのブラウザの中だけです。サーバーには送っていません。
             誰を応援しているかが外に出ることはありません。
             そのぶん、別の端末やブラウザには引き継がれません。
+          </p>
+        </Question>
+        <Question q="アクセス解析はしていますか">
+          <p>
+            どのページがどれくらい見られたかを Google アナリティクスで数えています。
+            送っているのは閲覧したページと、ブラウザや画面サイズといった一般的な情報だけです。
+            ブックマークした選手や、誰を応援しているかは送っていません。
           </p>
         </Question>
         <Question q="通知は届きますか">

@@ -118,6 +118,7 @@ publishes it at `https://<host>.<tailnet>.ts.net/` for the tailnet only.
 | `FETCH_TO_HOUR` | Hour it stops, exclusive, default 23 |
 | `FETCH_WINDOW` | `off` to poll around the clock |
 | `REFRESH_TOKEN` | Required by `POST /api/refresh` when set |
+| `NEXT_PUBLIC_GA_ID` | GA4 measurement id, e.g. `G-XXXXXXXXXX`. Analytics is off when unset |
 | `REPLAY_START` | Virtual start time; set to enable replay mode |
 | `REPLAY_SPEED` | Replay multiplier, default 60 |
 | `REPLAY_HOURS` | Race hours covered before looping, default 14 |
@@ -125,6 +126,10 @@ publishes it at `https://<host>.<tailnet>.ts.net/` for the tailnet only.
 Production runs with `RACE_YEAR`, `TZ` and `DATA_DIR` only. Setting any
 `REPLAY_*` variable switches the server to a past race, so they must be absent
 on race day.
+
+`NEXT_PUBLIC_GA_ID` is read at build time, not at run time, so it has to be a
+build variable wherever this is deployed. Setting it after a build has no
+effect until the next one.
 
 The timing site is only asked between 07:00 and 23:00 Tokyo time on the race
 date itself: before and after that the file cannot have changed, and polling it

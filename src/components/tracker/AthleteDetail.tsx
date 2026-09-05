@@ -103,7 +103,16 @@ interface AthleteDetailProps {
 
 /** Everything known about one athlete, ordered the way a supporter reads it. */
 export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
-  const { race, fetchedAt, error: raceError, lastPolledAt, intervalMs } = useRaceState();
+  const {
+    race,
+    fetchedAt,
+    error: raceError,
+    lastPolledAt,
+    intervalMs,
+    auto,
+    setAuto,
+    refresh,
+  } = useRaceState();
   const {
     data: detail,
     loading,
@@ -155,12 +164,17 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
         lastPolledAt={lastPolledAt}
         error={raceError}
         intervalMs={intervalMs}
+        auto={auto}
+        onAutoChange={setAuto}
+        onRefresh={refresh}
         action={
           ready ? (
             <button
               type="button"
               aria-pressed={bookmarked}
-              onClick={() => (bookmarked ? remove(detail.bib) : add(detail.bib))}
+              onClick={() =>
+                bookmarked ? remove(detail.bib, "athlete") : add(detail.bib, "athlete")
+              }
               className="rounded-md px-1 py-0.5 font-bold text-[12px] text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {bookmarked ? "★ ブックマーク済み" : "☆ ブックマーク"}

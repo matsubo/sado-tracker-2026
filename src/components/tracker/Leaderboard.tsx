@@ -34,7 +34,8 @@ const MEDAL: Record<number, string> = {
  * ahead" is who has come furthest and, among those, who got there fastest.
  */
 export function Leaderboard() {
-  const { race, fetchedAt, error, lastPolledAt, intervalMs } = useRaceState();
+  const { race, fetchedAt, error, lastPolledAt, intervalMs, auto, setAuto, refresh } =
+    useRaceState();
   const [division, setDivision] = useState("A");
   const [page, setPage] = useState(1);
   const { bibs, has } = useBookmarks();
@@ -60,6 +61,9 @@ export function Leaderboard() {
         lastPolledAt={lastPolledAt}
         error={error}
         intervalMs={intervalMs}
+        auto={auto}
+        onAutoChange={setAuto}
+        onRefresh={refresh}
         action={
           bibs.length > 0 ? (
             <Link
@@ -94,7 +98,7 @@ export function Leaderboard() {
               <b className="font-semibold text-foreground">{board.finished}</b> 名
             </>
           ) : null}
-          {" · 先頭順 "}
+          {board.order === "field" ? " · 先頭順 " : " · ゼッケン順 "}
           <b className="font-semibold text-foreground">{board.total}</b> 名
         </p>
       ) : null}
@@ -104,7 +108,7 @@ export function Leaderboard() {
 
         {board?.leaders.length === 0 ? (
           <p className="rounded-lg border border-border border-dashed bg-card px-4 py-8 text-center text-[12.5px] text-muted-foreground">
-            まだ計測が始まっていません。
+            この部門のエントリーはありません。
           </p>
         ) : null}
 
@@ -121,14 +125,20 @@ export function Leaderboard() {
                 bookmarked ? "border-primary/60" : "border-border",
               )}
             >
-              <span
-                className={cn(
-                  "w-6 shrink-0 text-right font-bold text-[15px] tabular-nums",
-                  MEDAL[place] ?? "text-muted-foreground",
-                )}
-              >
-                {place}
-              </span>
+              {/* Before anyone is measured the order is arbitrary, so a
+                  position number would read as a rank it has not earned. */}
+              {board.order === "field" ? (
+                <span
+                  className={cn(
+                    "w-6 shrink-0 text-right font-bold text-[15px] tabular-nums",
+                    MEDAL[place] ?? "text-muted-foreground",
+                  )}
+                >
+                  {place}
+                </span>
+              ) : (
+                <span className="w-6 shrink-0" aria-hidden />
+              )}
               <span className="min-w-0 flex-1">
                 <span className="flex items-baseline gap-1.5">
                   <span className="truncate font-bold text-[14.5px]">{athlete.name}</span>
