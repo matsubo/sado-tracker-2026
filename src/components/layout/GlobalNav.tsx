@@ -1,9 +1,11 @@
 "use client";
 
-import { ListOrdered, Map as MapIcon, Menu, Star, Trophy, X } from "lucide-react";
+import { Bell, ListOrdered, Map as MapIcon, Menu, Star, Trophy, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import { NotificationPanel } from "@/components/tracker/NotificationPanel";
+import { useBookmarkNotifications } from "@/hooks/useBookmarkNotifications";
 import { cn } from "@/lib/utils/cn";
 
 const LINKS = [
@@ -36,19 +38,31 @@ const LINKS = [
 export function GlobalHeader({ year }: { readonly year?: number }) {
   const pathname = usePathname() ?? "/";
   const [open, setOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
   const panelId = useId();
+  const bellId = useId();
   const container = useRef<HTMLDivElement>(null);
   const current = LINKS.find((link) => link.match(pathname));
-
-  useEffect(() => setOpen(false), [pathname]);
+  const { items, unreadCount, markAllSeen, bookmarkCount } = useBookmarkNotifications();
 
   useEffect(() => {
-    if (!open) return;
+    setOpen(false);
+    setBellOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open && !bellOpen) return;
     const onPointerDown = (event: MouseEvent) => {
-      if (!container.current?.contains(event.target as Node)) setOpen(false);
+      if (!container.current?.contains(event.target as Node)) {
+        setOpen(false);
+        setBellOpen(false);
+      }
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        setBellOpen(false);
+      }
     };
     document.addEventListener("mousedown", onPointerDown);
     document.addEventListener("keydown", onKey);
@@ -56,7 +70,7 @@ export function GlobalHeader({ year }: { readonly year?: number }) {
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, bellOpen]);
 
   return (
     <div ref={container} className="relative mx-auto w-full max-w-[430px]">
@@ -71,26 +85,68 @@ export function GlobalHeader({ year }: { readonly year?: number }) {
           </span>
         </Link>
 
-        <button
-          type="button"
-          onClick={() => setOpen((value) => !value)}
-          aria-expanded={open}
-          aria-controls={panelId}
-          aria-label={
-            open
-              ? "メニューを閉じる"
-              : `メニューを開く${current ? `（現在: ${current.label}）` : ""}`
-          }
-          className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 font-semibold text-[12px] outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {open ? (
-            <X className="size-[15px]" aria-hidden />
-          ) : (
-            <Menu className="size-[15px]" aria-hidden />
-          )}
-          <span className="text-muted-foreground">{current?.label ?? "メニュー"}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setBellOpen((value) => {
+                if (!value) markAllSeen();
+                return !value;
+              });
+              setOpen(false);
+            }}
+            aria-expanded={bellOpen}
+            aria-controls={bellId}
+            aria-label={`通知${unreadCount > 0 ? ` ${unreadCount} 件の未読` : ""}`}
+            className={cn(
+              "relative grid size-8 place-items-center rounded-md border outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              bellOpen
+                ? "border-foreground bg-foreground text-background"
+                : "border-border bg-card text-muted-foreground",
+            )}
+          >
+            <Bell className="size-[15px]" aria-hidden />
+            {unreadCount > 0 ? (
+              <span className="-top-1.5 -right-1.5 absolute grid h-[17px] min-w-[17px] place-items-center rounded-full bg-destructive px-1 font-bold text-[10.5px] text-destructive-foreground">
+                {unreadCount}
+              </span>
+            ) : null}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setOpen((value) => !value);
+              setBellOpen(false);
+            }}
+            aria-expanded={open}
+            aria-controls={panelId}
+            aria-label={
+              open
+                ? "メニューを閉じる"
+                : `メニューを開く${current ? `（現在: ${current.label}）` : ""}`
+            }
+            className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 font-semibold text-[12px] outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {open ? (
+              <X className="size-[15px]" aria-hidden />
+            ) : (
+              <Menu className="size-[15px]" aria-hidden />
+            )}
+            <span className="text-muted-foreground">{current?.label ?? "メニュー"}</span>
+          </button>
+        </div>
       </div>
+
+      {bellOpen ? (
+        <div id={bellId} className="absolute right-3 z-40 mt-1 w-[min(21rem,calc(100vw-1.5rem))]">
+          <NotificationPanel
+            items={items}
+            friendCount={bookmarkCount}
+            onMarkAllSeen={markAllSeen}
+          />
+        </div>
+      ) : null}
 
       {open ? (
         <nav

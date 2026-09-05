@@ -47,9 +47,13 @@ test.describe("friend dashboard", () => {
     await expect(page).not.toHaveURL(/bibs=/);
   });
 
-  test("opens the notification panel and clears the unread badge", async ({ page, request }) => {
+  test("opens the notification panel from the header on any page", async ({ page, request }) => {
     const bib = await racingBib(request);
+
+    // The bell is global, so it works from the leaderboard as well.
     await page.goto(`/bookmarks?bibs=${bib}`);
+    await expect(page.getByText(`#${bib}`)).toBeVisible();
+    await page.goto("/");
 
     const bell = page.getByRole("button", { name: /通知/ });
     await expect(bell).toBeVisible();
