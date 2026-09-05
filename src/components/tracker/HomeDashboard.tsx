@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Share2 } from "lucide-react";
+import { Bell } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,9 +29,8 @@ interface AthletesResponse {
  */
 export function HomeDashboard() {
   const { race, fetchedAt, error: raceError, lastPolledAt, intervalMs } = useRaceState();
-  const { bibs, ready, add, remove, has, shareUrl } = useBookmarks();
+  const { bibs, ready, add, remove, has } = useBookmarks();
   const [panelOpen, setPanelOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const athletesUrl = ready && bibs.length > 0 ? `/api/athletes?bibs=${bibs.join(",")}` : null;
   const { data, loading } = useLiveResource<AthletesResponse>(athletesUrl, fetchedAt);
@@ -49,16 +48,6 @@ export function HomeDashboard() {
         checkpoint.discipline === athlete.position.discipline && checkpoint.km >= legKm,
     );
     return next?.label ?? null;
-  };
-
-  const share = async (): Promise<void> => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
   };
 
   return (
@@ -79,14 +68,6 @@ export function HomeDashboard() {
           </h1>
         </div>
         <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => void share()}
-            aria-label="友達リストのリンクをコピー"
-            className="relative grid h-9 w-9 place-items-center rounded-lg border border-border bg-muted text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-          >
-            <Share2 className="h-4 w-4" />
-          </button>
           <button
             type="button"
             onClick={() => {
@@ -119,12 +100,6 @@ export function HomeDashboard() {
         intervalMs={intervalMs}
       />
 
-      {copied ? (
-        <p className="mx-3 mt-2 rounded-lg bg-foreground px-3 py-2 text-[12.5px] text-background">
-          リンクをコピーしました。この URL を送ると同じ友達リストが開きます。
-        </p>
-      ) : null}
-
       <div className="px-3 pt-2.5">
         <SearchBox onAdd={add} isAdded={has} />
       </div>
@@ -149,7 +124,7 @@ export function HomeDashboard() {
             <p className="font-bold text-[14px]">応援する友達を追加してください</p>
             <p className="mt-1.5 text-[12.5px] text-muted-foreground leading-relaxed">
               ゼッケン番号か名前で検索できます。追加するとこのブラウザに保存され、
-              右上の共有ボタンで同じリストを他の人に送れます。
+              次に開いたときもそのまま残ります。
             </p>
             <Link
               href="/"

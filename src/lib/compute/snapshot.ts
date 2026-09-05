@@ -86,6 +86,8 @@ export interface ComputedSnapshot {
   readonly replay: boolean;
   /** Milliseconds between refreshes, so clients can match the cadence. */
   readonly pollIntervalMs: number;
+  /** Race seconds per real second; 1 outside replay. */
+  readonly clockSpeed: number;
   readonly config: RaceConfig;
   readonly athletes: ReadonlyMap<string, ComputedAthlete>;
   readonly byDivision: Readonly<Record<Division, readonly string[]>>;
@@ -197,6 +199,7 @@ export function computeSnapshot(
     replay?: boolean;
     backtest?: BacktestTable;
     pollIntervalMs?: number;
+    clockSpeed?: number;
   } = {},
 ): ComputedSnapshot {
   const athletes = new Map<string, ComputedAthlete>();
@@ -264,6 +267,7 @@ export function computeSnapshot(
     stale: options.stale === true,
     replay: options.replay === true,
     pollIntervalMs: options.pollIntervalMs ?? 60_000,
+    clockSpeed: options.clockSpeed ?? 1,
     config,
     athletes,
     byDivision,

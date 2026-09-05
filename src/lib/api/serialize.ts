@@ -209,7 +209,11 @@ export function toRaceState(snapshot: ComputedSnapshot): RaceStateDto {
   return {
     year: snapshot.year,
     fetchedAt: snapshot.fetchedAt,
-    now: snapshot.replay ? snapshot.computedAt + (Date.now() - snapshot.fetchedAt) : Date.now(),
+    // In replay the race clock runs faster than the wall clock, so carry the
+    // last computed race time forward at the replay speed rather than at 1x.
+    now: snapshot.replay
+      ? snapshot.computedAt + (Date.now() - snapshot.fetchedAt) * snapshot.clockSpeed
+      : Date.now(),
     stale: snapshot.stale,
     replay: snapshot.replay,
     pollIntervalMs: snapshot.pollIntervalMs,

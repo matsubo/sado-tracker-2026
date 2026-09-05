@@ -27,9 +27,10 @@ function readUrl(): string[] {
 }
 
 /**
- * Bookmarked bibs live in this browser and in the URL, so a supporter can
- * share their friend list by sending the link. There is no account and
- * nothing is stored on the server.
+ * Bookmarked bibs live in this browser. A list can still be handed over by
+ * opening a `?bibs=` link, which is how an athlete page or an external link
+ * can seed one, but the app does not offer to publish anyone's list: who a
+ * person is following is theirs. Nothing is stored on the server.
  */
 export function useBookmarks(): {
   bibs: string[];
@@ -37,7 +38,6 @@ export function useBookmarks(): {
   add: (bib: string) => void;
   remove: (bib: string) => void;
   has: (bib: string) => boolean;
-  shareUrl: string;
 } {
   const [bibs, setBibs] = useState<string[]>([]);
   const [ready, setReady] = useState(false);
@@ -57,10 +57,13 @@ export function useBookmarks(): {
     } catch {
       // A browser with storage disabled still works, it just forgets.
     }
+    // Keep the address bar clean: the list is remembered by this browser, and
+    // putting it in the URL invites sharing something private by accident.
     const url = new URL(window.location.href);
-    if (bibs.length > 0) url.searchParams.set("bibs", bibs.join(","));
-    else url.searchParams.delete("bibs");
-    window.history.replaceState(null, "", url.toString());
+    if (url.searchParams.has("bibs")) {
+      url.searchParams.delete("bibs");
+      window.history.replaceState(null, "", url.toString());
+    }
   }, [bibs, ready]);
 
   const add = useCallback((bib: string) => {
@@ -73,10 +76,5 @@ export function useBookmarks(): {
     setBibs((current) => current.filter((value) => value !== bib));
   }, []);
 
-  const shareUrl =
-    typeof window === "undefined"
-      ? ""
-      : `${window.location.origin}${window.location.pathname}?bibs=${bibs.join(",")}`;
-
-  return { bibs, ready, add, remove, has: (bib) => bibs.includes(bib), shareUrl };
+  return { bibs, ready, add, remove, has: (bib) => bibs.includes(bib) };
 }

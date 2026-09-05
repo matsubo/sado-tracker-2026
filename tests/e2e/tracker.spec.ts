@@ -19,32 +19,37 @@ test.describe("friend dashboard", () => {
   }) => {
     const bib = await racingBib(request);
 
-    await page.goto("/");
-    await expect(page.getByRole("heading", { name: /佐渡トラッカー/ })).toBeVisible();
+    await page.goto("/friends");
+    await expect(page.getByRole("heading", { name: /友達一覧/ })).toBeVisible();
 
     await page.getByLabel("ゼッケン番号か名前で友達を検索").fill(bib);
-    await page.getByRole("button", { name: "追加" }).first().click();
 
-    const addToList = page.getByRole("button", { name: "追加" }).nth(1);
-    await expect(addToList).toBeVisible();
-    await addToList.click();
+    // Suggestions appear as the reader types; picking one adds the athlete.
+    const suggestion = page.getByRole("option").first();
+    await expect(suggestion).toBeVisible();
+    await suggestion.click();
 
     await expect(page.getByText(`#${bib}`)).toBeVisible();
-    await expect(page).toHaveURL(new RegExp(`bibs=${bib}`));
+    // The list is private to the browser and deliberately not put in the URL.
+    await expect(page).not.toHaveURL(/bibs=/);
 
     await page.reload();
     await expect(page.getByText(`#${bib}`)).toBeVisible();
   });
 
-  test("shares the friend list through the URL", async ({ page, request }) => {
+  test("accepts a list handed over in a link but does not keep it in the URL", async ({
+    page,
+    request,
+  }) => {
     const bib = await racingBib(request);
-    await page.goto(`/?bibs=${bib}`);
+    await page.goto(`/friends?bibs=${bib}`);
     await expect(page.getByText(`#${bib}`)).toBeVisible();
+    await expect(page).not.toHaveURL(/bibs=/);
   });
 
   test("opens the notification panel and clears the unread badge", async ({ page, request }) => {
     const bib = await racingBib(request);
-    await page.goto(`/?bibs=${bib}`);
+    await page.goto(`/friends?bibs=${bib}`);
 
     const bell = page.getByRole("button", { name: /通知/ });
     await expect(bell).toBeVisible();
@@ -56,7 +61,7 @@ test.describe("friend dashboard", () => {
 
   test("refreshes in place without a navigation", async ({ page, request }) => {
     const bib = await racingBib(request);
-    await page.goto(`/?bibs=${bib}`);
+    await page.goto(`/friends?bibs=${bib}`);
     await expect(page.getByText(`#${bib}`)).toBeVisible();
 
     let navigations = 0;
@@ -124,11 +129,35 @@ test.describe("field map", () => {
 
 test.describe("every page", () => {
   test("carries the AI TRI+ footer", async ({ page }) => {
-    for (const path of ["/", "/map", "/divisions/A"]) {
+    for (const path of ["/", "/friends", "/map", "/divisions/A"]) {
       await page.goto(path);
       await expect(
         page.getByRole("contentinfo").getByRole("link", { name: "AI TRI+", exact: true }),
       ).toBeVisible();
     }
+  });
+});
+
+test.describe("leaderboard", () => {
+  test("opens on the front of the field and links to the friend list", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: /佐渡トラッカー/ })).toBeVisible();
+    await expect(page.getByText(/先頭順/)).toBeVisible();
+    await expect(page.getByRole("link", { name: /友達一覧/ }).first()).toBeVisible();
+  });
+
+  test("shows the race clock, which in replay is not the device clock", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText("リプレイ")).toBeVisible();
+    await expect(page.getByText(/現在 · 最終更新/)).toBeVisible();
+  });
+});
+
+test.describe("search", () => {
+  test("suggests athletes as the reader types", async ({ page }) => {
+    await page.goto("/friends");
+    await page.getByLabel("ゼッケン番号か名前で友達を検索").fill("1");
+    await expect(page.getByRole("listbox")).toBeVisible();
+    expect(await page.getByRole("option").count()).toBeGreaterThan(1);
   });
 });

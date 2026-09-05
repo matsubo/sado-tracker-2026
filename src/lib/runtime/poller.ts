@@ -135,6 +135,7 @@ async function refresh(runtime: Runtime): Promise<void> {
       replay: runtime.clock.replay,
       backtest: runtime.backtest,
       pollIntervalMs: pollIntervalMs(),
+      clockSpeed: runtime.clock.speed,
     });
     setSnapshot(computed);
 
