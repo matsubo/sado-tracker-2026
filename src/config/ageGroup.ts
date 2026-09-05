@@ -1,7 +1,7 @@
 export type Sex = "M" | "F";
 
 export interface AgeGroup {
-  /** Short id shown in tables: sex letter plus the bracket lower bound, e.g. "M40", "F0". */
+  /** Canonical id, following the ai-tri notation: "M40-44", "F45-49", "M0-24". */
   readonly id: string;
   readonly sex: Sex;
   readonly min: number;
@@ -20,7 +20,7 @@ const ASCII_RANGE = /^([MF])(\d{1,2})-(\d{1,2})$/;
 function build(sex: Sex, min: number, max: number): AgeGroup {
   const jp = sex === "M" ? "男子" : "女子";
   const label = min === 0 ? `${jp}${max}歳以下` : `${jp}${min}-${max}`;
-  return { id: `${sex}${min}`, sex, min, max, label };
+  return { id: `${sex}${min}-${max}`, sex, min, max, label };
 }
 
 /**

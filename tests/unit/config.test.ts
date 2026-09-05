@@ -43,33 +43,33 @@ describe("normalizeDivision", () => {
 });
 
 describe("normalizeAgeGroup", () => {
-  it("maps the 2025 style labels to sex plus the bracket lower bound", () => {
-    expect(normalizeAgeGroup("40-44男子")?.id).toBe("M40");
-    expect(normalizeAgeGroup("45-49女子")?.id).toBe("F45");
-    expect(normalizeAgeGroup("30-34男子")?.id).toBe("M30");
+  it("maps the 2025 style labels to the ai-tri notation", () => {
+    expect(normalizeAgeGroup("40-44男子")?.id).toBe("M40-44");
+    expect(normalizeAgeGroup("45-49女子")?.id).toBe("F45-49");
+    expect(normalizeAgeGroup("30-34男子")?.id).toBe("M30-34");
   });
 
   it("maps the 2026 style labels that include 歳", () => {
-    expect(normalizeAgeGroup("40-44歳男子")?.id).toBe("M40");
-    expect(normalizeAgeGroup("80-84歳女子")?.id).toBe("F80");
-    expect(normalizeAgeGroup("35-39歳男子")?.id).toBe("M35");
+    expect(normalizeAgeGroup("40-44歳男子")?.id).toBe("M40-44");
+    expect(normalizeAgeGroup("80-84歳女子")?.id).toBe("F80-84");
+    expect(normalizeAgeGroup("35-39歳男子")?.id).toBe("M35-39");
   });
 
   it("maps the 2022 and 2023 style labels", () => {
-    expect(normalizeAgeGroup("M40-44")?.id).toBe("M40");
-    expect(normalizeAgeGroup("F18-24")?.id).toBe("F18");
+    expect(normalizeAgeGroup("M40-44")?.id).toBe("M40-44");
+    expect(normalizeAgeGroup("F18-24")?.id).toBe("F18-24");
   });
 
   it("gives the youngest bracket a zero lower bound", () => {
-    expect(normalizeAgeGroup("24歳以下男子")?.id).toBe("M0");
-    expect(normalizeAgeGroup("24歳以下女子")?.id).toBe("F0");
+    expect(normalizeAgeGroup("24歳以下男子")?.id).toBe("M0-24");
+    expect(normalizeAgeGroup("24歳以下女子")?.id).toBe("F0-24");
   });
 
   it("keeps the sex, bounds and a full label for display and sorting", () => {
     const g = normalizeAgeGroup("45-49女子");
-    expect(g).toEqual({ id: "F45", sex: "F", min: 45, max: 49, label: "女子45-49" });
+    expect(g).toEqual({ id: "F45-49", sex: "F", min: 45, max: 49, label: "女子45-49" });
     const youngest = normalizeAgeGroup("24歳以下男子");
-    expect(youngest).toEqual({ id: "M0", sex: "M", min: 0, max: 24, label: "男子24歳以下" });
+    expect(youngest).toEqual({ id: "M0-24", sex: "M", min: 0, max: 24, label: "男子24歳以下" });
   });
 
   it("returns null for empty or unknown labels", () => {
