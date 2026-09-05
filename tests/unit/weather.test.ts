@@ -1,17 +1,33 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import amedasFixture from "../fixtures/amedas.json" with { type: "json" };
-import openMeteoFixture from "../fixtures/open-meteo.json" with { type: "json" };
+import { getWeather, resetWeatherCache } from "@/lib/weather";
 import {
   AIKAWA_STATION_NUMBER,
   parseObservation,
   windDirectionCodeToLabel,
 } from "@/lib/weather/amedas";
-import { getWeather, resetWeatherCache } from "@/lib/weather";
-import { degreesToJapaneseCompass, describeWeatherCode, fetchForecast } from "@/lib/weather/openMeteo";
+import {
+  degreesToJapaneseCompass,
+  describeWeatherCode,
+  fetchForecast,
+} from "@/lib/weather/openMeteo";
+import amedasFixture from "../fixtures/amedas.json" with { type: "json" };
+import openMeteoFixture from "../fixtures/open-meteo.json" with { type: "json" };
 
 const LATEST_TIME = "2026-09-05T17:40:00+09:00";
 
-type FetchResult = { ok: boolean; status: number; text: () => Promise<string>; json: () => Promise<unknown> };
+/** First element of a fixture column, under `noUncheckedIndexedAccess`. */
+function head(column: readonly number[]): number {
+  const value = column[0];
+  if (value === undefined) throw new Error("fixture column is empty");
+  return value;
+}
+
+type FetchResult = {
+  ok: boolean;
+  status: number;
+  text: () => Promise<string>;
+  json: () => Promise<unknown>;
+};
 
 function jsonResponse(body: unknown): FetchResult {
   return {
@@ -125,13 +141,14 @@ describe("fetchForecast", () => {
 
     expect(first).toBeDefined();
     if (first === undefined) return;
-    expect(first.timeMs).toBe(openMeteoFixture.hourly.time[0] * 1000);
-    expect(first.weatherCode).toBe(openMeteoFixture.hourly.weather_code[0]);
-    expect(first.temperatureC).toBe(openMeteoFixture.hourly.temperature_2m[0]);
-    expect(first.humidityPct).toBe(openMeteoFixture.hourly.relative_humidity_2m[0]);
-    expect(first.precipitationMm).toBe(openMeteoFixture.hourly.precipitation[0]);
-    expect(first.windSpeedMs).toBe(openMeteoFixture.hourly.wind_speed_10m[0]);
-    expect(first.windDirectionDeg).toBe(openMeteoFixture.hourly.wind_direction_10m[0]);
+    const hourly = openMeteoFixture.hourly;
+    expect(first.timeMs).toBe(head(hourly.time) * 1000);
+    expect(first.weatherCode).toBe(head(hourly.weather_code));
+    expect(first.temperatureC).toBe(head(hourly.temperature_2m));
+    expect(first.humidityPct).toBe(head(hourly.relative_humidity_2m));
+    expect(first.precipitationMm).toBe(head(hourly.precipitation));
+    expect(first.windSpeedMs).toBe(head(hourly.wind_speed_10m));
+    expect(first.windDirectionDeg).toBe(head(hourly.wind_direction_10m));
     expect(first.label).toBe(describeWeatherCode(first.weatherCode).label);
     expect(first.windDirectionLabel).toBe(degreesToJapaneseCompass(first.windDirectionDeg));
   });
@@ -237,7 +254,8 @@ describe("getWeather", () => {
       "fetch",
       vi.fn((input: string | URL) => {
         const url = String(input);
-        if (url.includes("api.open-meteo.com")) return Promise.resolve(jsonResponse(openMeteoFixture));
+        if (url.includes("api.open-meteo.com"))
+          return Promise.resolve(jsonResponse(openMeteoFixture));
         return Promise.reject(new Error("jma down"));
       }),
     );

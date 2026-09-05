@@ -153,8 +153,7 @@ export async function fetchForecast(signal?: AbortSignal): Promise<ForecastHour[
     throw new Error("Open-Meteo response contained no hourly block");
   }
 
-  const offsetSeconds =
-    typeof body.utc_offset_seconds === "number" ? body.utc_offset_seconds : 0;
+  const offsetSeconds = typeof body.utc_offset_seconds === "number" ? body.utc_offset_seconds : 0;
   const times = numbersAt(hourly, "time");
   const codes = numbersAt(hourly, "weather_code");
   const temperatures = numbersAt(hourly, "temperature_2m");
@@ -163,12 +162,14 @@ export async function fetchForecast(signal?: AbortSignal): Promise<ForecastHour[
   const windSpeeds = numbersAt(hourly, "wind_speed_10m");
   const windDirections = numbersAt(hourly, "wind_direction_10m");
 
-  return times.reduce<ForecastHour[]>((rows, _entry, index) => {
+  // flatMap rather than a reduce with a spread accumulator: same immutability,
+  // linear cost. A slot missing any field is dropped instead of guessed at.
+  return times.flatMap((_entry, index): ForecastHour[] => {
     const time = finiteAt(times, index);
-    if (time === null) return rows;
+    if (time === null) return [];
 
     const localHour = Math.floor((time + offsetSeconds) / 3600) % 24;
-    if (localHour % 3 !== 0) return rows;
+    if (localHour % 3 !== 0) return [];
 
     const weatherCode = finiteAt(codes, index);
     const temperatureC = finiteAt(temperatures, index);
@@ -184,12 +185,11 @@ export async function fetchForecast(signal?: AbortSignal): Promise<ForecastHour[
       windSpeedMs === null ||
       windDirectionDeg === null
     ) {
-      return rows;
+      return [];
     }
 
     const described = describeWeatherCode(weatherCode);
     return [
-      ...rows,
       {
         timeMs: time * 1000,
         weatherCode,
@@ -203,5 +203,5 @@ export async function fetchForecast(signal?: AbortSignal): Promise<ForecastHour[
         windDirectionLabel: degreesToJapaneseCompass(windDirectionDeg),
       },
     ];
-  }, []);
+  });
 }
