@@ -58,15 +58,36 @@ export function GET(request: Request): Response {
   }
 
   const needle = normalizeName(q);
+  const squashed = needle.replace(/ /g, "");
+
+  /**
+   * Rank matches so the suggestion list is useful while typing: an exact bib
+   * first, then a bib or family-name prefix, then anything containing the
+   * text. Within a tier, lower bibs come first so the order is stable.
+   */
+  const score = (bib: string, nameKey: string): number => {
+    if (bib === needle) return 0;
+    if (bib.startsWith(needle)) return 1;
+    if (nameKey.startsWith(needle)) return 2;
+    if (nameKey.replace(/ /g, "").startsWith(squashed)) return 3;
+    if (nameKey.includes(needle)) return 4;
+    if (nameKey.replace(/ /g, "").includes(squashed)) return 5;
+    return Number.MAX_SAFE_INTEGER;
+  };
+
   const matches = [...snapshot.athletes.values()]
-    .filter(
-      (computed) =>
-        computed.athlete.bib.startsWith(needle) ||
-        computed.athlete.nameKey.includes(needle) ||
-        computed.athlete.nameKey.replace(/ /g, "").includes(needle.replace(/ /g, "")),
+    .map((computed) => ({
+      computed,
+      score: score(computed.athlete.bib, computed.athlete.nameKey),
+    }))
+    .filter((entry) => entry.score !== Number.MAX_SAFE_INTEGER)
+    .sort((a, b) =>
+      a.score === b.score
+        ? a.computed.athlete.bib.localeCompare(b.computed.athlete.bib, "en", { numeric: true })
+        : a.score - b.score,
     )
     .slice(0, MAX_RESULTS)
-    .map(toAthleteSummary);
+    .map((entry) => toAthleteSummary(entry.computed));
 
   return liveJson({
     count: matches.length,
