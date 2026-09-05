@@ -19,12 +19,10 @@ import {
 const DASH = "—";
 const MINUS = "−";
 
-/** 2026-09-05T03:00:00Z = 12:00:00 JST */
-const NOON_JST = 1_788_577_200_000;
-/** 2026-09-04T15:00:00Z = 00:00:00 JST on 9/5 (discriminates h23 from h24) */
-const MIDNIGHT_JST = 1_788_534_000_000;
-/** 2026-09-05T00:05:07Z = 09:05:07 JST (discriminates zero padding) */
-const MORNING_JST = 1_788_566_707_000;
+// Reference epochs, each verified against Intl before being hard-coded here.
+const NOON_JST = 1_788_577_200_000; // 2026-09-05T03:00:00Z -> 12:00:00 JST
+const MIDNIGHT_JST = 1_788_534_000_000; // 2026-09-04T15:00:00Z -> 00:00:00 JST on 9/5, h23 vs h24
+const MORNING_JST = 1_788_566_707_000; // 2026-09-05T00:05:07Z -> 09:05:07 JST, zero padding
 
 describe("formatDuration", () => {
   it("renders h:mm:ss with unpadded hours", () => {
@@ -138,12 +136,9 @@ describe("formatSwimPace", () => {
     expect(formatSwimPace(5_025_000, 4.0)).toBe("2:05 /100m");
   });
 
-  it("returns a dash when the distance is not positive", () => {
+  it("returns a dash for a non-positive distance or an unusable time", () => {
     expect(formatSwimPace(5_025_000, 0)).toBe(DASH);
     expect(formatSwimPace(5_025_000, -1)).toBe(DASH);
-  });
-
-  it("returns a dash for negative or non-finite elapsed time", () => {
     expect(formatSwimPace(-1, 4.0)).toBe(DASH);
     expect(formatSwimPace(Number.NaN, 4.0)).toBe(DASH);
   });
@@ -162,11 +157,8 @@ describe("formatBikeSpeed", () => {
 });
 
 describe("formatRunPace", () => {
-  it("renders m:ss per km", () => {
+  it("renders m:ss per km and dashes a non-positive distance", () => {
     expect(formatRunPace(2_780_000, 10)).toBe("4:38 /km");
-  });
-
-  it("returns a dash when the distance is not positive", () => {
     expect(formatRunPace(2_780_000, 0)).toBe(DASH);
   });
 });
