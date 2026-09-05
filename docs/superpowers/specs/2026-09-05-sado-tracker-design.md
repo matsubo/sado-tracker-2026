@@ -58,7 +58,7 @@ checkpoints. They never enter ranking or position logic.
 | Age-group label | `40-44男子` (2025), `40-44歳男子` (2026), `M40-44` / `F40-44` (2022–2023), `24歳以下男子`, `80-84女子` |
 | Name column | `名前` (2024+), `氏名` (2022–2023) |
 | Run-start column | `ﾗﾝS（本部）` vs `ﾗﾝS(本部)` |
-| Swim distance | 2025 B swim was shortened (median 24.8 min vs 43–45 min other years) |
+| Swim distance | 2025 B swim shortened by an unknown amount (median 24.8 min vs 43–45 min); `swimKm: null` in config |
 | 住吉 bike km | inferred from split ratios: A ≈ 100 km all years; B ≈ 21 km (2023–24), ≈ 18 km (2025) |
 
 ### 2.3 Course model (2026, per division)
@@ -75,7 +75,22 @@ Inferred distances are flagged `inferred: true` in config and rendered with
 "推定" in the UI. Distances can be changed on race morning by editing
 `src/config/races/2026.ts` and pushing; Coolify redeploys in minutes.
 
-### 2.4 Historical data usage
+### 2.4 Odd rows and how they are handled
+
+| Case | Seen in | Handling |
+|------|---------|----------|
+| Empty `部門` | 2026: 3 rows | Dropped, logged once per bib |
+| Empty `START` | 2024: 20 rows | Fall back to the division wave start from config |
+| `予備` (reserve) | every year, 20–30 rows | Dropped everywhere |
+| `チャンピオンシップ`, `ATYPE ELITE` | 2022: 31, 2023: 22 | Mapped to A for past-result lookup; excluded from prediction training |
+| Empty `年齢区分` | 83–92 rows/year | Relay members and some entries: division and sex ranks only, no age rank |
+| Empty `性別` | 83–90 rows/year | No sex rank |
+
+Bib numbers are unique across all divisions in 2023–2026 (verified, zero
+duplicates). A load-time assertion fails the parse if a duplicate appears, so
+`/api/athletes/{bib}` stays unambiguous.
+
+### 2.5 Historical data usage
 
 | Year | Past-result lookup | Prediction training | Checkpoint-level comparison |
 |------|--------------------|---------------------|-----------------------------|
@@ -84,7 +99,7 @@ Inferred distances are flagged `inferred: true` in config and rendered with
 | 2024 | yes | yes | yes |
 | 2025 | yes | yes, swim distance-normalized | yes |
 
-### 2.5 Weather
+### 2.6 Weather
 
 - Forecast: Open-Meteo (no key), 3-hourly for Sawata (38.02 N, 138.37 E):
   weather code, temperature, humidity, precipitation, wind direction/speed.
@@ -113,7 +128,7 @@ global so dev HMR does not double-start):
    `/app/data/history/<year>.csv`, fetching from systemway only when the file
    is missing. Builds the name index and the prediction model, and runs the
    backtest (§6.4).
-3. **Weather poller** as in §2.5.
+3. **Weather poller** as in §2.6.
 
 Client pages never reload. They poll `GET /api/race` (tiny) every 15 s and
 refetch their data when `fetchedAt` changes, and immediately when the tab
@@ -193,7 +208,8 @@ All times are integer milliseconds. Elapsed at checkpoint = `passes[cp] − star
 
 ### 5.2 Ranking
 
-Standard competition ranking (ties share a rank; next rank skips). Sort key
+Standard competition ranking: tied athletes share a rank and the next rank
+skips (1, 2, 2, 4). Sort key
 is the millisecond value; ties are only true ties.
 
 - **Discipline time**: swim = `swimF − start`; bike = `runS − bikeS`;
@@ -211,10 +227,27 @@ is the millisecond value; ties are only true ties.
 - **Transitions**: T1 = `bikeS − swimF`, T2 = `runS − last bike checkpoint`
   is not measurable (住吉 is mid-course), so only T1 is shown. Transitions
   are listed, not ranked.
-- **DNF/DNS**: DNF athletes stay in every population where they have the
-  checkpoint. `status = dnf` when `備考` starts with `DNF`; `not_started`
-  when no checkpoint after `start` and `now < startAt`; `finished` when
-  `finish` is set.
+- **Status**, evaluated in this order:
+
+  | status | rule |
+  |--------|------|
+  | `finished` | `finish` is set |
+  | `dnf` | `備考` starts with `DNF` |
+  | `not_started` | `now < startAt` |
+  | `dns_suspected` | no `入水`, no `ｽｲﾑL`/`ｽｲﾑF`, no `ﾊﾞｲｸS`, and `now > startAt + swimCutoff` |
+  | `racing` | otherwise |
+
+  `swimCutoff` is per division in config: A 150 min, B 100 min (slowest
+  observed `ｽｲﾑF` 2023–2025 is A 137 min, B 86 min; `ﾊﾞｲｸS` A 146 min,
+  B 95 min). `入水` (water entry) is the discriminator: in 2025, 197 rows
+  had no `入水` and never appeared again, while 41 rows had `入水` but no
+  swim split — the latter are genuine swim DNFs and must stay `racing`/`dnf`.
+  Roughly 13 % of rows are `dns_suspected` (2025: 238 / 1,818).
+
+  `dns_suspected` and `not_started` athletes are excluded from populations,
+  from `/map`, and from prediction. They remain searchable and their page
+  shows 未計測 with an explanation. DNF athletes stay in every population
+  where they have the checkpoint.
 
 ### 5.3 Deviation score (偏差値)
 
@@ -263,9 +296,18 @@ Training set: finishers of the same division in 2023–2025 (DNF excluded).
 
 Feature vector at the athlete's latest checkpoint `cp`:
 - pace of each completed discipline (time / configured distance for that
-  year and division, so the 2025 B short swim is comparable),
+  year and division),
 - pace so far in the current discipline (`passes[cp] − passes[disciplineStart]`)
   / km of `cp`.
+
+**B-division swim is excluded from the feature vector.** The 2025 B swim was
+shortened by an unknown amount (median 24.8 min vs 43–45 min in 2023, 2024),
+so its pace cannot be normalized against a distance we do not know. Swim is
+about 5 % of a B race, so dropping the feature costs little and removes a
+wrong-by-construction number. A-division swim is unchanged across years and
+stays in. The 2025 config records `swimKm: null, swimShortened: true` for B;
+any code path that would divide by it must handle `null` explicitly (unit
+tested).
 
 Distance: Euclidean on z-scored features. Take k = 20 nearest. Each
 neighbour contributes `remaining = finish − passes[cp]` in its own year,
@@ -308,7 +350,23 @@ https://ai-triathlon-result.teraren.com/ .
 | `/` | Friend list. Search by bib or name (server-side `q`), add to bookmarks (localStorage), `?bibs=1,2` for sharing. Cards per mock screen 1. Weather panel. Bell with unread badge; panel per screen 2. |
 | `/athletes/[bib]` | Header, position bar, current ranks (division / sex / age), discipline table, prediction with "?" explanation, course-position strip with 5 age-group neighbours ahead and behind by estimated position, rank-progression chart, split table, past results (all matching years), small AI TRI+ athlete link (`/athletes/<name with ASCII space>`), bookmark toggle. |
 | `/divisions/[div]` | Tabs A/B/RA/RB, discipline tabs swim/bike/run/total, age-group select, table rank/name/AG/time/pace/diff, 50 per page. `?bib=` highlights that athlete and makes diffs relative to them; if absent from the table, a banner states their current position. |
-| `/map` | Whole-field strip: X = course axis, Y = current cumulative rank (top = 1). Views: division (dense dots, friends labelled), age group (rows with names), friends only. Tap a dot for name/rank → detail. |
+| `/map` | Whole-field strip: X = course axis, Y = **field order** (§7.3, top = leading). Views: division (dense dots, friends labelled), age group (rows with names), friends only. Tap a dot for name, field order and cumulative rank → detail. |
+
+### 7.3 Field order (the `/map` Y axis)
+
+Cumulative rank is defined only within `P(div, cp)`, and `cp` differs per
+athlete, so ranks at different checkpoints are not comparable. `/map` needs a
+single total order over everyone still racing. Field order sorts by:
+
+1. index of the athlete's latest checkpoint in the division's course,
+   descending (further along the course is ahead);
+2. elapsed at that checkpoint, ascending (faster to reach it is ahead).
+
+Finished athletes take the top slots ordered by total time. `dns_suspected`,
+`not_started` and DNF athletes are excluded. The Y position is the field-order
+index; the number shown next to a labelled dot is the athlete's own cumulative
+rank at their latest checkpoint (`201/412`), because that is the figure they
+see everywhere else. The tooltip shows both, labelled.
 
 ### 7.1 Design system
 
@@ -339,7 +397,11 @@ in §9.1 (truncate vs round) and then frozen in a test.
 
 ## 8. API (HAL, `_links` on every resource)
 
-`Cache-Control: public, max-age=15, s-maxage=60` on race data; weather 300 s.
+Race data: `Cache-Control: no-cache` on responses, and every client fetch
+carries `?v=<fetchedAt>` so a refetch after a snapshot change can never be
+served a stale body from the browser cache. Weather: `max-age=300`. This is a
+correctness rule, not a performance one: a 15-second-stale body under a fresh
+`fetchedAt` would show numbers that disagree with the header's update time.
 
 | Endpoint | Returns |
 |----------|---------|
