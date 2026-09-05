@@ -14,6 +14,45 @@ import amedasFixture from "../fixtures/amedas.json" with { type: "json" };
 import openMeteoFixture from "../fixtures/open-meteo.json" with { type: "json" };
 
 const LATEST_TIME = "2026-09-05T17:40:00+09:00";
+const LATEST_TIME_MS = Date.parse(LATEST_TIME);
+/** The fixture holds 24 hourly entries for one JST day -> 8 three-hourly rows. */
+const EXPECTED_ROWS = 8;
+
+type FetchResult = {
+  ok: boolean;
+  status: number;
+  text: () => Promise<string>;
+  json: () => unknown;
+};
+type FetchSpy = ReturnType<typeof vi.fn>;
+
+function respond(text: string, json: unknown, ok = true): FetchResult {
+  return { ok, status: ok ? 200 : 503, text: () => Promise.resolve(text), json: () => json };
+}
+
+/** Routes by URL: the two AMeDAS calls return different content types. */
+function routeFetch(url: string): FetchResult {
+  if (url.includes("api.open-meteo.com")) return respond("", openMeteoFixture);
+  if (url.includes("latest_time.txt")) return respond(`${LATEST_TIME}\n`, null);
+  if (url.includes("/amedas/data/map/")) return respond("", amedasFixture);
+  throw new Error(`unexpected url: ${url}`);
+}
+
+function stubFetch(): FetchSpy {
+  const spy = vi.fn((input: string | URL) => Promise.resolve(routeFetch(String(input))));
+  vi.stubGlobal("fetch", spy);
+  return spy;
+}
+
+function stubWith(handler: (url: string) => Promise<FetchResult>): FetchSpy {
+  const spy = vi.fn((input: string | URL) => handler(String(input)));
+  vi.stubGlobal("fetch", spy);
+  return spy;
+}
+
+function urlsOf(spy: FetchSpy): string[] {
+  return spy.mock.calls.map((call) => String(call[0]));
+}
 
 /** First element of a fixture column, under `noUncheckedIndexedAccess`. */
 function head(column: readonly number[]): number {
@@ -22,65 +61,20 @@ function head(column: readonly number[]): number {
   return value;
 }
 
-type FetchResult = {
-  ok: boolean;
-  status: number;
-  text: () => Promise<string>;
-  json: () => Promise<unknown>;
-};
-
-function jsonResponse(body: unknown): FetchResult {
-  return {
-    ok: true,
-    status: 200,
-    text: () => Promise.resolve(JSON.stringify(body)),
-    json: () => Promise.resolve(body),
-  };
-}
-
-function textResponse(body: string): FetchResult {
-  return {
-    ok: true,
-    status: 200,
-    text: () => Promise.resolve(body),
-    json: () => Promise.reject(new Error("not json")),
-  };
-}
-
-/** Routes by URL so the two AMeDAS calls return their own content type. */
-function routeFetch(url: string): FetchResult {
-  if (url.includes("api.open-meteo.com")) return jsonResponse(openMeteoFixture);
-  if (url.includes("latest_time.txt")) return textResponse(`${LATEST_TIME}\n`);
-  if (url.includes("/amedas/data/map/")) return jsonResponse(amedasFixture);
-  throw new Error(`unexpected url: ${url}`);
-}
-
-function stubFetch(): ReturnType<typeof vi.fn> {
-  const spy = vi.fn((input: string | URL) => Promise.resolve(routeFetch(String(input))));
-  vi.stubGlobal("fetch", spy);
-  return spy;
-}
-
-beforeEach(() => {
-  resetWeatherCache();
-});
-
+beforeEach(() => resetWeatherCache());
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
 
 describe("degreesToJapaneseCompass", () => {
-  it("maps the cardinal and inter-cardinal points", () => {
+  it("maps the cardinal points and wraps around", () => {
     expect(degreesToJapaneseCompass(0)).toBe("北");
     expect(degreesToJapaneseCompass(45)).toBe("北東");
     expect(degreesToJapaneseCompass(90)).toBe("東");
     expect(degreesToJapaneseCompass(180)).toBe("南");
     expect(degreesToJapaneseCompass(270)).toBe("西");
     expect(degreesToJapaneseCompass(337.5)).toBe("北北西");
-  });
-
-  it("wraps around at 360 and beyond", () => {
     expect(degreesToJapaneseCompass(360)).toBe("北");
     expect(degreesToJapaneseCompass(720)).toBe("北");
     expect(degreesToJapaneseCompass(-22.5)).toBe("北北西");
@@ -110,9 +104,8 @@ describe("describeWeatherCode", () => {
       86, 95, 96, 99,
     ];
     for (const code of codes) {
-      const described = describeWeatherCode(code);
-      expect(described.label.length).toBeGreaterThan(0);
-      expect(described.icon.length).toBeGreaterThan(0);
+      expect(describeWeatherCode(code).label.length).toBeGreaterThan(0);
+      expect(describeWeatherCode(code).icon.length).toBeGreaterThan(0);
     }
   });
 
@@ -122,22 +115,19 @@ describe("describeWeatherCode", () => {
 });
 
 describe("fetchForecast", () => {
-  it("returns only 3-hourly slots parsed from the Open-Meteo response", async () => {
+  it("returns only 3-hourly slots", async () => {
     stubFetch();
     const rows = await fetchForecast();
 
-    // The fixture holds 24 hourly entries for one JST day -> 8 three-hourly rows.
-    expect(rows).toHaveLength(8);
+    expect(rows).toHaveLength(EXPECTED_ROWS);
     for (const row of rows) {
-      const jstHour = new Date(row.timeMs + 9 * 3600 * 1000).getUTCHours();
-      expect(jstHour % 3).toBe(0);
+      expect(new Date(row.timeMs + 9 * 3600 * 1000).getUTCHours() % 3).toBe(0);
     }
   });
 
   it("maps every field of the first slot", async () => {
     stubFetch();
-    const rows = await fetchForecast();
-    const first = rows[0];
+    const first = (await fetchForecast())[0];
 
     expect(first).toBeDefined();
     if (first === undefined) return;
@@ -156,7 +146,8 @@ describe("fetchForecast", () => {
   it("requests wind speed in m/s and unix timestamps", async () => {
     const spy = stubFetch();
     await fetchForecast();
-    const url = String(spy.mock.calls[0]?.[0]);
+
+    const url = urlsOf(spy)[0] ?? "";
     expect(url).toContain("wind_speed_unit=ms");
     expect(url).toContain("timeformat=unixtime");
   });
@@ -167,10 +158,10 @@ describe("windDirectionCodeToLabel", () => {
   it("treats 16 as north and 0 as calm", () => {
     expect(windDirectionCodeToLabel(16)).toBe("北");
     expect(windDirectionCodeToLabel(0)).toBe("静穏");
+    expect(windDirectionCodeToLabel(1)).toBe("北北東");
     expect(windDirectionCodeToLabel(4)).toBe("東");
     expect(windDirectionCodeToLabel(8)).toBe("南");
     expect(windDirectionCodeToLabel(12)).toBe("西");
-    expect(windDirectionCodeToLabel(1)).toBe("北北東");
   });
 
   it("rejects out-of-range codes", () => {
@@ -181,7 +172,7 @@ describe("windDirectionCodeToLabel", () => {
 
 describe("parseObservation", () => {
   it("extracts temperature, humidity and wind for Aikawa", () => {
-    const observation = parseObservation(amedasFixture, Date.parse(LATEST_TIME));
+    const observation = parseObservation(amedasFixture, LATEST_TIME_MS);
 
     expect(observation).not.toBeNull();
     expect(observation?.station).toBe("相川");
@@ -189,7 +180,7 @@ describe("parseObservation", () => {
     expect(observation?.humidityPct).toBe(68);
     expect(observation?.windSpeedMs).toBe(2.1);
     expect(observation?.windDirectionLabel).toBe("南");
-    expect(observation?.timeMs).toBe(Date.parse(LATEST_TIME));
+    expect(observation?.timeMs).toBe(LATEST_TIME_MS);
   });
 
   it("uses the verified Aikawa station number", () => {
@@ -197,8 +188,7 @@ describe("parseObservation", () => {
   });
 
   it("nulls out values whose quality flag is not zero", () => {
-    const flagged = { "54157": { temp: [23.1, 1], humidity: [68, 0] } };
-    const observation = parseObservation(flagged, 0);
+    const observation = parseObservation({ "54157": { temp: [23.1, 1], humidity: [68, 0] } }, 0);
 
     expect(observation?.temperatureC).toBeNull();
     expect(observation?.humidityPct).toBe(68);
@@ -216,54 +206,35 @@ describe("getWeather", () => {
     const weather = await getWeather();
 
     expect(weather.available).toBe(true);
-    expect(weather.forecast).toHaveLength(8);
+    expect(weather.forecast).toHaveLength(EXPECTED_ROWS);
     expect(weather.observation?.station).toBe("相川");
   });
 
   it("reports available:false without throwing when every request fails", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() => Promise.reject(new Error("network down"))),
-    );
-
+    stubWith(() => Promise.reject(new Error("network down")));
     const weather = await getWeather();
+
     expect(weather.available).toBe(false);
     expect(weather.forecast).toEqual([]);
     expect(weather.observation).toBeNull();
   });
 
   it("reports available:false on a non-2xx response", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() =>
-        Promise.resolve({
-          ok: false,
-          status: 503,
-          text: () => Promise.resolve(""),
-          json: () => Promise.resolve({}),
-        }),
-      ),
-    );
-
-    const weather = await getWeather();
-    expect(weather.available).toBe(false);
+    stubWith(() => Promise.resolve(respond("", {}, false)));
+    expect((await getWeather()).available).toBe(false);
   });
 
   it("still reports available when only the observation fails", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn((input: string | URL) => {
-        const url = String(input);
-        if (url.includes("api.open-meteo.com"))
-          return Promise.resolve(jsonResponse(openMeteoFixture));
-        return Promise.reject(new Error("jma down"));
-      }),
+    stubWith((url) =>
+      url.includes("api.open-meteo.com")
+        ? Promise.resolve(respond("", openMeteoFixture))
+        : Promise.reject(new Error("jma down")),
     );
-
     const weather = await getWeather();
+
     expect(weather.available).toBe(true);
     expect(weather.observation).toBeNull();
-    expect(weather.forecast).toHaveLength(8);
+    expect(weather.forecast).toHaveLength(EXPECTED_ROWS);
   });
 
   it("serves both sources from cache inside their windows", async () => {
@@ -271,47 +242,36 @@ describe("getWeather", () => {
     const spy = stubFetch();
 
     await getWeather();
-    const afterFirst = spy.mock.calls.length;
-    expect(afterFirst).toBe(3); // forecast + latest_time + map
+    expect(spy.mock.calls.length).toBe(3); // forecast + latest_time + map
 
     await getWeather();
-    expect(spy.mock.calls.length).toBe(afterFirst);
+    expect(spy.mock.calls.length).toBe(3);
   });
 
   it("refetches the forecast after 5 minutes but keeps the observation for 10", async () => {
     vi.useFakeTimers();
     const spy = stubFetch();
-
     await getWeather();
-    spy.mockClear();
-
-    vi.advanceTimersByTime(5 * 60 * 1000 + 1);
-    await getWeather();
-
-    const urls = spy.mock.calls.map((call) => String(call[0]));
-    expect(urls.some((url) => url.includes("api.open-meteo.com"))).toBe(true);
-    expect(urls.some((url) => url.includes("jma.go.jp"))).toBe(false);
 
     spy.mockClear();
     vi.advanceTimersByTime(5 * 60 * 1000 + 1);
     await getWeather();
+    expect(urlsOf(spy).some((url) => url.includes("api.open-meteo.com"))).toBe(true);
+    expect(urlsOf(spy).some((url) => url.includes("jma.go.jp"))).toBe(false);
 
-    const later = spy.mock.calls.map((call) => String(call[0]));
-    expect(later.some((url) => url.includes("jma.go.jp"))).toBe(true);
+    spy.mockClear();
+    vi.advanceTimersByTime(5 * 60 * 1000 + 1);
+    await getWeather();
+    expect(urlsOf(spy).some((url) => url.includes("jma.go.jp"))).toBe(true);
   });
 
   it("does not cache failures", async () => {
     vi.useFakeTimers();
-    const failing = vi.fn(() => Promise.reject(new Error("network down")));
-    vi.stubGlobal("fetch", failing);
-
-    const first = await getWeather();
-    expect(first.available).toBe(false);
+    stubWith(() => Promise.reject(new Error("network down")));
+    expect((await getWeather()).available).toBe(false);
 
     const spy = stubFetch();
-    const second = await getWeather();
-
+    expect((await getWeather()).available).toBe(true);
     expect(spy.mock.calls.length).toBe(3);
-    expect(second.available).toBe(true);
   });
 });

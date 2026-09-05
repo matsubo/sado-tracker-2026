@@ -54,7 +54,7 @@ const WEATHER_CODES: ReadonlyMap<number, DescribedWeather> = new Map([
   [2, { label: "薄曇り", icon: "⛅" }],
   [3, { label: "曇り", icon: "☁️" }],
   [45, { label: "霧", icon: "🌫️" }],
-  [48, { label: "霧氷の霧", icon: "🌫️" }],
+  [48, { label: "着氷性の霧", icon: "🌫️" }],
   [51, { label: "弱い霧雨", icon: "🌦️" }],
   [53, { label: "霧雨", icon: "🌦️" }],
   [55, { label: "強い霧雨", icon: "🌧️" }],
