@@ -3,7 +3,7 @@ import type { Athlete, RaceSnapshot } from "@/lib/domain/types";
 import type { NeighbourModel } from "@/lib/history/model";
 import type { NameIndex, PastResult } from "@/lib/history/nameIndex";
 import { findPastResults } from "@/lib/history/nameIndex";
-import { disciplineKm, disciplineStart, elapsedAt, splitBetween } from "./elapsed";
+import { disciplineKm, elapsedAt, splitBetween } from "./elapsed";
 import { buildPopulations, latestCheckpoint, type Populations } from "./population";
 import { estimatePosition, fieldOrder, type PositionEstimate } from "./position";
 import {
@@ -101,7 +101,6 @@ function computeDisciplines(
   return ALL_DISCIPLINES.map((discipline) => {
     const result = disciplineRanks(athlete, discipline, pop, course);
     const km = disciplineKm(discipline, course);
-    const from = disciplineStart(discipline);
     const measuredAt = result.atCheckpoint;
 
     const partialKm =

@@ -141,9 +141,14 @@ test.describe("every page", () => {
 test.describe("leaderboard", () => {
   test("opens on the front of the field and links to the friend list", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /佐渡トラッカー/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "総合トップ" })).toBeVisible();
     await expect(page.getByText(/先頭順/)).toBeVisible();
-    await expect(page.getByRole("link", { name: /友達一覧/ }).first()).toBeVisible();
+
+    // The menu lives in the header and leads to the other views.
+    await page.getByRole("button", { name: /メニューを開く/ }).click();
+    await expect(page.getByRole("link", { name: "友達一覧" })).toBeVisible();
+    await page.getByRole("link", { name: "友達一覧" }).click();
+    await expect(page).toHaveURL(/\/friends/);
   });
 
   test("shows the race clock, which in replay is not the device clock", async ({ page }) => {
@@ -159,5 +164,18 @@ test.describe("search", () => {
     await page.getByLabel("ゼッケン番号か名前で友達を検索").fill("1");
     await expect(page.getByRole("listbox")).toBeVisible();
     expect(await page.getByRole("option").count()).toBeGreaterThan(1);
+  });
+});
+
+test.describe("athlete splits", () => {
+  test("lists every timing point, including the ones not yet reached", async ({
+    page,
+    request,
+  }) => {
+    const bib = await racingBib(request);
+    await page.goto(`/athletes/${bib}`);
+    await expect(page.getByRole("heading", { name: /^スプリット/ })).toBeVisible();
+    // A racing athlete has points ahead of them, shown as pending rows.
+    await expect(page.getByText("未通過").first()).toBeVisible();
   });
 });

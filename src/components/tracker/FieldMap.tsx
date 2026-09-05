@@ -433,14 +433,23 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
               <g fill="var(--muted-foreground)" fontSize={named ? 9.5 : 8.5} textAnchor="end">
                 {named
                   ? placed.map((p, index) => (
-                      <text
+                      // A name is the obvious thing to tap, so it goes
+                      // straight to the athlete rather than to a tooltip.
+                      <a
                         key={p.entry.bib}
-                        x={x0 - 8}
-                        y={p.y + 3}
-                        fill={p.entry.isSelf === true ? "var(--foreground)" : undefined}
+                        href={`/athletes/${p.entry.bib}`}
+                        aria-label={`${p.entry.name} の詳細`}
+                        className="cursor-pointer outline-none focus-visible:underline"
                       >
-                        {index + 1} {p.entry.name}
-                      </text>
+                        <text
+                          x={x0 - 8}
+                          y={p.y + 3}
+                          fill={p.entry.isSelf === true ? "var(--foreground)" : undefined}
+                          className="hover:underline"
+                        >
+                          {index + 1} {p.entry.name}
+                        </text>
+                      </a>
                     ))
                   : yTicks.map((value, index) => (
                       <text key={value} x={x0 - 6} y={rowY(value - 1, entries.length, false) + 3}>
@@ -481,10 +490,23 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
                       strokeDasharray={p.filled ? undefined : "2 2"}
                     />
                     {friend && !named ? (
-                      <text x={p.x + 8} y={p.y + 3} fontSize={9} fill="var(--foreground)">
-                        {p.entry.name}
-                        {p.entry.divisionRank ? ` ${p.entry.divisionRank.rank}位` : ""}
-                      </text>
+                      <a
+                        href={`/athletes/${p.entry.bib}`}
+                        aria-label={`${p.entry.name} の詳細`}
+                        className="cursor-pointer outline-none focus-visible:underline"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <text
+                          x={p.x + 8}
+                          y={p.y + 3}
+                          fontSize={9}
+                          fill="var(--foreground)"
+                          className="hover:underline"
+                        >
+                          {p.entry.name}
+                          {p.entry.divisionRank ? ` ${p.entry.divisionRank.rank}位` : ""}
+                        </text>
+                      </a>
                     ) : null}
                   </g>
                 );
@@ -499,17 +521,17 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
                   top: `${((tip.y - 6) / height) * 100}%`,
                 }}
               >
-                <p className="font-bold text-[12px]">{tip.entry.name}</p>
+                <Link
+                  href={`/athletes/${tip.entry.bib}`}
+                  className="rounded-sm font-bold text-[12px] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {tip.entry.name}
+                  <span className="ml-1 font-bold text-[11px] text-primary">›</span>
+                </Link>
                 <p className="text-[11px] text-muted-foreground tabular-nums">
                   {tipRank ? `部門 ${tipRank.rank}/${tipRank.of} · ` : ""}
                   {placed.indexOf(tip) + 1} 番目 · {LEG[tip.leg].label} {tip.km.toFixed(1)} km
                 </p>
-                <Link
-                  href={`/athletes/${tip.entry.bib}`}
-                  className="rounded-sm font-bold text-[11px] text-primary underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  詳細 ›
-                </Link>
               </div>
             ) : null}
           </div>

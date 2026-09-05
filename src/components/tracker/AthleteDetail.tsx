@@ -269,7 +269,7 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
         </div>
 
         <Heading title="スプリット" note="区間順位は同区間を計測済みの同部門内" />
-        <SplitTable splits={detail.splits} />
+        <SplitTable splits={detail.splits} checkpoints={checkpoints} />
 
         <Heading title="過去の成績" note="同じ名前で検索" />
         <PastResults results={detail.pastResults} />

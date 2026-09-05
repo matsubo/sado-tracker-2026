@@ -49,6 +49,7 @@ export function SearchBox({ onAdd, isAdded }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const container = useRef<HTMLDivElement>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new result set is the trigger, not an input
   useEffect(() => setActive(0), [results]);
 
   useEffect(() => {
@@ -153,7 +154,10 @@ export function SearchBox({ onAdd, isAdded }: Props) {
           ) : null}
 
           {results.length > 0 ? (
-            <ul
+            // A generic element rather than a list: the ARIA listbox role
+            // already conveys the structure, and a <ul> with that role is a
+            // double announcement.
+            <div
               id={listId}
               role="listbox"
               aria-label="検索結果"
@@ -162,7 +166,7 @@ export function SearchBox({ onAdd, isAdded }: Props) {
               {results.map((athlete, index) => {
                 const added = isAdded(athlete.bib);
                 return (
-                  <li key={athlete.bib}>
+                  <div key={athlete.bib}>
                     <button
                       type="button"
                       id={`${listId}-${athlete.bib}`}
@@ -199,10 +203,10 @@ export function SearchBox({ onAdd, isAdded }: Props) {
                         <span className="shrink-0 font-bold text-[11.5px] text-primary">追加</span>
                       )}
                     </button>
-                  </li>
+                  </div>
                 );
               })}
-            </ul>
+            </div>
           ) : null}
 
           {results.length >= 50 ? (

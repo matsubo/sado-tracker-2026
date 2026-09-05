@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Footer } from "@/components/layout/Footer";
-import { GlobalNav } from "@/components/layout/GlobalNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -31,10 +30,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         <div className="flex min-h-dvh flex-col bg-background text-foreground">
-          {/* Room for the sticky bar, so nothing hides behind it. */}
-          <div className="flex-1 pb-16">{children}</div>
+          <div className="flex-1">{children}</div>
           <Footer />
-          <GlobalNav />
         </div>
       </body>
     </html>

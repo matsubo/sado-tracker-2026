@@ -62,11 +62,7 @@ export function DisciplineLines({
             </dd>
             <dd className="text-[12px] text-muted-foreground leading-snug tabular-nums">
               {missing ? (
-                row.discipline === "swim" ? (
-                  "未計測"
-                ) : (
-                  "未スタート"
-                )
+                emptyLabel(row, current)
               ) : (
                 <>
                   {row.atCheckpointLabel ? `${row.atCheckpointLabel}まで · ` : null}
