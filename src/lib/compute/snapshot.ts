@@ -7,7 +7,13 @@ import { deviationScore } from "./deviation";
 import { disciplineKm, disciplineStart, elapsedAt, splitBetween } from "./elapsed";
 import { buildPopulations, latestCheckpoint, type Populations } from "./population";
 import { estimatePosition, fieldOrder, type PositionEstimate } from "./position";
-import { type BacktestTable, type Prediction, predictFinish } from "./prediction";
+import {
+  type BacktestTable,
+  type CandidateCache,
+  createCandidateCache,
+  type Prediction,
+  predictFinish,
+} from "./prediction";
 import {
   cumulativeRanks,
   disciplineRanks,
@@ -187,6 +193,8 @@ export function computeSnapshot(
   options: { stale?: boolean; replay?: boolean; backtest?: BacktestTable } = {},
 ): ComputedSnapshot {
   const athletes = new Map<string, ComputedAthlete>();
+  // Athletes standing at the same timing point share one candidate set.
+  const candidateCache: CandidateCache = createCandidateCache();
   const byDivision: Record<Division, string[]> = { A: [], B: [], RA: [], RB: [] };
   const counts: Record<Division, Record<string, number>> = { A: {}, B: {}, RA: {}, RB: {} };
   const populations: Record<Division, Populations> = {} as Record<Division, Populations>;
@@ -225,7 +233,15 @@ export function computeSnapshot(
           : { division: null, sex: null, ageGroup: null },
         disciplines: computeDisciplines(athlete, course, pop),
         position: estimatePosition(athlete, course, pop, nowMs, model.medianSpeedKmh[division]),
-        prediction: predictFinish(athlete, course, pop, model, nowMs, options.backtest),
+        prediction: predictFinish(
+          athlete,
+          course,
+          pop,
+          model,
+          nowMs,
+          options.backtest,
+          candidateCache,
+        ),
         splits: computeSplits(athlete, course, pop),
         rankHistory: cumulativeRanks(athlete, pop, course),
         pastResults: findPastResults(nameIndex, athlete.nameKey),

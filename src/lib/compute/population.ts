@@ -12,6 +12,17 @@ export interface Populations {
   atCheckpointBySex(checkpointId: string, sex: "M" | "F"): readonly Athlete[];
   /** Athletes who have reached a checkpoint and share an age group. */
   atCheckpointByAgeGroup(checkpointId: string, ageGroupId: string): readonly Athlete[];
+  /**
+   * Ranks for a whole group at once, keyed by bib. Ranking each athlete
+   * against the group separately is quadratic, and with a thousand athletes
+   * over twenty checkpoints that dominated a refresh; this computes the
+   * table once and every athlete reads their row out of it.
+   */
+  rankTable(
+    cacheKey: string,
+    group: readonly Athlete[],
+    value: (athlete: Athlete) => number | null,
+  ): ReadonlyMap<string, { rank: number; of: number }>;
 }
 
 /**
@@ -59,6 +70,7 @@ export function buildPopulations(
 
   const sexCache = new Map<string, Athlete[]>();
   const ageCache = new Map<string, Athlete[]>();
+  const rankCache = new Map<string, ReadonlyMap<string, { rank: number; of: number }>>();
 
   return {
     division,
@@ -79,6 +91,32 @@ export function buildPopulations(
       const value = (byCheckpoint.get(id) ?? []).filter((a) => a.ageGroup?.id === ageGroupId);
       ageCache.set(key, value);
       return value;
+    },
+    rankTable: (cacheKey, group, value) => {
+      const cached = rankCache.get(cacheKey);
+      if (cached) return cached;
+
+      const measured: { bib: string; value: number }[] = [];
+      for (const athlete of group) {
+        const own = value(athlete);
+        if (own !== null) measured.push({ bib: athlete.bib, value: own });
+      }
+      measured.sort((a, b) => a.value - b.value);
+
+      // Standard competition ranking: ties share a rank and the next skips.
+      const table = new Map<string, { rank: number; of: number }>();
+      let rank = 0;
+      let previous = Number.NaN;
+      measured.forEach((entry, index) => {
+        if (entry.value !== previous) {
+          rank = index + 1;
+          previous = entry.value;
+        }
+        table.set(entry.bib, { rank, of: measured.length });
+      });
+
+      rankCache.set(cacheKey, table);
+      return table;
     },
   };
 }

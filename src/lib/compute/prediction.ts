@@ -179,6 +179,28 @@ interface Standardizer {
   readonly sd: Map<string, number>;
 }
 
+/**
+ * The k nearest items by a distance function. Sorting every candidate to take
+ * twenty of them was the single most expensive step of a refresh.
+ */
+function nearestBy<T>(items: readonly T[], distanceOf: (item: T) => number, k: number): T[] {
+  const best: { item: T; d: number }[] = [];
+  let worst = Number.POSITIVE_INFINITY;
+
+  for (const item of items) {
+    const d = distanceOf(item);
+    if (best.length === k && d >= worst) continue;
+
+    let at = best.length;
+    while (at > 0 && (best[at - 1] as { d: number }).d > d) at -= 1;
+    best.splice(at, 0, { item, d });
+    if (best.length > k) best.pop();
+    worst = (best[best.length - 1] as { d: number }).d;
+  }
+
+  return best.map((entry) => entry.item);
+}
+
 function standardizer(
   vectors: readonly Map<string, number>[],
   keys: readonly string[],
@@ -195,6 +217,22 @@ function standardizer(
   }
 
   return { mean, sd };
+}
+
+interface CandidateSet {
+  readonly candidates: readonly { row: TrainingRow; vector: Map<string, number>; remaining: number }[];
+  readonly scale: Standardizer;
+}
+
+/**
+ * Candidates depend only on the division, the checkpoint and which features
+ * are in play, so hundreds of athletes standing at the same timing point
+ * share one set. Rebuilding it per athlete dominated the cost of a refresh.
+ */
+export type CandidateCache = Map<string, CandidateSet>;
+
+export function createCandidateCache(): CandidateCache {
+  return new Map();
 }
 
 function distance(
@@ -276,6 +314,7 @@ export function predictFinish(
   model: NeighbourModel,
   nowMs: number,
   backtest?: BacktestTable,
+  cache?: CandidateCache,
 ): Prediction | null {
   const status = athleteStatus(athlete, course, nowMs);
   if (status === "not_started" || status === "dns_suspected") return null;
@@ -302,23 +341,26 @@ export function predictFinish(
 
   const keys = [...own.keys()];
 
-  const candidates: { row: TrainingRow; vector: Map<string, number>; remaining: number }[] = [];
-  if (keys.length > 0) {
-    for (const row of model.rows[athlete.division]) {
-      const atCheckpoint = row.elapsed[latest];
-      if (atCheckpoint === undefined) continue;
-      const vector = trainingVector(row, course, keys);
-      if (!vector) continue;
-      candidates.push({ row, vector, remaining: row.totalMs - atCheckpoint });
+  const cacheKey = `${athlete.division}|${latest}|${keys.join(",")}`;
+  let set = cache?.get(cacheKey);
+  if (!set) {
+    const built: { row: TrainingRow; vector: Map<string, number>; remaining: number }[] = [];
+    if (keys.length > 0) {
+      for (const row of model.rows[athlete.division]) {
+        const atCheckpoint = row.elapsed[latest];
+        if (atCheckpoint === undefined) continue;
+        const vector = trainingVector(row, course, keys);
+        if (!vector) continue;
+        built.push({ row, vector, remaining: row.totalMs - atCheckpoint });
+      }
     }
+    set = { candidates: built, scale: standardizer(built.map((c) => c.vector), keys) };
+    cache?.set(cacheKey, set);
   }
+  const { candidates, scale } = set;
 
   if (candidates.length >= MIN_NEIGHBOURS) {
-    const scale = standardizer([own, ...candidates.map((c) => c.vector)], keys);
-    const nearest = candidates
-      .map((c) => ({ ...c, d: distance(own, c.vector, keys, scale) }))
-      .sort((a, b) => a.d - b.d)
-      .slice(0, NEIGHBOUR_COUNT);
+    const nearest = nearestBy(candidates, (c) => distance(own, c.vector, keys, scale), NEIGHBOUR_COUNT);
 
     const remaining = nearest.map((n) => n.remaining).sort((a, b) => a - b);
     const yearBreakdown: Record<number, number> = {};
