@@ -160,6 +160,7 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
       <PageHeader
         title={detail.name}
         subtitle={`#${detail.bib}`}
+        documentTitle={`ゼッケン ${detail.bib}`}
         back={{ href: "/bookmarks", label: "ブックマーク" }}
         race={race}
         lastPolledAt={lastPolledAt}
@@ -277,7 +278,7 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
           />
         </div>
 
-        <Heading title="スプリット" note="区間順位は同区間を計測済みの同じタイプ内" />
+        <Heading title="スプリット" note="区間順位は同じ区間を計測済みの中での順位" />
         <SplitTable splits={detail.splits} checkpoints={checkpoints} />
 
         <Heading title="過去の成績" note="同じ名前で検索" />

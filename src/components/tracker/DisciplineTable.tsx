@@ -73,7 +73,17 @@ export function DisciplineTable({ rows, splits }: DisciplineTableProps): React.J
           return (
             <TR key={row.discipline} className={cn(missing && "text-muted-foreground")}>
               <TD align="left" className={cn("font-bold", !missing && TONE[row.discipline])}>
-                {row.label} {row.km}km
+                {row.label}{" "}
+                {/* A leg still being raced shows how far its time reaches, so
+                    21 minutes cannot be read as a 21 km half marathon. */}
+                {row.provisional && !missing && row.measuredKm < row.km ? (
+                  <span className="whitespace-nowrap">
+                    {row.measuredKm}
+                    <span className="font-normal text-muted-foreground">/{row.km}km</span>
+                  </span>
+                ) : (
+                  <span className="whitespace-nowrap">{row.km}km</span>
+                )}
               </TD>
               <TD className="font-semibold text-[13px]">
                 {missing ? DASH : formatDuration(row.timeMs as number)}

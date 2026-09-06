@@ -21,6 +21,7 @@ import {
   type RankSet,
   ranksAtCheckpoint,
   splitRank,
+  splitRanks,
 } from "./ranking";
 import { athleteStatus, type Status } from "./status";
 
@@ -39,6 +40,8 @@ export interface ComputedDiscipline {
   readonly km: number;
   readonly timeMs: number | null;
   readonly provisional: boolean;
+  /** Distance the time covers: the checkpoint reached, or the whole leg. */
+  readonly measuredKm: number;
   readonly atCheckpointLabel: string | null;
   readonly ranks: RankSet;
   readonly speedKmh: number | null;
@@ -56,6 +59,7 @@ export interface ComputedSplit {
   readonly segmentKm: number | null;
   readonly segmentSpeedKmh: number | null;
   readonly segmentRank: Rank | null;
+  readonly segmentRanks: RankSet;
   readonly cumulativeRanks: RankSet;
 }
 
@@ -114,6 +118,7 @@ function computeDisciplines(
       km,
       timeMs: result.timeMs,
       provisional: result.provisional,
+      measuredKm: result.provisional ? partialKm : km,
       atCheckpointLabel:
         result.provisional && measuredAt
           ? (course.checkpoints.find((c) => c.id === measuredAt)?.label ?? null)
@@ -162,6 +167,10 @@ function computeSplits(
           ? segmentKm / (segmentMs / 3_600_000)
           : null,
       segmentRank: previousId === null ? null : splitRank(athlete, previousId, checkpoint.id, pop),
+      segmentRanks:
+        previousId === null
+          ? { division: null, sex: null, ageGroup: null }
+          : splitRanks(athlete, previousId, checkpoint.id, pop),
       cumulativeRanks: ranksAtCheckpoint(athlete, checkpoint.id, pop),
     });
 

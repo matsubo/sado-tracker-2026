@@ -79,7 +79,8 @@ export function SplitTable({ splits, checkpoints }: SplitTableProps): React.JSX.
           <TH>経過</TH>
           <TH>区間</TH>
           <TH>速度</TH>
-          <TH>区間順位</TH>
+          <TH>区間 総合</TH>
+          <TH>区間 エイジ</TH>
         </TR>
       </THead>
       <TBody>
@@ -115,9 +116,14 @@ export function SplitTable({ splits, checkpoints }: SplitTableProps): React.JSX.
               <TD>{split.segmentMs === null ? DASH : formatDurationShort(split.segmentMs)}</TD>
               <TD>{segmentSpeed(split)}</TD>
               <TD>
-                {split.segmentRank === null
+                {split.segmentRanks.division === null
                   ? DASH
-                  : formatRank(split.segmentRank.rank, split.segmentRank.of)}
+                  : formatRank(split.segmentRanks.division.rank, split.segmentRanks.division.of)}
+              </TD>
+              <TD>
+                {split.segmentRanks.ageGroup === null
+                  ? DASH
+                  : formatRank(split.segmentRanks.ageGroup.rank, split.segmentRanks.ageGroup.of)}
               </TD>
             </TR>
           );

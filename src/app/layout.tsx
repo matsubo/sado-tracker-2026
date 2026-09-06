@@ -1,6 +1,6 @@
-import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { Analytics } from "@/components/layout/Analytics";
 import { Footer } from "@/components/layout/Footer";
 import "./globals.css";
 
@@ -11,13 +11,17 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sado-tracker-2026.
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "佐渡トラッカー 2026",
+  // Every page sets its own title and it is suffixed here, so analytics can
+  // tell the screens apart instead of filing them all under the site name.
+  title: { default: "佐渡トラッカー 2026", template: "%s | 佐渡トラッカー 2026" },
   applicationName: "佐渡トラッカー",
   appleWebApp: { capable: true, title: "佐渡トラッカー", statusBarStyle: "default" },
   openGraph: {
     type: "website",
     siteName: "佐渡トラッカー 2026",
-    title: "佐渡トラッカー 2026",
+    // Every page sets its own title and it is suffixed here, so analytics can
+    // tell the screens apart instead of filing them all under the site name.
+    title: { default: "佐渡トラッカー 2026", template: "%s | 佐渡トラッカー 2026" },
     description: DESCRIPTION,
     locale: "ja_JP",
     url: SITE_URL,
@@ -62,7 +66,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <div className="flex-1">{children}</div>
           <Footer />
         </div>
-        {GA_ID ? <GoogleAnalytics gaId={GA_ID} /> : null}
+        {GA_ID ? <Analytics gaId={GA_ID} /> : null}
       </body>
     </html>
   );

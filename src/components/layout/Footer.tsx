@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils/cn";
 
 const AI_TRI_URL = "https://ai-triathlon-result.teraren.com/";
 const REPO_URL = "https://github.com/matsubo/sado-tracker-2026";
+const AUTHOR_URL = "https://x.com/ittriathlon";
 
 const LINK_CLASS = cn(
   "rounded-sm font-semibold text-primary outline-none hover:underline",
@@ -62,6 +63,10 @@ export function Footer({ className }: { className?: string }) {
       <p className="mt-1.5">
         <a className={LINK_CLASS} href={REPO_URL} target="_blank" rel="noopener noreferrer">
           不具合の報告・ソースコード
+        </a>
+        {" · 作者 "}
+        <a className={LINK_CLASS} href={AUTHOR_URL} target="_blank" rel="noopener noreferrer">
+          @ittriathlon ↗
         </a>
       </p>
 

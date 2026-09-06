@@ -580,3 +580,64 @@ describe("the leaderboard before the start", () => {
     expect(board.order).toBe("field");
   });
 });
+
+describe("split ranks", () => {
+  const detail = () => {
+    const bib = [...snapshot.athletes.values()].find(
+      (c) => c.splits.length > 3 && c.athlete.ageGroup !== null,
+    )?.athlete.bib as string;
+    return toAthleteDetail(snapshot, snapshot.athletes.get(bib) as never);
+  };
+
+  it("ranks a segment against everyone who has covered it", () => {
+    const splits = detail().splits.filter((s) => s.segmentRanks.division !== null);
+    expect(splits.length).toBeGreaterThan(0);
+    for (const split of splits) {
+      const rank = split.segmentRanks.division as { rank: number; of: number };
+      expect(rank.rank).toBeGreaterThanOrEqual(1);
+      expect(rank.rank).toBeLessThanOrEqual(rank.of);
+    }
+  });
+
+  it("also ranks a segment inside the athlete's own age group", () => {
+    const splits = detail().splits.filter((s) => s.segmentRanks.ageGroup !== null);
+    expect(splits.length).toBeGreaterThan(0);
+    for (const split of splits) {
+      const age = split.segmentRanks.ageGroup as { rank: number; of: number };
+      const all = split.segmentRanks.division as { rank: number; of: number };
+      // An age group is a subset of the type, so it can never be the larger
+      // population, and a place in it can never be worse.
+      expect(age.of).toBeLessThanOrEqual(all.of);
+      expect(age.rank).toBeLessThanOrEqual(all.rank);
+    }
+  });
+
+  it("keeps the whole-type segment rank it always reported", () => {
+    for (const split of detail().splits) {
+      expect(split.segmentRanks.division).toEqual(split.segmentRank);
+    }
+  });
+});
+
+describe("a leg still being raced", () => {
+  it("says how far the provisional time has actually covered", () => {
+    const racing = [...snapshot.athletes.values()].find((c) =>
+      c.disciplines.some((d) => d.provisional && d.timeMs !== null),
+    );
+    expect(racing).toBeDefined();
+    const leg = toAthleteDetail(snapshot, racing as never).disciplines.find(
+      (d) => d.provisional && d.timeMs !== null,
+    );
+    expect(leg?.measuredKm).not.toBeNull();
+    // The time so far cannot cover the whole leg, or the leg would be done.
+    expect(leg?.measuredKm as number).toBeLessThan(leg?.km as number);
+  });
+
+  it("reports the full distance once a leg is finished", () => {
+    const done = [...snapshot.athletes.values()]
+      .flatMap((c) => toAthleteDetail(snapshot, c as never).disciplines)
+      .find((d) => !d.provisional && d.timeMs !== null);
+    expect(done).toBeDefined();
+    expect(done?.measuredKm).toBe(done?.km);
+  });
+});

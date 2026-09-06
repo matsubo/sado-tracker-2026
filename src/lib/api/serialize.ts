@@ -89,6 +89,7 @@ function toDisciplines(computed: ComputedAthlete): DisciplineDto[] {
     km: d.km,
     timeMs: d.timeMs,
     provisional: d.provisional,
+    measuredKm: d.measuredKm,
     atCheckpointLabel: d.atCheckpointLabel,
     ranks: d.ranks,
     speedKmh: d.speedKmh === null ? null : round(d.speedKmh, 1),

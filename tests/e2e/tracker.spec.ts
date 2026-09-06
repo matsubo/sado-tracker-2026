@@ -350,3 +350,52 @@ test.describe("touch keyboards", () => {
     });
   }
 });
+
+test.describe("page titles", () => {
+  /**
+   * Analytics records the document title with every page view, so a title
+   * that never changes makes every screen look like the front page in the
+   * reports. Titles have to be distinct AND have to follow a client-side
+   * navigation, which is the only way anyone moves around this app.
+   */
+  test("gives every page its own title on a direct load", async ({ page }) => {
+    const seen = new Map<string, string>();
+    for (const path of ["/", "/bookmarks", "/map", "/divisions/A", "/divisions/B", "/help"]) {
+      await page.goto(path);
+      const title = await page.title();
+      expect(title, `${path} has no title`).not.toBe("");
+      const clash = [...seen.entries()].find(([, value]) => value === title);
+      expect(clash, `${path} shares its title with ${clash?.[0]}`).toBeUndefined();
+      seen.set(path, title);
+    }
+  });
+
+  test("changes the title when the reader moves through the menu", async ({ page }) => {
+    await page.goto("/");
+
+    const menu = page.getByRole("navigation", { name: "メインメニュー" });
+    for (const [label, expected] of [
+      ["ブックマーク", "ブックマーク | 佐渡トラッカー 2026"],
+      ["全体マップ", "全体マップ | 佐渡トラッカー 2026"],
+      ["ヘルプ", "ヘルプ | 佐渡トラッカー 2026"],
+    ] as const) {
+      await page.getByRole("button", { name: /メニューを開く/ }).click();
+      await menu.getByRole("link", { name: label, exact: true }).click();
+      await expect(page).toHaveURL(/\/(bookmarks|map|help)/);
+      await expect.poll(async () => page.title()).toBe(expected);
+      // And it has to stay put: the framework re-applies its own title after
+      // the page has rendered on some routes.
+      await page.waitForTimeout(1200);
+      expect(await page.title()).toBe(expected);
+    }
+  });
+
+  test("names the athlete page after the athlete", async ({ page }) => {
+    await page.goto("/");
+    const href = await page.locator('main a[href^="/athletes/"]').first().getAttribute("href");
+    const bib = (href as string).split("/").pop() as string;
+    await page.locator('main a[href^="/athletes/"]').first().click();
+    await expect(page).toHaveURL(/\/athletes\//);
+    await expect.poll(async () => page.title()).toBe(`ゼッケン ${bib} | 佐渡トラッカー 2026`);
+  });
+});

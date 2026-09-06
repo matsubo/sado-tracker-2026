@@ -33,6 +33,7 @@ const leg = (
 ): DisciplineDto => ({
   timeMs: null,
   provisional: false,
+  measuredKm: over.km,
   atCheckpointLabel: null,
   ranks: NO_RANKS,
   speedKmh: null,
@@ -64,6 +65,7 @@ const split = (
   segmentKm: null,
   segmentSpeedKmh: null,
   segmentRank: null,
+  segmentRanks: NO_RANKS,
   cumulativeRanks: NO_RANKS,
   passedAt: START_AT + over.elapsedMs,
   ...over,

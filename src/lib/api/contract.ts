@@ -30,6 +30,13 @@ export interface DisciplineDto {
   readonly timeMs: number | null;
   /** True while the discipline is still in progress. */
   readonly provisional: boolean;
+  /**
+   * Distance the time covers. For a leg still being raced this is the
+   * checkpoint reached, not the whole leg: 21 minutes is a sensible run
+   * split and a nonsensical half marathon, and only this number says which
+   * of the two is on screen.
+   */
+  readonly measuredKm: number;
   readonly atCheckpointLabel: string | null;
   readonly ranks: RankSetDto;
   /** Speed in km/h for bike, null for swim and run which use pace. */
@@ -48,7 +55,10 @@ export interface SplitDto {
   readonly segmentMs: number | null;
   readonly segmentKm: number | null;
   readonly segmentSpeedKmh: number | null;
+  /** Kept for callers that only ever read the whole-type segment rank. */
   readonly segmentRank: RankDto | null;
+  /** The same segment ranked against the type, the sex and the age group. */
+  readonly segmentRanks: RankSetDto;
   readonly cumulativeRanks: RankSetDto;
 }
 

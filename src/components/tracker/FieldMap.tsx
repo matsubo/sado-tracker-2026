@@ -344,6 +344,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
       <PageHeader
         title="全体マップ"
         subtitle="推定位置"
+        documentTitle="全体マップ"
         race={race}
         lastPolledAt={lastPolledAt}
         error={raceError}

@@ -28,9 +28,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { div } = await params;
   const division = toDivision(div);
   return {
-    title: division
-      ? `${division}タイプ 種目別順位 | 佐渡トラッカー 2026`
-      : "ランキング | 佐渡トラッカー 2026",
+    title: division ? `${division}タイプ 種目別順位` : "種目別順位",
   };
 }
 

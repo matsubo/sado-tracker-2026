@@ -10,7 +10,7 @@ interface PageProps {
   readonly searchParams: Promise<SearchParams>;
 }
 
-export const metadata: Metadata = { title: "全体マップ | 佐渡トラッカー 2026" };
+export const metadata: Metadata = { title: "全体マップ" };
 
 /** Search params arrive as string or string[]; only the first value is used. */
 function first(value: string | string[] | undefined): string | null {

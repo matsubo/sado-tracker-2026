@@ -168,6 +168,16 @@ export function cumulativeRanks(
 }
 
 /** Rank of one segment between consecutive checkpoints. */
+/**
+ * Rank one segment in each population: everyone who has covered it, the same
+ * sex, and the same age group. Segment time is what a supporter compares when
+ * they ask "is my friend gaining on their group", and the whole-type number
+ * alone cannot answer that.
+ */
+export function splitRanks(athlete: Athlete, from: string, to: string, pop: Populations): RankSet {
+  return ranksAgainst(athlete, to, pop, `segment:${from}->${to}`, (a) => splitBetween(a, from, to));
+}
+
 export function splitRank(
   athlete: Athlete,
   from: string,

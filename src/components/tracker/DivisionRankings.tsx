@@ -165,6 +165,7 @@ export function DivisionRankings({
       <PageHeader
         title="種目別順位"
         subtitle={`${division}タイプ`}
+        documentTitle={`${division}タイプ 種目別順位`}
         race={race}
         lastPolledAt={lastPolledAt}
         error={raceError}

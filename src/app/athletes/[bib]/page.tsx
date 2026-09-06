@@ -7,7 +7,7 @@ interface AthletePageProps {
 
 export async function generateMetadata({ params }: AthletePageProps): Promise<Metadata> {
   const { bib } = await params;
-  return { title: `ゼッケン ${bib} | 佐渡トラッカー 2026` };
+  return { title: `ゼッケン ${bib}` };
 }
 
 /** Athlete detail. The body is a client component: everything on it is live. */

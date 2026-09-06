@@ -1,15 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { GlobalHeader } from "@/components/layout/GlobalNav";
 import { LiveStatusBar } from "@/components/tracker/LiveStatusBar";
 import type { RaceStateDto } from "@/lib/api/contract";
+import { pageTitle, setPageName } from "@/lib/pageTitle";
 
 interface PageHeaderProps {
   readonly title: string;
   /** Shown next to the title in a lighter weight, e.g. the division. */
   readonly subtitle?: string | null;
+  /**
+   * What the browser tab and analytics call this page, when the heading is
+   * not enough on its own. It has to stay the same as long as the page does:
+   * a subtitle that counts bookmarks would file one screen under a different
+   * name for every reader.
+   */
+  readonly documentTitle?: string;
   /** A link back to the page this one was reached from. */
   readonly back?: { readonly href: string; readonly label: string } | null;
   /** A control belonging to this page, placed opposite the title. */
@@ -36,6 +44,7 @@ interface PageHeaderProps {
 export function PageHeader({
   title,
   subtitle,
+  documentTitle,
   back,
   action,
   race,
@@ -46,6 +55,31 @@ export function PageHeader({
   onAutoChange,
   onRefresh,
 }: PageHeaderProps) {
+  // Next updates the description on a client-side navigation but leaves the
+  // title on whatever the root layout set, so every screen reported itself as
+  // the front page. Analytics reads document.title when it sends a page view,
+  // and this effect runs before the layout's, so the name is right by then.
+  const name = documentTitle ?? title;
+  // Recorded during render so the page-view effect, which runs afterwards,
+  // never reports the screen the reader just left.
+  setPageName(name);
+  useEffect(() => {
+    const wanted = pageTitle(name);
+    document.title = wanted;
+
+    // The framework re-applies the root layout's title after this effect on
+    // some routes, which leaves the tab, and anything reading it, naming the
+    // page the reader has left. Writing the same value causes no mutation, so
+    // this settles after one correction rather than looping.
+    const titleTag = document.querySelector("title");
+    if (!titleTag) return;
+    const observer = new MutationObserver(() => {
+      if (document.title !== wanted) document.title = wanted;
+    });
+    observer.observe(titleTag, { childList: true, characterData: true, subtree: true });
+    return () => observer.disconnect();
+  }, [name]);
+
   return (
     <header>
       <GlobalHeader year={race?.year} />

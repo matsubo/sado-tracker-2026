@@ -71,6 +71,7 @@ export function BookmarkDashboard() {
       <PageHeader
         title="ブックマーク"
         subtitle={bibs.length > 0 ? `${bibs.length} 人` : null}
+        documentTitle="ブックマーク"
         race={race}
         lastPolledAt={lastPolledAt}
         error={raceError}

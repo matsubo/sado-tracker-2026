@@ -36,6 +36,14 @@ describe("Footer", () => {
     );
   });
 
+  it("credits the author with a way to reach them", () => {
+    render(<Footer />);
+    const author = screen.getByRole("link", { name: /@ittriathlon/ });
+    expect(author).toHaveAttribute("href", "https://x.com/ittriathlon");
+    expect(author).toHaveAttribute("target", "_blank");
+    expect(author).toHaveAttribute("rel", expect.stringContaining("noopener"));
+  });
+
   it("reserves copyright, because reading the source is not reusing it", () => {
     render(<Footer />);
     expect(screen.getByText(/All rights reserved/)).toBeInTheDocument();
