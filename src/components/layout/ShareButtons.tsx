@@ -11,6 +11,8 @@ interface Props {
   readonly text: string;
   /** Which screen the share came from, for the event only. */
   readonly source: string;
+  /** Small line above the icons; omitted when the context is already clear. */
+  readonly caption?: string | null;
   readonly className?: string;
 }
 
@@ -45,25 +47,39 @@ const NETWORKS: readonly {
   Mark: () => React.JSX.Element;
   tone: string;
 }[] = [
-  { id: "x", label: "X", Mark: XMark, tone: "hover:bg-foreground hover:text-background" },
+  {
+    id: "x",
+    label: "X",
+    Mark: XMark,
+    tone: "hover:border-foreground hover:bg-foreground hover:text-background",
+  },
   {
     id: "facebook",
     label: "Facebook",
     Mark: FacebookMark,
-    tone: "hover:bg-[#1877f2] hover:text-white hover:border-[#1877f2]",
+    tone: "hover:border-[#1877f2] hover:bg-[#1877f2] hover:text-white",
   },
   {
     id: "line",
     label: "LINE",
     Mark: LineMark,
-    tone: "hover:bg-[#06c755] hover:text-white hover:border-[#06c755]",
+    tone: "hover:border-[#06c755] hover:bg-[#06c755] hover:text-white",
   },
 ];
 
+/**
+ * Icon only, and the same circle for each.
+ *
+ * Labelled pills were three different widths, wrapped on a phone and left the
+ * fourth stranded on a line of its own, which made four small actions look
+ * like the most important thing in the footer. The mark alone is what people
+ * scan for, and the accessible name carries the rest.
+ */
 const BUTTON = cn(
-  "flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5",
-  "font-semibold text-[12px] text-muted-foreground transition-colors",
-  "outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  "grid size-9 place-items-center rounded-full border border-border bg-card",
+  "text-muted-foreground transition-colors duration-150",
+  "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+  "focus-visible:ring-offset-background",
 );
 
 /**
@@ -71,7 +87,7 @@ const BUTTON = cn(
  * the origin and path, so a bookmark list that arrived as `?bibs=` is never
  * handed on: who someone is following is theirs.
  */
-export function ShareButtons({ text, source, className }: Props) {
+export function ShareButtons({ text, source, caption = "共有", className }: Props) {
   const [url, setUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -97,35 +113,44 @@ export function ShareButtons({ text, source, className }: Props) {
   };
 
   return (
-    <div className={cn("flex flex-wrap items-center justify-center gap-1.5", className)}>
-      <span className="text-[11.5px] text-muted-foreground">このページを共有</span>
-      {NETWORKS.map(({ id, label, Mark, tone }) => (
-        <a
-          key={id}
-          href={url ? shareHref(id, url, text) : undefined}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`${label} で共有`}
-          onClick={() => track("share", { source, network: id })}
-          className={cn(BUTTON, tone, !url && "pointer-events-none opacity-50")}
+    <div className={cn("flex flex-col items-center gap-2", className)}>
+      {caption ? (
+        <span className="text-[10.5px] text-muted-foreground uppercase tracking-[0.14em]">
+          {caption}
+        </span>
+      ) : null}
+      <div className="flex items-center gap-2">
+        {NETWORKS.map(({ id, label, Mark, tone }) => (
+          <a
+            key={id}
+            href={url ? shareHref(id, url, text) : undefined}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`${label} で共有`}
+            onClick={() => track("share", { source, network: id })}
+            className={cn(BUTTON, tone, !url && "pointer-events-none opacity-50")}
+          >
+            <Mark />
+          </a>
+        ))}
+        <button
+          type="button"
+          onClick={copy}
+          aria-label={copied ? "リンクをコピーしました" : "リンクをコピー"}
+          className={cn(
+            BUTTON,
+            copied
+              ? "border-[color:var(--run)] text-[color:var(--run)]"
+              : "hover:border-foreground hover:text-foreground",
+          )}
         >
-          <Mark />
-          {label}
-        </a>
-      ))}
-      <button
-        type="button"
-        onClick={copy}
-        aria-label={copied ? "リンクをコピーしました" : "リンクをコピー"}
-        className={cn(BUTTON, "hover:bg-muted")}
-      >
-        {copied ? (
-          <Check className="size-[15px] text-[color:var(--run)]" aria-hidden />
-        ) : (
-          <Link2 className="size-[15px]" aria-hidden />
-        )}
-        {copied ? "コピーしました" : "リンク"}
-      </button>
+          {copied ? (
+            <Check className="size-[15px]" aria-hidden />
+          ) : (
+            <Link2 className="size-[15px]" aria-hidden />
+          )}
+        </button>
+      </div>
     </div>
   );
 }

@@ -288,6 +288,7 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
       <ShareButtons
         text={`${detail.name} 選手を応援中 — 佐渡国際トライアスロン`}
         source="athlete"
+        caption="この選手を共有"
         className="px-4 pt-5"
       />
 
