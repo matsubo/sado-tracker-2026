@@ -44,6 +44,20 @@ describe("Footer", () => {
     expect(author).toHaveAttribute("rel", expect.stringContaining("noopener"));
   });
 
+  it("carries the legal pages, quietly, and not among the destinations", () => {
+    render(<Footer />);
+    const privacy = screen.getByRole("link", { name: "プライバシーポリシー" });
+    expect(privacy).toHaveAttribute("href", "/privacy");
+    const terms = screen.getByRole("link", { name: "利用規約" });
+    expect(terms).toHaveAttribute("href", "/terms");
+
+    // The destinations are a fixed grid sized for the menu's six items, and
+    // the menu lists the same set. Neither page belongs in it.
+    const nav = screen.getByRole("navigation", { name: "サイト内のページ" });
+    expect(within(nav).queryByRole("link", { name: "プライバシーポリシー" })).toBeNull();
+    expect(within(nav).queryByRole("link", { name: "利用規約" })).toBeNull();
+  });
+
   it("reserves copyright, because reading the source is not reusing it", () => {
     render(<Footer />);
     expect(screen.getByText(/All rights reserved/)).toBeInTheDocument();

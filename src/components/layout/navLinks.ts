@@ -33,3 +33,16 @@ export const NAV_LINKS: readonly NavLink[] = [
 
 /** The official timing site, listed last wherever the destinations appear. */
 export const OFFICIAL_URL = "https://systemway.jp/26sado?di=1";
+
+/**
+ * The two pages a reader goes looking for rather than browses to. They are
+ * deliberately not in NAV_LINKS: that list is the menu as well, and the menu
+ * is for getting back to the race.
+ */
+export const LEGAL_LINKS: readonly { readonly href: string; readonly label: string }[] = [
+  { href: "/terms", label: "利用規約" },
+  { href: "/privacy", label: "プライバシーポリシー" },
+];
+
+/** Where a reader asks something, or asks to be taken off the site. */
+export const CONTACT_URL = "https://discord.gg/FRzmgpCySV";

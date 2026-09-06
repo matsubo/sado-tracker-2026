@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { NAV_LINKS, OFFICIAL_URL } from "@/components/layout/navLinks";
+import { LEGAL_LINKS, NAV_LINKS, OFFICIAL_URL } from "@/components/layout/navLinks";
 import { ShareButtons } from "@/components/layout/ShareButtons";
 import { cn } from "@/lib/utils/cn";
 
@@ -76,6 +76,18 @@ export function Footer({ className }: { className?: string }) {
             <a className={META_LINK} href={AUTHOR_URL} target="_blank" rel="noopener noreferrer">
               @ittriathlon
             </a>
+          </p>
+          {/* Sought out rather than browsed to, so they sit with the credits
+              rather than among the destinations, which the menu also lists. */}
+          <p>
+            {LEGAL_LINKS.map((link, index) => (
+              <span key={link.href}>
+                {index > 0 ? " · " : null}
+                <Link className={META_LINK} href={link.href}>
+                  {link.label}
+                </Link>
+              </span>
+            ))}
           </p>
           {/* The source is readable, which is not the same as reusable. */}
           <p className="mt-0.5 text-[10.5px] opacity-80">

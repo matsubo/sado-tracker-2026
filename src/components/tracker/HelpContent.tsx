@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { External, Question, Section } from "@/components/layout/Prose";
 import { useRaceState } from "@/hooks/useSnapshot";
 import { waveStartSentence } from "@/lib/format";
 
@@ -9,45 +10,6 @@ const REPO = "https://github.com/matsubo/sado-tracker-2026";
 const ISSUES = `${REPO}/issues`;
 const SOURCE = "https://systemway.jp/26sado?di=1";
 const AI_TRI = "https://ai-triathlon-result.teraren.com/";
-
-function Section({
-  title,
-  children,
-}: {
-  readonly title: string;
-  readonly children: React.ReactNode;
-}) {
-  return (
-    <section className="px-4 pt-5">
-      <h2 className="font-bold text-[15px]">{title}</h2>
-      <div className="mt-1.5 flex flex-col gap-2 text-[12.5px] text-muted-foreground leading-relaxed">
-        {children}
-      </div>
-    </section>
-  );
-}
-
-function Question({ q, children }: { readonly q: string; readonly children: React.ReactNode }) {
-  return (
-    <div>
-      <p className="font-semibold text-[12.5px] text-foreground">{q}</p>
-      <div className="mt-0.5 flex flex-col gap-1.5">{children}</div>
-    </div>
-  );
-}
-
-function External({ href, children }: { readonly href: string; readonly children: string }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="rounded font-semibold text-primary underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      {children} ↗
-    </a>
-  );
-}
 
 /**
  * What the numbers mean and where they come from. A supporter who does not
@@ -208,6 +170,16 @@ export function HelpContent() {
             どのページがどれくらい見られたかを Google アナリティクスで数えています。
             送っているのは閲覧したページと、ブラウザや画面サイズといった一般的な情報だけです。
             ブックマークした選手や、誰を応援しているかは送っていません。
+          </p>
+          <p>
+            何がどこへ送られるかは{" "}
+            <Link
+              href="/privacy"
+              className="rounded font-semibold text-primary underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              プライバシーポリシー
+            </Link>{" "}
+            に書いています。
           </p>
         </Question>
         <Question q="通知は届きますか">
