@@ -51,9 +51,9 @@ export function PastResults({ results }: PastResultsProps): React.JSX.Element {
               <b className="font-bold text-[14px]">{result.year}</b>
               <span className="font-semibold text-muted-foreground">{result.division}</span>
               <span className="text-muted-foreground">
-                総合{" "}
+                タイム{" "}
                 <strong className="font-semibold text-foreground">{result.totalText || "—"}</strong>{" "}
-                · 部門{" "}
+                · 総合{" "}
                 <strong className="font-semibold text-foreground">
                   {formatRank(result.divisionRank.rank, result.divisionRank.of)}
                 </strong>
@@ -100,7 +100,7 @@ export function PastResults({ results }: PastResultsProps): React.JSX.Element {
                           {leg.paceText}
                           {leg.divisionRank ? (
                             <>
-                              {" · 部門 "}
+                              {" · 総合 "}
                               <strong className="font-semibold text-foreground">
                                 {formatRank(leg.divisionRank.rank, leg.divisionRank.of)}
                               </strong>

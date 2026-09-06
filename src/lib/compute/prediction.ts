@@ -445,7 +445,7 @@ export function predictFinish(
       extrapolationMs,
       backtestMedianErrorMs: null,
       backtestWithin25MinPct: null,
-      note: "過去データで似た選手が足りないため、残り距離を部門の平均ペースで割った概算です。",
+      note: "過去データで似た選手が足りないため、残り距離をタイプの平均ペースで割った概算です。",
     },
   };
 }

@@ -240,8 +240,8 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
         <RankTile
           label={
             detail.lastCheckpointLabel === null
-              ? "部門"
-              : `部門 · ${detail.lastCheckpointLabel}時点`
+              ? "総合"
+              : `総合 · ${detail.lastCheckpointLabel}時点`
           }
           rank={detail.totalRanks.division}
         />
@@ -267,7 +267,7 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
           nowMs={nowMs}
         />
 
-        <Heading title="順位推移" note={`部門総合 · ${sexLabel} · エイジ`} />
+        <Heading title="順位推移" note={`総合 · ${sexLabel} · エイジ`} />
         <div className="rounded-lg border border-border bg-card px-2 py-2">
           <RankChart
             checkpoints={checkpoints}
@@ -277,7 +277,7 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
           />
         </div>
 
-        <Heading title="スプリット" note="区間順位は同区間を計測済みの同部門内" />
+        <Heading title="スプリット" note="区間順位は同区間を計測済みの同じタイプ内" />
         <SplitTable splits={detail.splits} checkpoints={checkpoints} />
 
         <Heading title="過去の成績" note="同じ名前で検索" />

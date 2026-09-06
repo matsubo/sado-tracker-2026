@@ -87,7 +87,7 @@ export function NotificationPanel({ items, friendCount, onMarkAllSeen }: Props) 
                     </b>
                     {item.divisionRank ? (
                       <>
-                        {" · 部門 "}
+                        {" · 総合 "}
                         <b className="font-semibold text-foreground">{item.divisionRank.rank}</b>/
                         {item.divisionRank.of}
                       </>

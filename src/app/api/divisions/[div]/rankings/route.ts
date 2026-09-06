@@ -32,7 +32,7 @@ export async function GET(
 
   const { div } = await context.params;
   const division = DIVISIONS.find((candidate) => candidate === div.toUpperCase());
-  if (!division) return notFound(`部門 ${div} はありません。`);
+  if (!division) return notFound(`タイプ ${div} はありません。`);
 
   const url = new URL(request.url);
   const parsed = querySchema.safeParse(Object.fromEntries(url.searchParams));

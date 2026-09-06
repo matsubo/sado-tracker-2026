@@ -284,7 +284,7 @@ describe("AthleteDetail", () => {
   it("shows each current rank with the size of the field it was taken from", async () => {
     await renderDetail();
 
-    const division = tile("部門 · 住吉時点");
+    const division = tile("総合 · 住吉時点");
     expect(within(division).getByText("198")).toBeInTheDocument();
     expect(within(division).getByText("/412")).toBeInTheDocument();
 

@@ -96,7 +96,7 @@ export function Leaderboard() {
         items={DIVISION_TABS}
         value={division}
         onValueChange={changeDivision}
-        aria-label="部門"
+        aria-label="タイプ"
         className="mt-2.5"
       />
 
@@ -139,7 +139,7 @@ export function Leaderboard() {
         {board?.leaders.length === 0 ? (
           <p className="rounded-lg border border-border border-dashed bg-card px-4 py-8 text-center text-[12.5px] text-muted-foreground">
             {board.query === ""
-              ? "この部門のエントリーはありません。"
+              ? "このタイプのエントリーはありません。"
               : `「${board.query}」に一致する選手はいません。名字かゼッケン番号の一部で探せます。`}
           </p>
         ) : null}

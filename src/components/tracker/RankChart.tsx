@@ -107,7 +107,7 @@ export function RankChart({
     axis.map((point) => byCheckpoint.get(point.id)?.ranks[key]?.rank ?? null);
 
   const series = [
-    { name: "部門総合", data: pick("division"), color: theme.series[0] },
+    { name: "総合", data: pick("division"), color: theme.series[0] },
     { name: sexLabel, data: pick("sex"), color: theme.series[1] },
     {
       name: ageGroupLabel === null ? "エイジ" : `エイジ ${ageGroupLabel}`,

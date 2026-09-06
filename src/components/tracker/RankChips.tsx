@@ -68,7 +68,7 @@ export function DisciplineLines({
                   {row.atCheckpointLabel ? `${row.atCheckpointLabel}まで · ` : null}
                   {row.ranks.division ? (
                     <>
-                      部門{" "}
+                      総合{" "}
                       <b className="font-semibold text-foreground">{row.ranks.division.rank}</b>/
                       {row.ranks.division.of}
                     </>

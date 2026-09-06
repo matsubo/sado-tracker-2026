@@ -24,7 +24,7 @@ const TAB_ITEMS = [
 /** Tabs are controlled: the test owns the selection state. */
 function ControlledTabs() {
   const [value, setValue] = useState<string>("a");
-  return <Tabs aria-label="部門" items={TAB_ITEMS} value={value} onValueChange={setValue} />;
+  return <Tabs aria-label="タイプ" items={TAB_ITEMS} value={value} onValueChange={setValue} />;
 }
 
 describe("Button", () => {

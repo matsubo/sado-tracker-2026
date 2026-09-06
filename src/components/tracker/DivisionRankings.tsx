@@ -173,7 +173,7 @@ export function DivisionRankings({
         onAutoChange={setAuto}
         onRefresh={refresh}
       />
-      <nav aria-label="部門" className="mx-3 flex gap-[3px] rounded-lg bg-muted p-[3px]">
+      <nav aria-label="タイプ" className="mx-3 flex gap-[3px] rounded-lg bg-muted p-[3px]">
         {DIVISIONS.map((id) => (
           <Link
             key={id}

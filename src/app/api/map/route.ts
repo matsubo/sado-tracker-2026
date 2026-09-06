@@ -24,7 +24,7 @@ export function GET(request: Request): Response {
 
   const { div, ageGroup, bibs } = parsed.data;
   const order = snapshot.byDivision[div];
-  if (!order) return notFound(`部門 ${div} はありません。`);
+  if (!order) return notFound(`タイプ ${div} はありません。`);
 
   const friends = new Set(
     (bibs ?? "")

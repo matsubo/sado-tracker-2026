@@ -54,7 +54,7 @@ const LEG: Readonly<Record<Leg, { share: number; color: string; bg: string; labe
 const DIVISION_IDS = ["A", "B", "RA", "RB"] as const;
 const DIVISION_TABS = DIVISION_IDS.map((value) => ({ value, label: value }));
 const VIEW_TABS = [
-  { value: "division", label: "部門総合" },
+  { value: "division", label: "総合" },
   { value: "age", label: "エイジ別" },
   { value: "friends", label: "ブックマークのみ" },
 ] as const;
@@ -353,7 +353,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
         onRefresh={refresh}
       />
       <Tabs
-        aria-label="部門"
+        aria-label="タイプ"
         className="mx-3"
         items={DIVISION_TABS}
         value={division}
@@ -544,7 +544,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
                   <span className="ml-1 font-bold text-[11px] text-primary">›</span>
                 </Link>
                 <p className="text-[11px] text-muted-foreground tabular-nums">
-                  {tipRank ? `部門 ${tipRank.rank}/${tipRank.of} · ` : ""}
+                  {tipRank ? `総合 ${tipRank.rank}/${tipRank.of} · ` : ""}
                   {placed.indexOf(tip) + 1} 番目 · {LEG[tip.leg].label} {tip.km.toFixed(1)} km
                 </p>
               </div>

@@ -127,13 +127,13 @@ export function AthleteCard({ athlete, unread, nextLabel, checkpoints, legKm, on
         <div className="mt-2 mb-3 pr-3 pl-4">
           {finished ? (
             <p className="rounded-lg bg-muted px-2.5 py-2 text-[12px] tabular-nums">
-              総合{" "}
+              タイム{" "}
               <b className="font-bold text-[15px]">
                 {athlete.officialTotal ?? formatDuration(athlete.elapsedMs ?? 0)}
               </b>
               {athlete.totalRanks.division ? (
                 <>
-                  {" · 部門 "}
+                  {" · 総合 "}
                   {athlete.totalRanks.division.rank}/{athlete.totalRanks.division.of}
                 </>
               ) : null}

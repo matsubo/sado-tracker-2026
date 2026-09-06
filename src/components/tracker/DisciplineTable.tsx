@@ -63,7 +63,7 @@ export function DisciplineTable({ rows, splits }: DisciplineTableProps): React.J
           <TH align="left">種目</TH>
           <TH>タイム</TH>
           <TH>ペース</TH>
-          <TH>部門</TH>
+          <TH>総合</TH>
           <TH>エイジ</TH>
         </TR>
       </THead>
