@@ -3,6 +3,7 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
 import { Suspense, useEffect, useRef } from "react";
+import { reportedPath } from "@/lib/analytics";
 import { currentPageTitle } from "@/lib/pageTitle";
 
 /**
@@ -21,8 +22,7 @@ function PageViews({ gaId }: { readonly gaId: string }) {
 
   useEffect(() => {
     if (pathname === null) return;
-    const query = searchParams?.toString() ?? "";
-    const path = query === "" ? pathname : `${pathname}?${query}`;
+    const path = reportedPath(pathname, new URLSearchParams(searchParams?.toString() ?? ""));
     if (lastSent.current === path) return;
 
     // The heading effect that sets the title belongs to a deeper component,
@@ -34,7 +34,7 @@ function PageViews({ gaId }: { readonly gaId: string }) {
       lastSent.current = path;
       gtag("event", "page_view", {
         page_title: currentPageTitle(),
-        page_location: window.location.href,
+        page_location: `${window.location.origin}${path}`,
         page_path: path,
       });
     });
