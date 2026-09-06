@@ -18,6 +18,26 @@
   }
 }
 
+/*
+ * Safari on iOS zooms the page in whenever a text field's font is under 16px,
+ * and it does not zoom back out when the field is left: the reader is stranded
+ * at the wrong scale until they pinch out by hand. Touch devices therefore get
+ * 16px on every field whatever a component asks for.
+ *
+ * This sits outside every layer on purpose. Tailwind utilities are layered, so
+ * an unlayered rule wins without a specificity contest, and a field added
+ * later cannot reintroduce the trap by setting a smaller size. The alternative
+ * cure, pinning maximum-scale in the viewport tag, takes pinch zoom away from
+ * everyone, which is worse than the disease.
+ */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

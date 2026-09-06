@@ -315,3 +315,38 @@ test.describe("social card", () => {
     );
   });
 });
+
+test.describe("touch keyboards", () => {
+  /**
+   * Safari on iOS zooms the page in when a text field's font is under 16px,
+   * and it never zooms back out when the field is left. The reader is then
+   * stuck at the wrong scale until they pinch out by hand, so no field on a
+   * touch device may go below that size.
+   */
+  const SMALLEST_WITHOUT_ZOOM = 16;
+
+  for (const path of ["/", "/bookmarks", "/divisions/A"]) {
+    test(`keeps every field at 16px or more on ${path}`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page.getByRole("banner").or(page.locator("main"))).toBeVisible();
+
+      const sizes = await page.evaluate(() => {
+        const fields = document.querySelectorAll<HTMLElement>(
+          'input:not([type="checkbox"]):not([type="radio"]), select, textarea',
+        );
+        return [...fields].map((field) => ({
+          tag: field.tagName.toLowerCase(),
+          label: field.getAttribute("aria-label") ?? field.id,
+          px: Number.parseFloat(getComputedStyle(field).fontSize),
+        }));
+      });
+
+      expect(sizes.length).toBeGreaterThan(0);
+      for (const field of sizes) {
+        expect(field.px, `${field.tag} "${field.label}" is ${field.px}px`).toBeGreaterThanOrEqual(
+          SMALLEST_WITHOUT_ZOOM,
+        );
+      }
+    });
+  }
+});
