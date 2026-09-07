@@ -40,7 +40,6 @@ function statusPill(detail: AthleteDetailDto): { label: string; variant: BadgePr
   }
 }
 
-/** Section heading with an optional note on the right. */
 /** Whether the course strip compares the athlete with their age group or the type. */
 const NEAR_TABS = [
   { value: "age", label: "エイジ" },
@@ -154,7 +153,6 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
   const estKm =
     detail.status === "racing" ? projectKm(detail.position, nowMs) : detail.position.estKm;
   const sexLabel = detail.sex === "F" ? "女子" : detail.sex === "M" ? "男子" : "性別";
-  // A relay has no age group, so there is nothing to switch between.
   // The leg being raced right now, summarised beside the estimated position
   // rather than in the table of finished legs.
   const inProgressLeg = detail.disciplines.find((d) => d.provisional && d.timeMs !== null) ?? null;

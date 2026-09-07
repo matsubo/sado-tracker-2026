@@ -167,7 +167,6 @@ export function cumulativeRanks(
   return entries;
 }
 
-/** Rank of one segment between consecutive checkpoints. */
 /**
  * Rank one segment in each population: everyone who has covered it, the same
  * sex, and the same age group. Segment time is what a supporter compares when

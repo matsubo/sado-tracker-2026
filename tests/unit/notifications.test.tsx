@@ -3,23 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useNotifications } from "@/hooks/useNotifications";
 import type { PassEventDto } from "@/lib/api/contract";
-
-function installStorage(): void {
-  const entries = new Map<string, string>();
-  Object.defineProperty(window, "localStorage", {
-    configurable: true,
-    value: {
-      getItem: (key: string) => entries.get(key) ?? null,
-      setItem: (key: string, value: string) => void entries.set(key, value),
-      removeItem: (key: string) => void entries.delete(key),
-      clear: () => entries.clear(),
-      key: (index: number) => [...entries.keys()][index] ?? null,
-      get length() {
-        return entries.size;
-      },
-    },
-  });
-}
+import { installStorage } from "../support/storage";
 
 const START = Date.UTC(2026, 8, 5, 21, 0, 0);
 

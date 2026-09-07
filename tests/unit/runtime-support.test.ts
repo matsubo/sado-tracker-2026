@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { authorizeRefresh } from "@/lib/api/refreshAuth";
 import {
   badRequest,
@@ -19,10 +19,6 @@ import {
   setSnapshot,
 } from "@/lib/runtime/store";
 
-beforeEach(() => {
-  // fetchCsv reports its retry on stderr; the tests below make it retry.
-  vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-});
 afterEach(() => vi.restoreAllMocks());
 
 describe("raceEndsAt", () => {

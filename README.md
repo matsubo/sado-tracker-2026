@@ -157,7 +157,18 @@ predict from.
 Timing data comes from [systemway.jp](https://systemway.jp/26sado?di=1).
 Test fixtures are anonymized copies of the real exports: every timestamp is
 preserved, names and bibs are replaced, so no athlete's name enters this
-repository.
+repository. To rebuild them after a race:
+
+```sh
+mise run fetch-history          # real exports into .data/history, never committed
+mise run make-fixtures          # anonymized UTF-8 copies in tests/fixtures/*.utf8.csv
+for y in 2023 2024 2025; do     # the app reads Shift_JIS, as the timing site serves it
+  iconv -f UTF-8 -t CP932 "tests/fixtures/history-$y.utf8.csv" > "tests/fixtures/history-$y.csv"
+done
+bun run make-test-csv           # the hand-made 2026 sample, converted the same way
+iconv -f UTF-8 -t CP932 tests/fixtures/sample-2026.utf8.csv > tests/fixtures/sample-2026.csv
+rm tests/fixtures/*.utf8.csv
+```
 
 Powered by [AI TRI+](https://ai-triathlon-result.teraren.com/).
 

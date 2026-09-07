@@ -12,6 +12,18 @@ export default defineConfig({
     testTimeout: 30_000,
     hookTimeout: 30_000,
     include: ["tests/unit/**/*.test.{ts,tsx}", "tests/integration/**/*.test.{ts,tsx}"],
-    coverage: { provider: "v8", include: ["src/lib/**", "src/config/**"], reporter: ["text", "lcov"] },
+    setupFiles: ["tests/support/setup.ts"],
+    coverage: {
+      provider: "v8",
+      // Everything but the Next.js route and page shells, which only parse a
+      // request and hand it to a library function; the end-to-end suite
+      // covers those.
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/app/**", "src/instrumentation.ts"],
+      reporter: ["text-summary", "lcov"],
+      // A ratchet: the numbers the suite reaches today, so a change that
+      // drops below them fails CI. Raise them as tests are added.
+      thresholds: { statements: 82, branches: 68, functions: 80, lines: 85 },
+    },
   },
 });

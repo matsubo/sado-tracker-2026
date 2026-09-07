@@ -20,11 +20,8 @@ import { StatusPill } from "./StatusPill";
 
 const DIVISION_TABS = DIVISIONS.map((value) => ({ value, label: value }));
 
-const MEDAL: Record<number, string> = {
-  1: "text-[color:var(--bike)]",
-  2: "text-[color:var(--bike)]",
-  3: "text-[color:var(--bike)]",
-};
+/** The podium places share one colour; the rest of the field is muted. */
+const MEDAL_PLACES = 3;
 
 /**
  * The front page: who is leading each division right now. Order is field
@@ -171,7 +168,7 @@ export function Leaderboard() {
                     // The field runs past a thousand, so the column has to
                     // hold four digits without wrapping one onto its own line.
                     "min-w-6 shrink-0 whitespace-nowrap text-right font-bold text-[15px] tabular-nums",
-                    MEDAL[place] ?? "text-muted-foreground",
+                    place <= MEDAL_PLACES ? "text-[color:var(--bike)]" : "text-muted-foreground",
                   )}
                 >
                   {place}

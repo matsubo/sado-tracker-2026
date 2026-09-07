@@ -27,11 +27,7 @@ function deps(over: Partial<PollerDeps> = {}): PollerDeps {
   };
 }
 
-beforeEach(() => {
-  resetStore();
-  // The poller reports failures on stderr; the tests below cause some on purpose.
-  vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-});
+beforeEach(() => resetStore());
 afterEach(() => vi.restoreAllMocks());
 
 describe("refresh", () => {

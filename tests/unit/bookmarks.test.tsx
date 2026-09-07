@@ -3,29 +3,9 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useBookmarks } from "@/hooks/useBookmarks";
 import { BookmarksProvider } from "@/state/BookmarksProvider";
+import { installStorage } from "../support/storage";
 
 type GtagCall = [command: string, name: string, params: Record<string, unknown>];
-
-/**
- * jsdom 29 leaves `window.localStorage` undefined, so the hook's own store is
- * supplied here. The real thing is exercised by the end-to-end suite.
- */
-function installStorage(): void {
-  const entries = new Map<string, string>();
-  Object.defineProperty(window, "localStorage", {
-    configurable: true,
-    value: {
-      getItem: (key: string) => entries.get(key) ?? null,
-      setItem: (key: string, value: string) => void entries.set(key, value),
-      removeItem: (key: string) => void entries.delete(key),
-      clear: () => entries.clear(),
-      key: (index: number) => [...entries.keys()][index] ?? null,
-      get length() {
-        return entries.size;
-      },
-    },
-  });
-}
 
 function gtagCalls(): GtagCall[] {
   const spy = (window as unknown as { gtag: ReturnType<typeof vi.fn> }).gtag;
