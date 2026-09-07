@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { SITE_NAME, storageKey } from "@/config/site";
 import type { AthleteSummaryDto } from "@/lib/api/contract";
 
-const STORAGE_KEY = "sado2026.seen";
+const STORAGE_KEY = storageKey("seen");
 
 export interface NotificationItem {
   readonly key: string;
@@ -88,7 +89,7 @@ export function useNotifications(athletes: readonly AthleteSummaryDto[]): {
 
   useEffect(() => {
     if (typeof document === "undefined") return;
-    const base = "佐渡トラッカー 2026";
+    const base = SITE_NAME;
     document.title = unreadCount > 0 ? `(${unreadCount}) ${base}` : base;
   }, [unreadCount]);
 

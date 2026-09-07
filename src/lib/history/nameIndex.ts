@@ -1,4 +1,11 @@
-import { type Discipline, type Division, normalizeName, type RaceConfig } from "@/config/races";
+import {
+  DISCIPLINES,
+  DIVISIONS,
+  type Discipline,
+  type Division,
+  normalizeName,
+  type RaceConfig,
+} from "@/config/races";
 import { disciplineKm, disciplineTime } from "@/lib/compute/elapsed";
 import { buildPopulations } from "@/lib/compute/population";
 import { disciplineRanks, type Rank, rankBy } from "@/lib/compute/ranking";
@@ -37,8 +44,6 @@ export interface HistoryYear {
 
 export type NameIndex = Map<string, PastResult[]>;
 
-const DIVISIONS: readonly Division[] = ["A", "B", "RA", "RB"];
-
 /**
  * Index every past finisher by normalized name so a current athlete can be
  * matched across years. A name is not unique, so each key holds every
@@ -57,15 +62,13 @@ export function buildNameIndex(years: readonly HistoryYear[]): NameIndex {
       const finishers = pop.atCheckpoint("finish");
       const totalOf = (a: (typeof finishers)[number]) => (a.passes.finish as number) - a.startAt;
 
-      const legs: readonly Discipline[] = ["swim", "bike", "run"];
-
       for (const athlete of finishers) {
         const divisionRank = rankBy(finishers, totalOf, athlete);
         if (!divisionRank) continue;
 
         const disciplines: PastDiscipline[] = [];
-        for (const leg of legs) {
-          const timeMs = disciplineTime(athlete, leg, course);
+        for (const leg of DISCIPLINES) {
+          const timeMs = disciplineTime(athlete, leg);
           if (timeMs === null) continue;
           const ranked = disciplineRanks(athlete, leg, pop, course);
           disciplines.push({

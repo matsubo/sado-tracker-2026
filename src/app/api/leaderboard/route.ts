@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DIVISIONS } from "@/config/races";
 import { buildLeaderboard } from "@/lib/api/leaderboard";
 import { badRequest, liveJson, notReady } from "@/lib/api/respond";
 import { getSnapshot } from "@/lib/runtime/store";
@@ -6,7 +7,7 @@ import { getSnapshot } from "@/lib/runtime/store";
 export const dynamic = "force-dynamic";
 
 const querySchema = z.object({
-  div: z.enum(["A", "B", "RA", "RB"]).default("A"),
+  div: z.enum(DIVISIONS).default("A"),
   perPage: z.coerce.number().int().min(1).max(200).default(100),
   page: z.coerce.number().int().min(1).max(100).default(1),
   q: z.string().trim().max(60).default(""),

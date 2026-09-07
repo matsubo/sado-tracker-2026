@@ -1,4 +1,4 @@
-import { type Division, normalizeName } from "@/config/races";
+import { DIVISION_LABELS, type Division, normalizeName } from "@/config/races";
 import type { ComputedSnapshot } from "@/lib/compute/snapshot";
 import { matchesAthlete } from "./athleteMatch";
 import type { AthleteSummaryDto } from "./contract";
@@ -30,13 +30,6 @@ export interface LeaderboardDto {
   readonly perPage: number;
   readonly leaders: readonly LeaderRowDto[];
 }
-
-const LABELS: Record<Division, string> = {
-  A: "Aタイプ",
-  B: "Bタイプ",
-  RA: "RAタイプ（リレー）",
-  RB: "RBタイプ（リレー）",
-};
 
 /**
  * Who is at the front of each division right now. Ordering is field order,
@@ -95,7 +88,7 @@ export function buildLeaderboard(
 
   return {
     division,
-    label: LABELS[division],
+    label: DIVISION_LABELS[division],
     order: started ? "field" : "bib",
     entrants,
     racing: snapshot.populations[division].all.length,

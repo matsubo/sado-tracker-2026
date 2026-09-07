@@ -1,11 +1,11 @@
 import { z } from "zod";
+import { isDivision } from "@/config/races";
 import { buildRankingPage, type RankingDiscipline } from "@/lib/api/rankings";
 import { badRequest, liveJson, notFound, notReady } from "@/lib/api/respond";
 import { getSnapshot } from "@/lib/runtime/store";
 
 export const dynamic = "force-dynamic";
 
-const DIVISIONS = ["A", "B", "RA", "RB"] as const;
 const PER_PAGE = 50;
 
 const querySchema = z.object({
@@ -31,8 +31,8 @@ export async function GET(
   if (!snapshot) return notReady();
 
   const { div } = await context.params;
-  const division = DIVISIONS.find((candidate) => candidate === div.toUpperCase());
-  if (!division) return notFound(`タイプ ${div} はありません。`);
+  const division = div.toUpperCase();
+  if (!isDivision(division)) return notFound(`タイプ ${div} はありません。`);
 
   const url = new URL(request.url);
   const parsed = querySchema.safeParse(Object.fromEntries(url.searchParams));

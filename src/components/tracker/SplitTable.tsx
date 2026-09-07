@@ -1,7 +1,7 @@
 "use client";
 
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
-import type { SplitDto } from "@/lib/api/contract";
+import type { CheckpointDto, SplitDto } from "@/lib/api/contract";
 import {
   formatClock,
   formatDuration,
@@ -34,18 +34,10 @@ function segmentSpeed(split: SplitDto): string {
   return DASH;
 }
 
-/** A timing point on the course, as the race state describes it. */
-interface CourseCheckpoint {
-  readonly id: string;
-  readonly label: string;
-  readonly discipline: string;
-  readonly km: number;
-}
-
 interface SplitTableProps {
   readonly splits: readonly SplitDto[];
   /** Every timing point on the course, so the ones still ahead are listed. */
-  readonly checkpoints?: readonly CourseCheckpoint[];
+  readonly checkpoints?: readonly CheckpointDto[];
 }
 
 /**
@@ -58,7 +50,7 @@ export function SplitTable({ splits, checkpoints }: SplitTableProps): React.JSX.
   const measured = new Map(splits.map((split) => [split.checkpointId, split]));
   const rows: readonly (
     | { kind: "measured"; split: SplitDto }
-    | { kind: "pending"; row: CourseCheckpoint }
+    | { kind: "pending"; row: CheckpointDto }
   )[] =
     checkpoints && checkpoints.length > 0
       ? checkpoints.map((row) => {

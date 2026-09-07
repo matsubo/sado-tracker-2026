@@ -2,32 +2,36 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Analytics } from "@/components/layout/Analytics";
 import { Footer } from "@/components/layout/Footer";
+import {
+  DEFAULT_SITE_URL,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_SHORT_NAME,
+  storageKey,
+} from "@/config/site";
 import "./globals.css";
 
-const DESCRIPTION =
-  "佐渡国際トライアスロンの応援トラッカー。ブックマークした選手の現在地、順位、ゴール予想タイムがひと目でわかります。";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sado-tracker-2026.teraren.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? DEFAULT_SITE_URL;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   // Every page sets its own title and it is suffixed here, so analytics can
   // tell the screens apart instead of filing them all under the site name.
-  title: { default: "佐渡トラッカー 2026", template: "%s | 佐渡トラッカー 2026" },
-  applicationName: "佐渡トラッカー",
-  appleWebApp: { capable: true, title: "佐渡トラッカー", statusBarStyle: "default" },
+  title: { default: SITE_NAME, template: `%s | ${SITE_NAME}` },
+  applicationName: SITE_SHORT_NAME,
+  appleWebApp: { capable: true, title: SITE_SHORT_NAME, statusBarStyle: "default" },
   openGraph: {
     type: "website",
-    siteName: "佐渡トラッカー 2026",
+    siteName: SITE_NAME,
     // Every page sets its own title and it is suffixed here, so analytics can
     // tell the screens apart instead of filing them all under the site name.
-    title: { default: "佐渡トラッカー 2026", template: "%s | 佐渡トラッカー 2026" },
-    description: DESCRIPTION,
+    title: { default: SITE_NAME, template: `%s | ${SITE_NAME}` },
+    description: SITE_DESCRIPTION,
     locale: "ja_JP",
     url: SITE_URL,
   },
-  twitter: { card: "summary_large_image", title: "佐渡トラッカー 2026", description: DESCRIPTION },
-  description: DESCRIPTION,
+  twitter: { card: "summary_large_image", title: SITE_NAME, description: SITE_DESCRIPTION },
+  description: SITE_DESCRIPTION,
 };
 
 export const viewport: Viewport = {
@@ -49,7 +53,7 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
 /** Applies the stored theme before first paint so the page never flashes. */
 const THEME_SCRIPT = `(function(){try{
-var stored=localStorage.getItem('sado2026.theme');
+var stored=localStorage.getItem('${storageKey("theme")}');
 var dark=stored?stored==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;
 document.documentElement.classList.toggle('dark',dark);
 }catch(e){}})();`;

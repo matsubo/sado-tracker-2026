@@ -30,11 +30,7 @@ export function splitBetween(athlete: Athlete, from: string, to: string): number
  * Completed time for one discipline. Transitions are excluded: the bike leg
  * runs from the bike start, not from the swim finish.
  */
-export function disciplineTime(
-  athlete: Athlete,
-  discipline: Discipline,
-  _course: DivisionCourse,
-): number | null {
+export function disciplineTime(athlete: Athlete, discipline: Discipline): number | null {
   const bounds = DISCIPLINE_BOUNDS[discipline];
   return splitBetween(athlete, bounds.from, bounds.to);
 }

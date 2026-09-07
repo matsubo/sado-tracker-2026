@@ -1,4 +1,6 @@
-const DEFAULT_YEAR = 2026;
+import { EDITION_YEAR } from "@/config/site";
+
+const DEFAULT_YEAR = EDITION_YEAR;
 
 /**
  * The edition being served. It lives here rather than in the poller because

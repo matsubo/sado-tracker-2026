@@ -5,16 +5,26 @@ import { type KeyboardEvent, useMemo, useRef, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
-import { type AgeGroup, compareAgeGroups, type Division, normalizeAgeGroup } from "@/config/races";
+import {
+  type AgeGroup,
+  COURSE_SHARES,
+  compareAgeGroups,
+  DISCIPLINE_LABELS,
+  DISCIPLINES,
+  DIVISIONS,
+  type Discipline,
+  type Division,
+  isDivision,
+  normalizeAgeGroup,
+} from "@/config/races";
 import { useBookmarks } from "@/hooks/useBookmarks";
 import { projectKm, useLiveClock } from "@/hooks/useLivePosition";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
-import type { MapEntryDto, PositionDto, RaceStateDto } from "@/lib/api/contract";
+import type { CheckpointDto, MapEntryDto } from "@/lib/api/contract";
 import { cn } from "@/lib/utils/cn";
 
-type Leg = "swim" | "bike" | "run";
+type Leg = Discipline;
 type View = "division" | "age" | "friends";
-type Checkpoint = RaceStateDto["divisions"][number]["checkpoints"][number];
 type Band = { readonly x0: number; readonly x1: number; readonly km: number };
 type Axis = Readonly<Record<Leg, Band>>;
 type Tick = { readonly id: string; readonly label: string; readonly x: number; readonly leg: Leg };
@@ -44,15 +54,29 @@ interface MapPayload {
  * dot's position is only comparable to others on the same leg, which is what
  * a supporter reads it for.
  */
-const LEGS = ["swim", "bike", "run"] as const;
+const LEGS = DISCIPLINES;
 const LEG: Readonly<Record<Leg, { share: number; color: string; bg: string; label: string }>> = {
-  swim: { share: 0.22, color: "var(--swim)", bg: "var(--swim-bg)", label: "スイム" },
-  bike: { share: 0.48, color: "var(--bike)", bg: "var(--bike-bg)", label: "バイク" },
-  run: { share: 0.3, color: "var(--run)", bg: "var(--run-bg)", label: "ラン" },
+  swim: {
+    share: COURSE_SHARES.swim,
+    color: "var(--swim)",
+    bg: "var(--swim-bg)",
+    label: DISCIPLINE_LABELS.swim,
+  },
+  bike: {
+    share: COURSE_SHARES.bike,
+    color: "var(--bike)",
+    bg: "var(--bike-bg)",
+    label: DISCIPLINE_LABELS.bike,
+  },
+  run: {
+    share: COURSE_SHARES.run,
+    color: "var(--run)",
+    bg: "var(--run-bg)",
+    label: DISCIPLINE_LABELS.run,
+  },
 };
 
-const DIVISION_IDS = ["A", "B", "RA", "RB"] as const;
-const DIVISION_TABS = DIVISION_IDS.map((value) => ({ value, label: value }));
+const DIVISION_TABS = DIVISIONS.map((value) => ({ value, label: value }));
 const VIEW_TABS = [
   { value: "division", label: "総合" },
   { value: "age", label: "エイジ別" },
@@ -88,7 +112,7 @@ const toLeg = (discipline: string): Leg =>
   discipline === "swim" || discipline === "run" ? discipline : "bike";
 
 /** Three fixed-width bands, each scaled to the length of its own leg. */
-function buildAxis(checkpoints: readonly Checkpoint[], x0: number, x1: number): Axis {
+function buildAxis(checkpoints: readonly CheckpointDto[], x0: number, x1: number): Axis {
   const width = x1 - x0;
   const km = (leg: Leg): number =>
     checkpoints.reduce((max, c) => (toLeg(c.discipline) === leg ? Math.max(max, c.km) : max), 0);
@@ -108,15 +132,6 @@ function scaleKm(axis: Axis, leg: Leg, km: number): number {
   return band.x0 + (band.x1 - band.x0) * ratio;
 }
 
-/**
- * Where an athlete is now, on the race clock. The shared projection keeps the
- * map, the friend cards and the athlete page in agreement about the same
- * athlete.
- */
-function advanceKm(position: PositionDto, nowMs: number): number {
-  return projectKm(position, nowMs);
-}
-
 /** Rows run top to bottom: the leader first, then one row per athlete. */
 const rowY = (index: number, count: number, named: boolean): number =>
   named
@@ -124,7 +139,7 @@ const rowY = (index: number, count: number, named: boolean): number =>
     : DENSE.y0 + ((DENSE.y1 - DENSE.y0) * index) / Math.max(1, count - 1);
 
 /** Every checkpoint as an x position, with points on the same pixel merged. */
-function buildTicks(checkpoints: readonly Checkpoint[], axis: Axis): Tick[] {
+function buildTicks(checkpoints: readonly CheckpointDto[], axis: Axis): Tick[] {
   const raw: Tick[] = [
     { id: "start", label: "START", x: axis.swim.x0, leg: "swim" },
     ...checkpoints.map((c) => {
@@ -192,7 +207,6 @@ function placeLabels(ticks: readonly Tick[], x0: number, x1: number): Tick[] {
 }
 
 const isView = (value: string): value is View => VIEW_TABS.some((tab) => tab.value === value);
-const isDivision = (value: string): value is Division => DIVISION_IDS.some((id) => id === value);
 
 /**
  * Every racing athlete as one dot: how far along the course on the x axis,
@@ -225,7 +239,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
   const url = ready ? `/api/map?div=${division}${friends ? `&bibs=${friends}` : ""}` : null;
   const { data, error, loading } = useLiveResource<MapPayload>(url, fetchedAt);
 
-  const checkpoints: readonly Checkpoint[] =
+  const checkpoints: readonly CheckpointDto[] =
     race?.divisions.find((entry) => entry.id === division)?.checkpoints ?? [];
 
   // One unfiltered fetch feeds all three views, so the age list is complete.
@@ -276,7 +290,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
     () =>
       entries.map((entry, index) => {
         const { position } = entry;
-        const km = advanceKm(position, now);
+        const km = projectKm(position, now);
         const leg = toLeg(position.discipline);
         return {
           entry,

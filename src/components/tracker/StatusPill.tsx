@@ -1,11 +1,6 @@
 import { Badge } from "@/components/ui/badge";
+import { DISCIPLINE_LABELS } from "@/config/races";
 import type { AthleteSummaryDto } from "@/lib/api/contract";
-
-const RACING_LABELS: Record<string, string> = {
-  swim: "スイム中",
-  bike: "バイク中",
-  run: "ラン中",
-};
 
 /** The athlete's state, coloured by the discipline they are on. */
 export function StatusPill({ athlete }: { athlete: AthleteSummaryDto }) {
@@ -17,7 +12,7 @@ export function StatusPill({ athlete }: { athlete: AthleteSummaryDto }) {
   const discipline = athlete.position.discipline;
   return (
     <Badge variant={discipline}>
-      {athlete.position.inTransition ? "トランジション" : (RACING_LABELS[discipline] ?? "レース中")}
+      {athlete.position.inTransition ? "トランジション" : `${DISCIPLINE_LABELS[discipline]}中`}
     </Badge>
   );
 }

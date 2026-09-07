@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { storageKey } from "@/config/site";
 import type { RaceStateDto } from "@/lib/api/contract";
 import { setRaceClockOffset } from "@/lib/runtime/raceClock";
 
@@ -16,7 +17,7 @@ function clientPollMs(serverIntervalMs: number | undefined): number {
   return Math.max(MIN_POLL_MS, Math.min(DEFAULT_POLL_MS, serverIntervalMs));
 }
 
-const AUTO_KEY = "sado2026.autoRefresh";
+const AUTO_KEY = storageKey("autoRefresh");
 
 function readAuto(): boolean {
   try {

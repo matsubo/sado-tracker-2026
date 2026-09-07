@@ -1,7 +1,8 @@
 "use client";
 
-import type { Discipline } from "@/config/races";
-import type { MapEntryDto } from "@/lib/api/contract";
+import { DISCIPLINE_LABELS, type Discipline, isDiscipline } from "@/config/races";
+import { projectKm } from "@/hooks/useLivePosition";
+import type { CheckpointDto, MapEntryDto } from "@/lib/api/contract";
 import {
   type Anchor,
   type AxisLabel,
@@ -12,16 +13,7 @@ import {
   fitLabels,
   LABEL_FONT,
   LABEL_GAP,
-  liveKm,
 } from "./PositionBar";
-
-/** A timing point as the race endpoint publishes it. */
-interface CourseCheckpoint {
-  readonly id: string;
-  readonly label: string;
-  readonly km: number;
-  readonly discipline: string;
-}
 
 const VIEW_W = 420;
 const PLOT_LEFT = 100;
@@ -36,7 +28,6 @@ const FLIP_X = PLOT_LEFT + PLOT_W * 0.78;
 /** Kilometre step of the scale drawn under the run band. */
 const RUN_STEP_KM = 10;
 
-const LEG_LABEL: Record<Discipline, string> = { swim: "スイム", bike: "バイク", run: "ラン" };
 const LEG_COLOR: Record<Discipline, string> = {
   swim: "var(--swim)",
   bike: "var(--bike)",
@@ -55,9 +46,6 @@ const LEGEND = [
   { text: "この選手", swatch: "bg-primary" },
 ] as const;
 
-const isDiscipline = (value: string): value is Discipline =>
-  value === "swim" || value === "bike" || value === "run";
-
 /** X coordinate of a course fraction. */
 const plotX = (fraction: number): number => PLOT_LEFT + fraction * PLOT_W;
 
@@ -75,13 +63,13 @@ const isLegBoundary = (checkpoint: { id: string; discipline: string }): boolean 
 /** Estimated kilometres for one athlete at `nowMs`, within their current leg. */
 function estimateKm(entry: MapEntryDto, nowMs: number): number {
   if (entry.status === "finished") return entry.position.totalKm;
-  if (entry.status === "racing") return liveKm(entry.position, nowMs);
+  if (entry.status === "racing") return projectKm(entry.position, nowMs);
   if (entry.status === "dnf") return entry.position.estKm;
   return 0;
 }
 
 /** The timing point an athlete is next expected to reach. */
-function nextLabelOf(entry: MapEntryDto, checkpoints: readonly CourseCheckpoint[]): string | null {
+function nextLabelOf(entry: MapEntryDto, checkpoints: readonly CheckpointDto[]): string | null {
   const passed = checkpoints.findIndex((cp) => cp.label === entry.position.lastCheckpointLabel);
   return checkpoints[passed + 1]?.label ?? null;
 }
@@ -90,7 +78,7 @@ function nextLabelOf(entry: MapEntryDto, checkpoints: readonly CourseCheckpoint[
 function distanceText(
   entry: MapEntryDto,
   km: number,
-  checkpoints: readonly CourseCheckpoint[],
+  checkpoints: readonly CheckpointDto[],
 ): string {
   if (entry.status === "finished") return "フィニッシュ";
   if (entry.status === "not_started") return "スタート前";
@@ -100,12 +88,12 @@ function distanceText(
     const next = nextLabelOf(entry, checkpoints);
     return next === null ? "計測待ち" : `${next} 計測待ち`;
   }
-  return `${LEG_LABEL[entry.position.discipline]} ${km.toFixed(1)}km`;
+  return `${DISCIPLINE_LABELS[entry.position.discipline]} ${km.toFixed(1)}km`;
 }
 
 interface CoursePositionChartProps {
   readonly entries: readonly MapEntryDto[];
-  readonly checkpoints: readonly CourseCheckpoint[];
+  readonly checkpoints: readonly CheckpointDto[];
   readonly totals: DisciplineKm;
   readonly nowMs: number;
 }

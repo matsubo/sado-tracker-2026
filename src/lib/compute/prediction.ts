@@ -1,7 +1,15 @@
-import type { Discipline, DivisionCourse } from "@/config/races";
+import { DISCIPLINES, type Discipline, type DivisionCourse } from "@/config/races";
 import type { Athlete } from "@/lib/domain/types";
 import type { NeighbourModel, TrainingRow } from "@/lib/history/model";
-import { disciplineKm, splitBetween } from "./elapsed";
+import { percentile } from "@/lib/math/stats";
+import {
+  disciplineEnd,
+  disciplineKm,
+  disciplineStart,
+  disciplineTime,
+  splitBetween,
+} from "./elapsed";
+import { paceMinPerKm } from "./pace";
 import { checkpointIndex, latestCheckpoint, type Populations } from "./population";
 import { athleteStatus } from "./status";
 
@@ -46,39 +54,18 @@ export interface BacktestAccuracy {
 
 export type BacktestTable = ReadonlyMap<string, BacktestAccuracy>;
 
-function percentile(sorted: readonly number[], fraction: number): number {
-  if (sorted.length === 0) return 0;
-  const index = Math.min(
-    sorted.length - 1,
-    Math.max(0, Math.round((sorted.length - 1) * fraction)),
-  );
-  return sorted[index] as number;
-}
-
-function paceMinPerKm(ms: number, km: number): number | null {
-  if (ms <= 0 || km <= 0) return null;
-  return ms / 60_000 / km;
-}
-
 /**
  * Percentile of an athlete's pace within the live field, so a discipline
  * whose distance changed between years can still be compared. Returns null
  * until enough of the field has been measured for a rank to mean anything.
  */
 function livePercentile(athlete: Athlete, discipline: Discipline, pop: Populations): number | null {
-  const bounds =
-    discipline === "swim"
-      ? (["start", "swimF"] as const)
-      : discipline === "bike"
-        ? (["bikeS", "runS"] as const)
-        : (["runS", "finish"] as const);
-
-  const own = splitBetween(athlete, bounds[0], bounds[1]);
+  const own = disciplineTime(athlete, discipline);
   if (own === null) return null;
 
   const times = pop
-    .atCheckpoint(bounds[1])
-    .map((other) => splitBetween(other, bounds[0], bounds[1]))
+    .atCheckpoint(disciplineEnd(discipline))
+    .map((other) => disciplineTime(other, discipline))
     .filter((value): value is number => value !== null);
   if (times.length < 20) return null;
 
@@ -97,13 +84,7 @@ function featureVector(
   const vector = new Map<string, number>();
 
   for (const discipline of features) {
-    const bounds =
-      discipline === "swim"
-        ? (["start", "swimF"] as const)
-        : discipline === "bike"
-          ? (["bikeS", "runS"] as const)
-          : (["runS", "finish"] as const);
-    const ms = splitBetween(athlete, bounds[0], bounds[1]);
+    const ms = disciplineTime(athlete, discipline);
     if (ms === null) continue;
     const pace = paceMinPerKm(ms, disciplineKm(discipline, course));
     if (pace !== null) vector.set(discipline, pace);
@@ -119,13 +100,7 @@ function featureVector(
     paceComparable(checkpoint.discipline) &&
     !vector.has(checkpoint.discipline)
   ) {
-    const from =
-      checkpoint.discipline === "swim"
-        ? "start"
-        : checkpoint.discipline === "bike"
-          ? "bikeS"
-          : "runS";
-    const ms = splitBetween(athlete, from, latest);
+    const ms = splitBetween(athlete, disciplineStart(checkpoint.discipline), latest);
     const pace = ms === null ? null : paceMinPerKm(ms, checkpoint.km);
     if (pace !== null) vector.set(`partial:${latest}`, pace);
   }
@@ -146,11 +121,11 @@ function trainingVector(
       const checkpointId = key.slice("partial:".length);
       const checkpoint = course.checkpoints.find((c) => c.id === checkpointId);
       const elapsed = row.elapsed[checkpointId];
-      if (!checkpoint || elapsed === undefined) return null;
+      if (!checkpoint || elapsed === undefined || checkpoint.discipline === "transition") {
+        return null;
+      }
       const from =
-        checkpoint.discipline === "swim"
-          ? 0
-          : row.elapsed[checkpoint.discipline === "bike" ? "bikeS" : "runS"];
+        checkpoint.discipline === "swim" ? 0 : row.elapsed[disciplineStart(checkpoint.discipline)];
       if (from === undefined) return null;
       const pace = paceMinPerKm(elapsed - from, checkpoint.km);
       if (pace === null) return null;
@@ -268,7 +243,7 @@ function extrapolate(
   const checkpoint = latest === null ? null : course.checkpoints.find((c) => c.id === latest);
 
   let remainingMs = 0;
-  const order: Discipline[] = ["swim", "bike", "run"];
+  const order = DISCIPLINES;
   const currentIndex = checkpoint
     ? order.indexOf(checkpoint.discipline === "transition" ? "bike" : checkpoint.discipline)
     : 0;

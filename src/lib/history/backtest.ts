@@ -4,6 +4,7 @@ import { buildPopulations } from "@/lib/compute/population";
 import type { BacktestAccuracy, BacktestTable } from "@/lib/compute/prediction";
 import { predictFinish } from "@/lib/compute/prediction";
 import type { Athlete } from "@/lib/domain/types";
+import { median } from "@/lib/math/stats";
 import { logger } from "@/lib/runtime/logger";
 import { buildNeighbourModel } from "./model";
 import type { HistoryYear } from "./nameIndex";
@@ -12,14 +13,6 @@ const DIVISIONS: readonly Division[] = ["A", "B"];
 const WITHIN_MS = 25 * 60_000;
 /** Backtesting every finisher is slow and adds nothing; a sample suffices. */
 const SAMPLE_STRIDE = 4;
-
-function median(values: readonly number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 1
-    ? (sorted[mid] as number)
-    : ((sorted[mid - 1] as number) + (sorted[mid] as number)) / 2;
-}
 
 /**
  * Measure how well the neighbour method would have predicted one past race,
@@ -88,7 +81,7 @@ export function runBacktest(
   for (const [key, errors] of errorsByKey) {
     if (errors.length < 20) continue;
     table.set(key, {
-      medianErrorMs: median(errors),
+      medianErrorMs: median(errors) ?? 0,
       within25MinPct: (errors.filter((e) => e <= WITHIN_MS).length / errors.length) * 100,
       sampleSize: errors.length,
     });

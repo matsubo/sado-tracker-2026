@@ -170,6 +170,14 @@ export interface MapEntryDto {
   readonly isSelf?: boolean;
 }
 
+/** A timing point as the race endpoint publishes it. */
+export interface CheckpointDto {
+  readonly id: string;
+  readonly label: string;
+  readonly km: number;
+  readonly discipline: string;
+}
+
 export interface RaceStateDto {
   readonly year: number;
   readonly fetchedAt: number;
@@ -202,7 +210,7 @@ export interface RaceStateDto {
     readonly waveStart: string;
     /** The swim distance actually being swum, which the organiser can shorten. */
     readonly swimKm: number;
-    readonly checkpoints: readonly { id: string; label: string; km: number; discipline: string }[];
+    readonly checkpoints: readonly CheckpointDto[];
   }[];
   readonly _links: Links;
 }

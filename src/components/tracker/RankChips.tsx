@@ -1,3 +1,4 @@
+import { DISCIPLINES } from "@/config/races";
 import type { DisciplineDto } from "@/lib/api/contract";
 import { formatDuration, formatRunPace, formatSwimPace } from "@/lib/format";
 import { cn } from "@/lib/utils/cn";
@@ -19,7 +20,7 @@ function paceText(row: DisciplineDto): string | null {
 }
 
 /** One line per discipline: time, then who the athlete is ahead of. */
-const ORDER: readonly string[] = ["swim", "bike", "run"];
+const ORDER: readonly string[] = DISCIPLINES;
 
 /**
  * A leg with no time is either still ahead of the athlete or already under

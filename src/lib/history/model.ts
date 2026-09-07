@@ -1,7 +1,15 @@
-import type { Discipline, Division, RaceConfig } from "@/config/races";
-import { disciplineKm, splitBetween } from "@/lib/compute/elapsed";
+import {
+  DISCIPLINES,
+  DIVISIONS,
+  type Discipline,
+  type Division,
+  type RaceConfig,
+} from "@/config/races";
+import { disciplineKm, disciplineTime } from "@/lib/compute/elapsed";
+import { paceMinPerKm } from "@/lib/compute/pace";
 import { buildPopulations } from "@/lib/compute/population";
 import type { Athlete } from "@/lib/domain/types";
+import { median } from "@/lib/math/stats";
 import type { HistoryYear } from "./nameIndex";
 
 /**
@@ -39,23 +47,6 @@ export interface NeighbourModel {
   readonly medianSpeedKmh: Readonly<Record<Division, Partial<Record<Discipline, number>>>>;
 }
 
-const DIVISIONS: readonly Division[] = ["A", "B", "RA", "RB"];
-const ALL_DISCIPLINES: readonly Discipline[] = ["swim", "bike", "run"];
-
-function paceMinPerKm(ms: number, km: number): number | null {
-  if (ms <= 0 || km <= 0) return null;
-  return ms / 60_000 / km;
-}
-
-function median(values: readonly number[]): number | null {
-  if (values.length === 0) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 1
-    ? (sorted[mid] as number)
-    : ((sorted[mid - 1] as number) + (sorted[mid] as number)) / 2;
-}
-
 function rowFor(
   athlete: Athlete,
   year: number,
@@ -67,14 +58,8 @@ function rowFor(
   if (finish === undefined) return null;
 
   const pace: Partial<Record<Discipline, number>> = {};
-  for (const discipline of ALL_DISCIPLINES) {
-    const bounds =
-      discipline === "swim"
-        ? (["start", "swimF"] as const)
-        : discipline === "bike"
-          ? (["bikeS", "runS"] as const)
-          : (["runS", "finish"] as const);
-    const ms = splitBetween(athlete, bounds[0], bounds[1]);
+  for (const discipline of DISCIPLINES) {
+    const ms = disciplineTime(athlete, discipline);
     if (ms === null) continue;
     const value = paceMinPerKm(ms, disciplineKm(discipline, course));
     if (value !== null) pace[discipline] = value;
@@ -146,7 +131,7 @@ export function buildNeighbourModel(
 
     for (const group of byYear.values()) {
       const sortedBy: Partial<Record<Discipline, number[]>> = {};
-      for (const discipline of ALL_DISCIPLINES) {
+      for (const discipline of DISCIPLINES) {
         sortedBy[discipline] = group
           .map((row) => row.pace[discipline])
           .filter((value): value is number => value !== undefined)
@@ -155,7 +140,7 @@ export function buildNeighbourModel(
 
       for (const row of group) {
         const percentile: Partial<Record<Discipline, number>> = {};
-        for (const discipline of ALL_DISCIPLINES) {
+        for (const discipline of DISCIPLINES) {
           const own = row.pace[discipline];
           const sorted = sortedBy[discipline];
           if (own === undefined || !sorted || sorted.length < 2) continue;
@@ -182,9 +167,9 @@ export function buildNeighbourModel(
 
   for (const division of DIVISIONS) {
     const swimUsable = swimComparable[division] && swimKm[division].size === 1;
-    features[division] = ALL_DISCIPLINES.filter((d) => d !== "swim" || swimUsable);
+    features[division] = DISCIPLINES.filter((d) => d !== "swim" || swimUsable);
     percentileFeatures[division] = swimUsable ? [] : ["swim"];
-    for (const discipline of ALL_DISCIPLINES) {
+    for (const discipline of DISCIPLINES) {
       const paces = rows[division]
         .map((row) => row.pace[discipline])
         .filter((value): value is number => value !== undefined);

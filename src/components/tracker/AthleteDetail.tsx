@@ -7,9 +7,9 @@ import { ShareButtons } from "@/components/layout/ShareButtons";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs } from "@/components/ui/tabs";
-import type { Discipline, Division } from "@/config/races";
+import { DISCIPLINE_LABELS, DIVISION_LABELS, type Discipline } from "@/config/races";
 import { useBookmarks } from "@/hooks/useBookmarks";
-import { useLiveClock } from "@/hooks/useLivePosition";
+import { projectKm, useLiveClock } from "@/hooks/useLivePosition";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
 import type { AthleteDetailDto, RankDto } from "@/lib/api/contract";
 import { formatClock, formatClockShort, formatDuration } from "@/lib/format";
@@ -17,24 +17,10 @@ import { CoursePositionChart } from "./CoursePositionChart";
 import { DisciplineTable } from "./DisciplineTable";
 import { InProgressLeg } from "./InProgressLeg";
 import { PastResults } from "./PastResults";
-import { barCheckpoints, type DisciplineKm, liveKm, PositionBar } from "./PositionBar";
+import { barCheckpoints, type DisciplineKm, PositionBar } from "./PositionBar";
 import { PredictionBox } from "./PredictionBox";
 import { RankChart } from "./RankChart";
 import { SplitTable } from "./SplitTable";
-
-/** Division labels are not on the wire, only the division code. */
-const DIVISION_LABELS: Record<Division, string> = {
-  A: "Aタイプ",
-  B: "Bタイプ",
-  RA: "RAタイプ（リレー）",
-  RB: "RBタイプ（リレー）",
-};
-
-const DISCIPLINE_PILL: Record<Discipline, { label: string; variant: BadgeProps["variant"] }> = {
-  swim: { label: "スイム中", variant: "swim" },
-  bike: { label: "バイク中", variant: "bike" },
-  run: { label: "ラン中", variant: "run" },
-};
 
 /** The one-word answer to "how is my friend doing right now?". */
 function statusPill(detail: AthleteDetailDto): { label: string; variant: BadgeProps["variant"] } {
@@ -47,8 +33,10 @@ function statusPill(detail: AthleteDetailDto): { label: string; variant: BadgePr
       return { label: "DNS", variant: "outline" };
     case "not_started":
       return { label: "スタート前", variant: "outline" };
-    default:
-      return DISCIPLINE_PILL[detail.position.discipline];
+    default: {
+      const discipline = detail.position.discipline;
+      return { label: `${DISCIPLINE_LABELS[discipline]}中`, variant: discipline };
+    }
   }
 }
 
@@ -163,7 +151,8 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
   const passedIndex = checkpoints.findIndex((cp) => cp.label === detail.lastCheckpointLabel);
   const nextLabel = checkpoints[passedIndex + 1]?.label ?? null;
   const finished = detail.status === "finished";
-  const estKm = detail.status === "racing" ? liveKm(detail.position, nowMs) : detail.position.estKm;
+  const estKm =
+    detail.status === "racing" ? projectKm(detail.position, nowMs) : detail.position.estKm;
   const sexLabel = detail.sex === "F" ? "女子" : detail.sex === "M" ? "男子" : "性別";
   // A relay has no age group, so there is nothing to switch between.
   // The leg being raced right now, summarised beside the estimated position

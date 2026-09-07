@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { DivisionRankings } from "@/components/tracker/DivisionRankings";
-import type { Division } from "@/config/races";
-
-const DIVISIONS: readonly Division[] = ["A", "B", "RA", "RB"];
+import { type Division, isDivision } from "@/config/races";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
@@ -15,7 +13,7 @@ interface PageProps {
 /** The route segment is case-insensitive; anything else is a 404. */
 function toDivision(raw: string): Division | null {
   const upper = raw.toUpperCase();
-  return DIVISIONS.find((division) => division === upper) ?? null;
+  return isDivision(upper) ? upper : null;
 }
 
 /** Search params arrive as string or string[]; only the first value is used. */

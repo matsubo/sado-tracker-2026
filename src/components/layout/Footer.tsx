@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { LEGAL_LINKS, NAV_LINKS, OFFICIAL_URL } from "@/components/layout/navLinks";
 import { ShareButtons } from "@/components/layout/ShareButtons";
+import { EDITION_YEAR, REPO_URL } from "@/config/site";
 import { cn } from "@/lib/utils/cn";
 
 const AI_TRI_URL = "https://ai-triathlon-result.teraren.com/";
-const REPO_URL = "https://github.com/matsubo/sado-tracker-2026";
 const AUTHOR_URL = "https://x.com/ittriathlon";
 
 /** Destinations: quiet until touched, because they are not the point of the page. */
@@ -91,7 +91,7 @@ export function Footer({ className }: { className?: string }) {
           </p>
           {/* The source is readable, which is not the same as reusable. */}
           <p className="mt-0.5 text-[10.5px] opacity-80">
-            © 2026 Yuki Matsukura. All rights reserved.
+            © {EDITION_YEAR} Yuki Matsukura. All rights reserved.
           </p>
         </div>
       </div>

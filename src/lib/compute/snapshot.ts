@@ -1,4 +1,12 @@
-import type { Discipline, Division, DivisionCourse, RaceConfig } from "@/config/races";
+import {
+  DISCIPLINE_LABELS,
+  DISCIPLINES,
+  DIVISIONS,
+  type Discipline,
+  type Division,
+  type DivisionCourse,
+  type RaceConfig,
+} from "@/config/races";
 import type { Athlete, RaceSnapshot } from "@/lib/domain/types";
 import type { NeighbourModel } from "@/lib/history/model";
 import type { NameIndex, PastResult } from "@/lib/history/nameIndex";
@@ -24,15 +32,6 @@ import {
   splitRanks,
 } from "./ranking";
 import { athleteStatus, type Status } from "./status";
-
-const DIVISIONS: readonly Division[] = ["A", "B", "RA", "RB"];
-const ALL_DISCIPLINES: readonly Discipline[] = ["swim", "bike", "run"];
-
-const DISCIPLINE_LABELS: Record<Discipline, string> = {
-  swim: "スイム",
-  bike: "バイク",
-  run: "ラン",
-};
 
 interface ComputedDiscipline {
   readonly discipline: Discipline;
@@ -106,7 +105,7 @@ function computeDisciplines(
   course: DivisionCourse,
   pop: Populations,
 ): ComputedDiscipline[] {
-  return ALL_DISCIPLINES.map((discipline) => {
+  return DISCIPLINES.map((discipline) => {
     const result = disciplineRanks(athlete, discipline, pop, course);
     const km = disciplineKm(discipline, course);
     const measuredAt = result.atCheckpoint;

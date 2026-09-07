@@ -1,4 +1,4 @@
-import type { Division, RaceConfig } from "@/config/races";
+import { DIVISIONS, type RaceConfig } from "@/config/races";
 import { logOnce } from "@/lib/runtime/logger";
 
 /** A timing column and the index of the `ms` column that follows it. */
@@ -50,8 +50,7 @@ function findIndex(header: readonly string[], candidates: readonly string[]): nu
  */
 function checkpointIdByHeader(config: RaceConfig): Map<string, string> {
   const map = new Map<string, string>();
-  const divisions: Division[] = ["A", "RA", "B", "RB"];
-  for (const division of divisions) {
+  for (const division of DIVISIONS) {
     for (const checkpoint of config.divisions[division].checkpoints) {
       if (checkpoint.id === "start") continue;
       for (const header of checkpoint.csvHeaders) {

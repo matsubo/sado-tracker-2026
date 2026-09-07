@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { FieldMap } from "@/components/tracker/FieldMap";
-import type { Division } from "@/config/races";
-
-const DIVISIONS: readonly Division[] = ["A", "B", "RA", "RB"];
+import { type Division, isDivision } from "@/config/races";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
@@ -25,7 +23,7 @@ function first(value: string | string[] | undefined): string | null {
 export default async function MapPage({ searchParams }: PageProps) {
   const query = await searchParams;
   const requested = (first(query.div) ?? "").toUpperCase();
-  const division = DIVISIONS.find((id) => id === requested) ?? "A";
+  const division: Division = isDivision(requested) ? requested : "A";
 
   return (
     <main className="mx-auto w-full max-w-[480px] pb-10">

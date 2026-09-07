@@ -41,4 +41,6 @@ export function normalizeName(raw: string): string {
 
 export type { AgeGroup, Sex } from "../ageGroup";
 export { compareAgeGroups, normalizeAgeGroup } from "../ageGroup";
+export { COURSE_SHARES, DISCIPLINE_LABELS, DISCIPLINES, isDiscipline } from "../disciplines";
+export { DIVISION_LABELS, DIVISIONS, isDivision } from "../divisions";
 export type { CheckpointDef, Discipline, Division, DivisionCourse, RaceConfig } from "../types";

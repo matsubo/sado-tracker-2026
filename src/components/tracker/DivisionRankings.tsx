@@ -6,25 +6,30 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { RankingTable } from "@/components/tracker/RankingTable";
 import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
-import { type AgeGroup, compareAgeGroups, type Division, normalizeAgeGroup } from "@/config/races";
+import {
+  type AgeGroup,
+  compareAgeGroups,
+  DISCIPLINE_LABELS,
+  DISCIPLINES,
+  DIVISIONS,
+  type Division,
+  isDiscipline,
+  normalizeAgeGroup,
+} from "@/config/races";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
 import type { RankingPageDto } from "@/lib/api/contract";
+import type { RankingDiscipline } from "@/lib/api/rankings";
 import { cn } from "@/lib/utils/cn";
 
-const DIVISIONS: readonly Division[] = ["A", "B", "RA", "RB"];
 const ALL_AGE_GROUPS = "all";
 
-const DISCIPLINES = [
-  { value: "swim", label: "スイム" },
-  { value: "bike", label: "バイク" },
-  { value: "run", label: "ラン" },
+const DISCIPLINE_TABS: readonly { value: RankingDiscipline; label: string }[] = [
+  ...DISCIPLINES.map((value) => ({ value, label: DISCIPLINE_LABELS[value] })),
   { value: "total", label: "総合" },
-] as const;
+];
 
-type RankingDiscipline = (typeof DISCIPLINES)[number]["value"];
-
-const isDiscipline = (value: string): value is RankingDiscipline =>
-  DISCIPLINES.some((item) => item.value === value);
+const isRankingDiscipline = (value: string): value is RankingDiscipline =>
+  value === "total" || isDiscipline(value);
 
 /** The checkpoint an athlete must have passed to appear in each table. */
 const END_CHECKPOINT: Readonly<Record<RankingDiscipline, string>> = {
@@ -94,7 +99,7 @@ export function DivisionRankings({
   initialPage,
 }: DivisionRankingsProps) {
   const fromUrl =
-    initialDiscipline !== null && isDiscipline(initialDiscipline) ? initialDiscipline : null;
+    initialDiscipline !== null && isRankingDiscipline(initialDiscipline) ? initialDiscipline : null;
   // Null until the race counts arrive and pick an opening discipline; an
   // explicit choice, from the URL or a tab, is authoritative from then on.
   const [discipline, setDiscipline] = useState<RankingDiscipline | null>(fromUrl);
@@ -195,10 +200,10 @@ export function DivisionRankings({
         aria-label="種目"
         variant="pill"
         className="mx-3"
-        items={DISCIPLINES}
+        items={DISCIPLINE_TABS}
         value={discipline ?? ""}
         onValueChange={(value) => {
-          if (!isDiscipline(value)) return;
+          if (!isRankingDiscipline(value)) return;
           setDiscipline(value);
           setExplicit(true);
           setPage(1);

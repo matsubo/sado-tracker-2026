@@ -1,11 +1,10 @@
 import { z } from "zod";
+import { DIVISIONS } from "@/config/races";
 import { badRequest, liveJson, notFound, notReady } from "@/lib/api/respond";
 import { toMapEntry } from "@/lib/api/serialize";
 import { getSnapshot } from "@/lib/runtime/store";
 
 export const dynamic = "force-dynamic";
-
-const DIVISIONS = ["A", "B", "RA", "RB"] as const;
 
 const querySchema = z.object({
   div: z.enum(DIVISIONS).default("A"),

@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { storageKey } from "@/config/site";
 import { track } from "@/lib/analytics";
 
-const STORAGE_KEY = "sado2026.bookmarks";
+const STORAGE_KEY = storageKey("bookmarks");
 const MAX_BOOKMARKS = 50;
 
 /** Used when a caller does not name the screen the action came from. */

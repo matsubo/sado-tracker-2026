@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { DISCIPLINE_LABELS } from "@/config/races";
 import type { RankingRowDto } from "@/lib/api/contract";
 import { formatDiff, formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils/cn";
@@ -15,12 +16,7 @@ const PACE_HEADS: Readonly<Record<string, string>> = {
   total: "ペース",
 };
 
-const TIME_HEADS: Readonly<Record<string, string>> = {
-  swim: "スイム",
-  bike: "バイク",
-  run: "ラン",
-  total: "総合",
-};
+const TIME_HEADS: Readonly<Record<string, string>> = { ...DISCIPLINE_LABELS, total: "総合" };
 
 interface RankingTableProps {
   readonly rows: readonly RankingRowDto[];

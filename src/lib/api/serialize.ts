@@ -1,4 +1,4 @@
-import type { Division } from "@/config/races";
+import { DISCIPLINE_LABELS, DIVISION_LABELS, DIVISIONS, type Division } from "@/config/races";
 import type { ComputedAthlete, ComputedSnapshot } from "@/lib/compute/snapshot";
 import { formatBikeSpeed, formatDuration, formatRunPace, formatSwimPace } from "@/lib/format";
 import type {
@@ -13,15 +13,6 @@ import type {
   RaceStateDto,
   SplitDto,
 } from "./contract";
-
-const DIVISIONS: readonly Division[] = ["A", "B", "RA", "RB"];
-
-const DIVISION_LABELS: Record<Division, string> = {
-  A: "Aタイプ",
-  B: "Bタイプ",
-  RA: "RAタイプ（リレー）",
-  RB: "RBタイプ（リレー）",
-};
 
 /**
  * External athlete page on the sibling results site, which keys athletes by
@@ -133,12 +124,6 @@ function toSplits(computed: ComputedAthlete): SplitDto[] {
   }));
 }
 
-const DISCIPLINE_LABELS: Record<string, string> = {
-  swim: "スイム",
-  bike: "バイク",
-  run: "ラン",
-};
-
 function paceOf(discipline: string, timeMs: number, km: number): string {
   if (discipline === "swim") return formatSwimPace(timeMs, km);
   if (discipline === "bike") return formatBikeSpeed(timeMs, km);
@@ -156,7 +141,7 @@ function toPastResults(computed: ComputedAthlete): PastResultDto[] {
     ageGroupId: r.ageGroupId,
     disciplines: r.disciplines.map((d) => ({
       discipline: d.discipline,
-      label: DISCIPLINE_LABELS[d.discipline] ?? d.discipline,
+      label: DISCIPLINE_LABELS[d.discipline],
       timeMs: d.timeMs,
       km: d.km,
       paceText: paceOf(d.discipline, d.timeMs, d.km),

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_SHORT_NAME } from "@/config/site";
 
 /**
  * Enough for the page to be added to a phone's home screen and open without
@@ -6,10 +7,9 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "佐渡トラッカー 2026",
-    short_name: "佐渡トラッカー",
-    description:
-      "佐渡国際トライアスロンの応援トラッカー。ブックマークした選手の現在地、順位、ゴール予想タイムがひと目でわかります。",
+    name: SITE_NAME,
+    short_name: SITE_SHORT_NAME,
+    description: SITE_DESCRIPTION,
     start_url: "/",
     display: "standalone",
     orientation: "portrait",

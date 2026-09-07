@@ -6,6 +6,7 @@ import { useCallback } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs } from "@/components/ui/tabs";
+import { DIVISIONS, type Division, isDivision } from "@/config/races";
 import { useBookmarks } from "@/hooks/useBookmarks";
 import { projectKm, useLiveClock } from "@/hooks/useLivePosition";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
@@ -17,12 +18,7 @@ import { FinalResultsNotice } from "./FinalResultsNotice";
 import { PreRaceNotice } from "./PreRaceNotice";
 import { StatusPill } from "./StatusPill";
 
-const DIVISION_TABS = [
-  { value: "A", label: "A" },
-  { value: "B", label: "B" },
-  { value: "RA", label: "RA" },
-  { value: "RB", label: "RB" },
-];
+const DIVISION_TABS = DIVISIONS.map((value) => ({ value, label: value }));
 
 const MEDAL: Record<number, string> = {
   1: "text-[color:var(--bike)]",
@@ -45,9 +41,8 @@ export function Leaderboard() {
   const pathname = usePathname() ?? "/";
   const params = useSearchParams();
 
-  const division = DIVISION_TABS.some((tab) => tab.value === params?.get("div"))
-    ? (params?.get("div") as string)
-    : "A";
+  const requested = params?.get("div") ?? "";
+  const division: Division = isDivision(requested) ? requested : "A";
   const page = Math.max(1, Number(params?.get("page") ?? "1") || 1);
   const query = params?.get("q") ?? "";
 

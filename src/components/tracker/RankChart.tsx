@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { RankSetDto } from "@/lib/api/contract";
+import type { CheckpointDto, RankSetDto } from "@/lib/api/contract";
 
 /** Loaded in the browser only: echarts touches `window` at import time. */
 const ReactECharts = dynamic(() => import("echarts-for-react"), {
@@ -69,7 +69,7 @@ interface RankChartProps {
   readonly sexLabel: string;
   readonly ageGroupLabel: string | null;
   /** Every timing point of the course, so the axis does not grow as the athlete moves. */
-  readonly checkpoints?: readonly { readonly id: string; readonly label: string }[];
+  readonly checkpoints?: readonly CheckpointDto[];
 }
 
 /**

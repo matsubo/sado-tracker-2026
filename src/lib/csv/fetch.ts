@@ -1,3 +1,4 @@
+import { DEFAULT_SITE_URL, EDITION_YEAR } from "@/config/site";
 import { logger } from "@/lib/runtime/logger";
 
 class CsvFetchError extends Error {
@@ -17,7 +18,7 @@ const RETRY_DELAY_MS = 2_000;
 async function once(url: string, timeoutMs: number): Promise<ArrayBuffer> {
   const response = await fetch(url, {
     signal: AbortSignal.timeout(timeoutMs),
-    headers: { "user-agent": "sado-tracker-2026 (+https://sado-tracker-2026.teraren.com)" },
+    headers: { "user-agent": `sado-tracker-${EDITION_YEAR} (+${DEFAULT_SITE_URL})` },
     cache: "no-store",
   });
   if (!response.ok) {

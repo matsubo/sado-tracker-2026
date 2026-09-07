@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { NAV_LINKS, OFFICIAL_URL } from "@/components/layout/navLinks";
 import { NotificationPanel } from "@/components/tracker/NotificationPanel";
+import { EDITION_YEAR, SITE_SHORT_NAME } from "@/config/site";
 import { useBookmarkNotifications } from "@/hooks/useBookmarkNotifications";
 import { cn } from "@/lib/utils/cn";
 
@@ -59,9 +60,9 @@ export function GlobalHeader({ year }: { readonly year?: number }) {
           href="/"
           className="rounded font-bold text-[15px] tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          佐渡トラッカー
+          {SITE_SHORT_NAME}
           <span className="ml-1.5 font-semibold text-[11.5px] text-muted-foreground">
-            {year ?? 2026}
+            {year ?? EDITION_YEAR}
           </span>
         </Link>
 

@@ -64,3 +64,10 @@ export function formatRaceDate(raceDate: string): string {
   if (!year || !month || !day) return raceDate;
   return `${year}年${month}月${day}日`;
 }
+
+/** "9月6日" from a "YYYY-MM-DD" race date, for a card that already says the year. */
+export function formatMonthDay(raceDate: string): string {
+  const [, month, day] = raceDate.split("-").map(Number);
+  if (!month || !day) return raceDate;
+  return `${month}月${day}日`;
+}

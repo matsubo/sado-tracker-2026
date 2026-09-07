@@ -61,22 +61,22 @@ describe("disciplineTime", () => {
   });
 
   it("takes swim from the start to the swim finish", () => {
-    expect(disciplineTime(finisher, "swim", courseA)).toBe(90 * MINUTE);
+    expect(disciplineTime(finisher, "swim")).toBe(90 * MINUTE);
   });
 
   it("takes bike from the bike start to the run start, excluding T1", () => {
-    expect(disciplineTime(finisher, "bike", courseA)).toBe(442 * MINUTE);
+    expect(disciplineTime(finisher, "bike")).toBe(442 * MINUTE);
   });
 
   it("takes run from the run start to the finish", () => {
-    expect(disciplineTime(finisher, "run", courseA)).toBe(300 * MINUTE);
+    expect(disciplineTime(finisher, "run")).toBe(300 * MINUTE);
   });
 
   it("returns null while the discipline is still in progress", () => {
     const midBike = athlete({
       passes: { swimF: START_A + 90 * MINUTE, bikeS: START_A + 98 * MINUTE },
     });
-    expect(disciplineTime(midBike, "bike", courseA)).toBeNull();
+    expect(disciplineTime(midBike, "bike")).toBeNull();
   });
 });
 

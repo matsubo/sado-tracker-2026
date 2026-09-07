@@ -1,6 +1,8 @@
-export const SITE_NAME = "佐渡トラッカー 2026";
+import { SITE_NAME } from "@/config/site";
 
-/** "ブックマーク | 佐渡トラッカー 2026", or just the site name for the shell. */
+export { SITE_NAME };
+
+/** "ブックマーク | <site name>", or just the site name for the shell. */
 export function pageTitle(name: string | null | undefined): string {
   const trimmed = (name ?? "").trim();
   return trimmed === "" ? SITE_NAME : `${trimmed} | ${SITE_NAME}`;
