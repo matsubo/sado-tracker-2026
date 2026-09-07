@@ -1,3 +1,5 @@
+export const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
 /**
  * When the race stops producing results, in epoch milliseconds.
  *

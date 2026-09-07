@@ -27,6 +27,14 @@ export function badRequest(message: string): NextResponse {
   return NextResponse.json({ error: message }, { status: 400, headers: LIVE_HEADERS });
 }
 
+export function unauthorized(message: string): NextResponse {
+  return NextResponse.json({ error: message }, { status: 401, headers: LIVE_HEADERS });
+}
+
+export function forbidden(message: string): NextResponse {
+  return NextResponse.json({ error: message }, { status: 403, headers: LIVE_HEADERS });
+}
+
 /** The snapshot is not ready until the first poll completes. */
 export function notReady(): NextResponse {
   return NextResponse.json(

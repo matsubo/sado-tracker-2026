@@ -92,6 +92,8 @@ export interface ComputedSnapshot {
   readonly clockSpeed: number;
   /** True once no further results can arrive, so the page is a record. */
   readonly finalResults: boolean;
+  /** The past races the prediction model was trained on. */
+  readonly historyYears: readonly number[];
   readonly config: RaceConfig;
   /** The parsed records this was computed from, so a recompute needs no refetch. */
   readonly raw: RaceSnapshot;
@@ -191,21 +193,24 @@ function computeSplits(
  * athlete per checkpoint, which for 1,900 athletes stays well inside the
  * one-minute poll interval.
  */
+export interface ComputeOptions {
+  readonly stale?: boolean;
+  readonly replay?: boolean;
+  readonly backtest?: BacktestTable;
+  readonly pollIntervalMs?: number;
+  readonly clockSpeed?: number;
+  /** When results stop arriving; after it, anyone unfinished is a DNF. */
+  readonly raceEndedAt?: number | null;
+  readonly historyYears?: readonly number[];
+}
+
 export function computeSnapshot(
   snapshot: RaceSnapshot,
   config: RaceConfig,
   model: NeighbourModel,
   nameIndex: NameIndex,
   nowMs: number,
-  options: {
-    stale?: boolean;
-    replay?: boolean;
-    backtest?: BacktestTable;
-    pollIntervalMs?: number;
-    clockSpeed?: number;
-    /** When results stop arriving; after it, anyone unfinished is a DNF. */
-    raceEndedAt?: number | null;
-  } = {},
+  options: ComputeOptions = {},
 ): ComputedSnapshot {
   const athletes = new Map<string, ComputedAthlete>();
   // Athletes standing at the same timing point share one candidate set.
@@ -274,6 +279,7 @@ export function computeSnapshot(
       options.raceEndedAt !== null && options.raceEndedAt !== undefined
         ? nowMs >= options.raceEndedAt
         : false,
+    historyYears: options.historyYears ?? [],
     config,
     raw: snapshot,
     athletes,

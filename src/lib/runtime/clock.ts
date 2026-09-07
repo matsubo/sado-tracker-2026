@@ -45,7 +45,7 @@ export function replayClock(startIso: string, speed: number, options: ReplayOpti
 }
 
 /** Build the clock from the environment: replay when REPLAY_START is set. */
-export function clockFromEnv(env: NodeJS.ProcessEnv = process.env): Clock {
+export function clockFromEnv(env: Partial<NodeJS.ProcessEnv> = process.env): Clock {
   const start = env.REPLAY_START;
   if (!start) return systemClock;
 

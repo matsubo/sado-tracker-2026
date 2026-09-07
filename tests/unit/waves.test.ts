@@ -26,6 +26,7 @@ function race(divisions: readonly Division[]): RaceStateDto {
     pollIntervalMs: 60_000,
     finalResults: false,
     raceDate: "2026-09-06",
+    historyYears: [],
     counts: { A: {}, B: {}, RA: {}, RB: {} },
     divisions,
     _links: { self: { href: "/api/race" } },

@@ -112,21 +112,22 @@ publishes it at `https://<host>.<tailnet>.ts.net/` for the tailnet only.
 | Variable | Meaning |
 |---|---|
 | `RACE_YEAR` | Race to display, default 2026 |
-| `DATA_DIR` | Where past exports and the snapshot are cached, default `.data` |
+| `DATA_DIR` | Where past exports are cached, default `.data`. Mount a volume here in production, or every start downloads the past races again |
+| `HISTORY_DOWNLOAD` | `off` to use only the past races already on disk, never downloading a missing year |
 | `POLL_INTERVAL_MS` | How often the field is recomputed, default 60000 |
 | `FETCH_FROM_HOUR` | First hour of race day the timing site is asked, default 7 |
 | `FETCH_TO_HOUR` | Hour it stops, exclusive, default 23 |
 | `FETCH_WINDOW` | `off` to poll around the clock |
-| `REFRESH_TOKEN` | Required by `POST /api/refresh` when set |
+| `REFRESH_TOKEN` | Bearer token for `POST /api/refresh`. Required in production; the endpoint refuses without it |
 | `NEXT_PUBLIC_GA_ID` | GA4 measurement id, e.g. `G-XXXXXXXXXX`. Analytics is off when unset |
 | `NEXT_PUBLIC_SITE_URL` | Canonical origin for Open Graph tags, default the production domain |
 | `REPLAY_START` | Virtual start time; set to enable replay mode |
 | `REPLAY_SPEED` | Replay multiplier, default 60 |
 | `REPLAY_HOURS` | Race hours covered before looping, default 14 |
 
-Production runs with `RACE_YEAR`, `TZ` and `DATA_DIR` only. Setting any
-`REPLAY_*` variable switches the server to a past race, so they must be absent
-on race day.
+Production runs with `RACE_YEAR`, `TZ`, `DATA_DIR` and `REFRESH_TOKEN` only.
+Setting any `REPLAY_*` variable switches the server to a past race, so they
+must be absent on race day.
 
 `NEXT_PUBLIC_GA_ID` is read at build time, not at run time, so it has to be a
 build variable wherever this is deployed. Setting it after a build has no
@@ -140,9 +141,16 @@ first wave actually goes off; in 2026 that was 06. A start-up always fetches
 once whatever the hour, so a server brought up the night before still serves the
 entry list.
 
-`POST /api/refresh` fetches on demand, ignoring those hours. Set `REFRESH_TOKEN`
-on any host reachable from the internet and pass it as `?token=` or a bearer
-token; without it the endpoint is open and anyone can make this server fetch.
+`POST /api/refresh` fetches on demand, ignoring those hours. It takes the
+`REFRESH_TOKEN` as `Authorization: Bearer <token>`. In production the
+endpoint refuses to run until the token is set, so a public host can never be
+made to fetch by a stranger; in development, with no token, it is open.
+
+The past races are downloaded on the first start and kept under `DATA_DIR`.
+That directory has to survive a redeploy, or every container start depends on
+the timing site being up; `GET /api/race` reports the years actually loaded
+in `historyYears`, so an empty list there means the model has nothing to
+predict from.
 
 ## Data
 

@@ -255,6 +255,8 @@ export const RaceStateSchema = z
     finalResults: z.boolean(),
     /** The day the race was held, "YYYY-MM-DD". */
     raceDate: z.string(),
+    /** Past races the prediction model was trained on; empty means none loaded. */
+    historyYears: z.array(z.number().int()).readonly(),
     /** Counts of athletes measured at each checkpoint, per division. */
     counts: z.record(DivisionSchema, z.record(z.string(), z.number()).readonly()).readonly(),
     divisions: z

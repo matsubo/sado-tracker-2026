@@ -31,13 +31,19 @@ async function once(url: string, timeoutMs: number): Promise<ArrayBuffer> {
   return buffer;
 }
 
+interface FetchOptions {
+  readonly timeoutMs?: number;
+  readonly retryDelayMs?: number;
+}
+
 /** Fetch the result export, retrying once before giving up. */
-export async function fetchCsv(url: string, timeoutMs = TIMEOUT_MS): Promise<ArrayBuffer> {
+export async function fetchCsv(url: string, options: FetchOptions = {}): Promise<ArrayBuffer> {
+  const timeoutMs = options.timeoutMs ?? TIMEOUT_MS;
   try {
     return await once(url, timeoutMs);
   } catch (error) {
     logger.warn("Result export fetch failed, retrying", { url, error: String(error) });
-    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+    await new Promise((resolve) => setTimeout(resolve, options.retryDelayMs ?? RETRY_DELAY_MS));
     try {
       return await once(url, timeoutMs);
     } catch (retryError) {

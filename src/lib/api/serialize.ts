@@ -290,6 +290,7 @@ export function toRaceState(snapshot: ComputedSnapshot): RaceStateDto {
     pollIntervalMs: snapshot.pollIntervalMs,
     finalResults: snapshot.finalResults,
     raceDate: snapshot.config.raceDate,
+    historyYears: [...snapshot.historyYears],
     counts: Object.fromEntries(
       DIVISIONS.map((id) => [id, { ...snapshot.counts[id] }]),
     ) as RaceStateDto["counts"],

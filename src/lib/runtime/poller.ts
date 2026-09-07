@@ -1,33 +1,48 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { getRaceConfig, HISTORY_YEARS } from "@/config/races";
-import type { BacktestTable } from "@/lib/compute/prediction";
-import { computeSnapshot } from "@/lib/compute/snapshot";
+import { getRaceConfig, HISTORY_YEARS, type RaceConfig } from "@/config/races";
+import { type ComputeOptions, computeSnapshot } from "@/lib/compute/snapshot";
 import { decodeCp932 } from "@/lib/csv/decode";
 import { fetchCsv } from "@/lib/csv/fetch";
 import { toSnapshot } from "@/lib/csv/normalize";
 import { parseCsv } from "@/lib/csv/parse";
 import type { RaceSnapshot } from "@/lib/domain/types";
 import { runBacktest } from "@/lib/history/backtest";
-import { buildNeighbourModel, type NeighbourModel } from "@/lib/history/model";
-import { buildNameIndex, type HistoryYear, type NameIndex } from "@/lib/history/nameIndex";
-import { raceEndsAt } from "@/lib/runtime/raceWindow";
+import { buildNeighbourModel } from "@/lib/history/model";
+import { buildNameIndex, type HistoryYear } from "@/lib/history/nameIndex";
+import { JST_OFFSET_MS, raceEndsAt } from "@/lib/runtime/raceWindow";
 import { raceYear } from "@/lib/runtime/year";
 import { getWeather } from "@/lib/weather";
-import { type Clock, clockFromEnv } from "./clock";
+import { clockFromEnv } from "./clock";
 import { logger, logOnce } from "./logger";
 import {
   claimPollerStart,
-  getPollerRuntime,
+  getPollerHandle,
   getSnapshot,
   markStale,
-  setPollerRuntime,
+  setPollerHandle,
   setSnapshot,
 } from "./store";
+import type { PollerDeps, PollerRuntime } from "./types";
+
+export type { PollerDeps, PollerRuntime } from "./types";
 
 const DEFAULT_POLL_INTERVAL_MS = 60_000;
 const MIN_POLL_INTERVAL_MS = 500;
 const WEATHER_INTERVAL_MS = 300_000;
+
+/** The real file system, network and clock; what production runs on. */
+const nodeDeps: PollerDeps = {
+  env: process.env,
+  fetchCsv: (url) => fetchCsv(url),
+  readFile: (path) => readFileSync(path),
+  exists: (path) => existsSync(path),
+  writeFile: (path, data) => {
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, data);
+  },
+  wallClock: () => Date.now(),
+};
 
 /**
  * How often the field is recomputed. The live race is polled once a minute,
@@ -45,12 +60,6 @@ export function pollIntervalMs(env: Partial<NodeJS.ProcessEnv> = process.env): n
   const perFrame = (5 * 60_000) / (Number.isFinite(speed) && speed > 0 ? speed : 60);
   return Math.max(MIN_POLL_INTERVAL_MS, Math.min(DEFAULT_POLL_INTERVAL_MS, Math.round(perFrame)));
 }
-
-function dataDir(): string {
-  return process.env.DATA_DIR ?? ".data";
-}
-
-const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 /**
  * The window in which the timing site is worth asking. Outside it the race is
@@ -95,16 +104,23 @@ export function shouldFetch(
   return hour >= window.fromHour && hour < window.toHour;
 }
 
-function readCsvFile(path: string): string {
-  const buffer = readFileSync(path);
-  return decodeCp932(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength));
+function historyPath(env: Partial<NodeJS.ProcessEnv>, year: number): string {
+  return `${env.DATA_DIR ?? ".data"}/history/${year}.csv`;
+}
+
+/** A Node Buffer is a Uint8Array view, which the decoder takes as it is. */
+function decodeFile(buffer: Buffer): string {
+  return decodeCp932(buffer);
 }
 
 /**
- * Load past races from disk, downloading any that are missing. They are the
- * training set for the prediction and the source of past-result lookups.
+ * Load past races from disk, downloading any that are missing unless
+ * HISTORY_DOWNLOAD is off. They are the training set for the prediction and
+ * the source of past-result lookups. A year that cannot be had is logged and
+ * left out; the tracker still runs, with less to predict from.
  */
-async function loadHistory(liveYear: number): Promise<HistoryYear[]> {
+export async function loadHistory(liveYear: number, deps: PollerDeps): Promise<HistoryYear[]> {
+  const download = (deps.env.HISTORY_DOWNLOAD ?? "").toLowerCase() !== "off";
   const years: HistoryYear[] = [];
 
   // Never train on, or match against, the race being displayed: in replay
@@ -112,18 +128,23 @@ async function loadHistory(liveYear: number): Promise<HistoryYear[]> {
   // be shown their own result as a previous year and used as their own
   // nearest neighbour.
   for (const year of HISTORY_YEARS.filter((candidate) => candidate !== liveYear)) {
-    const path = `${dataDir()}/history/${year}.csv`;
+    const path = historyPath(deps.env, year);
+    const config = getRaceConfig(year);
     try {
-      if (!existsSync(path)) {
-        const config = getRaceConfig(year);
-        const buffer = await fetchCsv(config.csvUrl);
-        mkdirSync(dirname(path), { recursive: true });
-        writeFileSync(path, Buffer.from(buffer));
+      let bytes: Buffer;
+      if (deps.exists(path)) {
+        bytes = deps.readFile(path);
+      } else if (download) {
+        const buffer = await deps.fetchCsv(config.csvUrl);
+        bytes = Buffer.from(buffer);
+        deps.writeFile(path, bytes);
         logger.info("Downloaded past race", { year, bytes: buffer.byteLength });
+      } else {
+        logger.warn("Past race is not on disk and downloads are off", { year, path });
+        continue;
       }
-      const config = getRaceConfig(year);
       const snapshot = toSnapshot(
-        parseCsv(readCsvFile(path)),
+        parseCsv(decodeFile(bytes)),
         config,
         Date.parse(`${config.raceDate}T23:59:59+09:00`),
       );
@@ -136,27 +157,40 @@ async function loadHistory(liveYear: number): Promise<HistoryYear[]> {
   return years;
 }
 
-interface Runtime {
-  readonly clock: Clock;
-  readonly model: NeighbourModel;
-  readonly nameIndex: NameIndex;
-  readonly backtest: BacktestTable;
+/** Build what every refresh needs: the clock, the model and the name index. */
+export async function buildRuntime(deps: PollerDeps): Promise<PollerRuntime> {
+  const clock = clockFromEnv(deps.env);
+  const year = raceYear(deps.env);
+  const history = await loadHistory(year, deps);
+  const liveConfig = getRaceConfig(year);
+  const holdout = history.map((entry) => entry.year).sort((a, b) => b - a)[0];
+  // The measured accuracy has to come from the same feature set the live
+  // model uses, or it describes predictions nobody is being shown.
+  const backtest =
+    history.length >= 2 && holdout !== undefined
+      ? runBacktest(history, holdout, liveConfig)
+      : new Map();
+
+  return {
+    clock,
+    model: buildNeighbourModel(history, liveConfig),
+    nameIndex: buildNameIndex(history),
+    backtest,
+    historyYears: history.map((entry) => entry.year),
+  };
 }
 
-async function fetchLive(year: number): Promise<RaceSnapshot> {
+async function fetchLive(year: number, deps: PollerDeps): Promise<RaceSnapshot> {
   const config = getRaceConfig(year);
 
   // Replay mode reads a finished race from disk and reveals it gradually.
-  if (process.env.REPLAY_START) {
-    return toSnapshot(
-      parseCsv(readCsvFile(`${dataDir()}/history/${year}.csv`)),
-      config,
-      Date.now(),
-    );
+  if (deps.env.REPLAY_START) {
+    const text = decodeFile(deps.readFile(historyPath(deps.env, year)));
+    return toSnapshot(parseCsv(text), config, deps.wallClock());
   }
 
-  const buffer = await fetchCsv(config.csvUrl);
-  return toSnapshot(parseCsv(decodeCp932(buffer)), config, Date.now());
+  const buffer = await deps.fetchCsv(config.csvUrl);
+  return toSnapshot(parseCsv(decodeCp932(buffer)), config, deps.wallClock());
 }
 
 /** Hide checkpoints that have not happened yet in the replayed timeline. */
@@ -171,50 +205,63 @@ function applyReplayCutoff(snapshot: RaceSnapshot, nowMs: number): RaceSnapshot 
   };
 }
 
-async function refresh(runtime: Runtime, force = false): Promise<void> {
-  const year = raceYear();
+function computeOptions(
+  runtime: PollerRuntime,
+  deps: PollerDeps,
+  config: RaceConfig,
+): ComputeOptions {
+  return {
+    replay: runtime.clock.replay,
+    backtest: runtime.backtest,
+    pollIntervalMs: pollIntervalMs(deps.env),
+    clockSpeed: runtime.clock.speed,
+    raceEndedAt: raceEndsAt(config.raceDate, deps.env),
+    historyYears: runtime.historyYears,
+  };
+}
+
+/**
+ * One refresh: fetch the records if the hour calls for it, then recompute.
+ * Outside the fetch window the held records are recomputed so estimated
+ * positions and the clock keep moving without asking the timing site.
+ */
+export async function refresh(
+  runtime: PollerRuntime,
+  deps: PollerDeps,
+  force = false,
+): Promise<void> {
+  const year = raceYear(deps.env);
   const config = getRaceConfig(year);
   const nowMs = runtime.clock.now();
+  const options = computeOptions(runtime, deps, config);
+  const held = getSnapshot();
 
   // Always fetch once, whatever the hour: a server started outside the window
   // would otherwise serve nothing at all, including the entry list.
-  const outsideWindow =
-    !force && getSnapshot() !== null && !shouldFetch(config.raceDate, Date.now());
-
-  if (outsideWindow) {
+  const wallNow = deps.wallClock();
+  if (!force && held !== null && !shouldFetch(config.raceDate, wallNow, deps.env)) {
     logOnce(
-      `outside-window:${new Date(Date.now() + JST_OFFSET_MS).toISOString().slice(0, 13)}`,
+      `outside-window:${new Date(wallNow + JST_OFFSET_MS).toISOString().slice(0, 13)}`,
       "Outside the fetch window, leaving the snapshot as it is",
       { raceDate: config.raceDate },
     );
-
-    // Recompute anyway so estimated positions and the clock keep moving from
-    // the records already held, without asking the timing site again.
-    const held = getSnapshot();
-    if (held) {
-      const computed = computeSnapshot(held.raw, config, runtime.model, runtime.nameIndex, nowMs, {
-        replay: runtime.clock.replay,
-        backtest: runtime.backtest,
-        pollIntervalMs: pollIntervalMs(),
-        clockSpeed: runtime.clock.speed,
-        raceEndedAt: raceEndsAt(config.raceDate),
-      });
-      setSnapshot(computed);
-    }
+    setSnapshot(
+      computeSnapshot(held.raw, config, runtime.model, runtime.nameIndex, nowMs, options),
+    );
     return;
   }
 
   try {
-    const raw = await fetchLive(year);
+    const raw = await fetchLive(year, deps);
     const visible = runtime.clock.replay ? applyReplayCutoff(raw, nowMs) : raw;
-
-    const computed = computeSnapshot(visible, config, runtime.model, runtime.nameIndex, nowMs, {
-      replay: runtime.clock.replay,
-      backtest: runtime.backtest,
-      pollIntervalMs: pollIntervalMs(),
-      clockSpeed: runtime.clock.speed,
-      raceEndedAt: raceEndsAt(config.raceDate),
-    });
+    const computed = computeSnapshot(
+      visible,
+      config,
+      runtime.model,
+      runtime.nameIndex,
+      nowMs,
+      options,
+    );
     setSnapshot(computed);
 
     logger.info("Snapshot refreshed", {
@@ -238,43 +285,31 @@ async function refresh(runtime: Runtime, force = false): Promise<void> {
  * before the race or restarted after it.
  */
 export async function refreshNow(): Promise<boolean> {
-  const runtime = getPollerRuntime<Runtime>();
-  if (!runtime) return false;
-  await refresh(runtime, true);
+  const handle = getPollerHandle();
+  if (!handle) return false;
+  await refresh(handle.runtime, handle.deps, true);
   return true;
 }
 
 /** Start the background pollers exactly once per process. */
-export async function startPollers(): Promise<void> {
+export async function startPollers(deps: PollerDeps = nodeDeps): Promise<void> {
   if (!claimPollerStart()) return;
 
-  const clock = clockFromEnv();
-  const year = raceYear();
-  logger.info("Starting pollers", { year, replay: clock.replay });
+  const year = raceYear(deps.env);
+  logger.info("Starting pollers", { year, replay: Boolean(deps.env.REPLAY_START) });
 
-  const history = await loadHistory(year);
-  const liveConfig = getRaceConfig(year);
-  const model = buildNeighbourModel(history, liveConfig);
-  const nameIndex = buildNameIndex(history);
-  const holdout = history.map((entry) => entry.year).sort((a, b) => b - a)[0];
-  // The measured accuracy has to come from the same feature set the live
-  // model uses, or it describes predictions nobody is being shown.
-  const backtest =
-    history.length >= 2 && holdout !== undefined
-      ? runBacktest(history, holdout, liveConfig)
-      : new Map();
+  const runtime = await buildRuntime(deps);
+  setPollerHandle({ runtime, deps });
+  logger.info("History loaded", { years: runtime.historyYears });
 
-  const runtime: Runtime = { clock, model, nameIndex, backtest };
-  setPollerRuntime(runtime);
-
-  await refresh(runtime, true);
-  const interval = pollIntervalMs();
-  logger.info("Poll interval chosen", { intervalMs: interval, replay: clock.replay });
+  await refresh(runtime, deps, true);
+  const interval = pollIntervalMs(deps.env);
+  logger.info("Poll interval chosen", { intervalMs: interval, replay: runtime.clock.replay });
 
   // Chain rather than use a fixed interval: a refresh that runs long must not
   // stack up behind itself when the replay is fast.
   const tick = async (): Promise<void> => {
-    await refresh(runtime);
+    await refresh(runtime, deps);
     setTimeout(() => void tick(), interval);
   };
   setTimeout(() => void tick(), interval);

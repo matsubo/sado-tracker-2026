@@ -1,4 +1,5 @@
-import { badRequest, liveJson, notReady } from "@/lib/api/respond";
+import { authorizeRefresh } from "@/lib/api/refreshAuth";
+import { forbidden, liveJson, notReady, unauthorized } from "@/lib/api/respond";
 import { toRaceState } from "@/lib/api/serialize";
 import { refreshNow } from "@/lib/runtime/poller";
 import { getSnapshot } from "@/lib/runtime/store";
@@ -10,17 +11,16 @@ export const dynamic = "force-dynamic";
  * to. Useful when a server is started before the race or restarted after it,
  * and when a checkpoint is published late and the wait is not acceptable.
  *
- * A token is required whenever REFRESH_TOKEN is set; without it the endpoint
- * is open, which is fine on a private host and not on a public one.
+ * The bearer token in REFRESH_TOKEN is required whenever it is set, and it
+ * must be set in production: without it the endpoint refuses rather than
+ * letting anyone on the internet make this server fetch.
  */
 export async function POST(request: Request): Promise<Response> {
-  const expected = process.env.REFRESH_TOKEN;
-  if (expected) {
-    const given =
-      new URL(request.url).searchParams.get("token") ??
-      request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-    if (given !== expected) return badRequest("トークンが正しくありません。");
+  const decision = authorizeRefresh(process.env, request.headers.get("authorization"));
+  if (decision === "disabled") {
+    return forbidden("REFRESH_TOKEN が設定されていないため、手動更新は無効です。");
   }
+  if (decision === "denied") return unauthorized("トークンが正しくありません。");
 
   const started = await refreshNow();
   if (!started) return notReady();

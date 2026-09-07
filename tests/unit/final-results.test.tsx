@@ -17,6 +17,7 @@ const RACE: RaceStateDto = {
   pollIntervalMs: 60_000,
   finalResults: true,
   raceDate: "2026-09-06",
+  historyYears: [],
   counts: { A: { finish: 814 }, B: { finish: 665 }, RA: {}, RB: {} },
   divisions: [
     {

@@ -1,4 +1,5 @@
 import type { ComputedSnapshot } from "@/lib/compute/snapshot";
+import type { PollerHandle } from "./types";
 
 /**
  * The computed snapshot is held on globalThis rather than in a module
@@ -12,12 +13,12 @@ interface Slot {
   snapshot: ComputedSnapshot | null;
   started: boolean;
   /** What a refresh needs, so a route handler can trigger one. */
-  runtime: unknown;
+  handle: PollerHandle | null;
 }
 
 function slot(): Slot {
   const store = globalThis as typeof globalThis & { [KEY]?: Slot };
-  if (!store[KEY]) store[KEY] = { snapshot: null, started: false, runtime: null };
+  if (!store[KEY]) store[KEY] = { snapshot: null, started: false, handle: null };
   return store[KEY];
 }
 
@@ -40,12 +41,12 @@ export function markStale(): void {
  * the route handlers are bundled separately, so a module variable would give
  * each its own copy and a manual refresh would find nothing to run.
  */
-export function setPollerRuntime(runtime: unknown): void {
-  slot().runtime = runtime;
+export function setPollerHandle(handle: PollerHandle): void {
+  slot().handle = handle;
 }
 
-export function getPollerRuntime<T>(): T | null {
-  return (slot().runtime as T | null) ?? null;
+export function getPollerHandle(): PollerHandle | null {
+  return slot().handle;
 }
 
 /** Guards the pollers so they start exactly once per process. */
@@ -54,4 +55,12 @@ export function claimPollerStart(): boolean {
   if (current.started) return false;
   current.started = true;
   return true;
+}
+
+/** Test helper: forget everything, as a fresh process would. */
+export function resetStore(): void {
+  const current = slot();
+  current.snapshot = null;
+  current.started = false;
+  current.handle = null;
 }
