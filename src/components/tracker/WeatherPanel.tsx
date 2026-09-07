@@ -11,12 +11,19 @@ const ROWS = [
   { key: "wind", label: "風 m/s" },
 ] as const;
 
-/** Forecast for the finish area plus the nearest live observation. */
+/**
+ * The whole panel is about Sado City: the forecast point is Sawata on the
+ * island and the observation comes from the Aikawa AMeDAS station, so the
+ * heading names the city rather than either point.
+ */
+const HEADING = "天気 · 佐渡市";
+
+/** Sado City forecast plus the island's live observation. */
 export function WeatherPanel({ weather }: { weather: WeatherData | null }) {
   if (!weather?.available || weather.forecast.length === 0) {
     return (
       <section className="overflow-hidden rounded-lg border border-border bg-card">
-        <h2 className="px-3.5 py-2.5 font-bold text-[13px]">天気 · 佐和田</h2>
+        <h2 className="px-3.5 py-2.5 font-bold text-[13px]">{HEADING}</h2>
         <p className="px-3.5 pb-3 text-[12px] text-muted-foreground">
           天気情報を取得できませんでした。
         </p>
@@ -34,7 +41,7 @@ export function WeatherPanel({ weather }: { weather: WeatherData | null }) {
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-card">
       <header className="flex items-center justify-between px-3.5 py-2.5">
-        <h2 className="font-bold text-[13px]">天気 · 佐和田</h2>
+        <h2 className="font-bold text-[13px]">{HEADING}</h2>
         {observation ? (
           <p className="text-[12px] text-muted-foreground tabular-nums">
             実況 {observation.station} {formatClockShort(observation.timeMs)}
