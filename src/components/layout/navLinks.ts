@@ -1,6 +1,6 @@
 import { CircleHelp, ListOrdered, Map as MapIcon, Star, Trophy } from "lucide-react";
 
-export interface NavLink {
+interface NavLink {
   readonly href: string;
   readonly label: string;
   readonly icon: typeof Trophy;

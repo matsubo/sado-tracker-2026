@@ -34,7 +34,7 @@ const DISCIPLINE_LABELS: Record<Discipline, string> = {
   run: "ラン",
 };
 
-export interface ComputedDiscipline {
+interface ComputedDiscipline {
   readonly discipline: Discipline;
   readonly label: string;
   readonly km: number;
@@ -47,7 +47,7 @@ export interface ComputedDiscipline {
   readonly speedKmh: number | null;
 }
 
-export interface ComputedSplit {
+interface ComputedSplit {
   readonly checkpointId: string;
   readonly label: string;
   readonly discipline: Discipline | "transition";

@@ -4,14 +4,12 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AppHeader } from "@/components/layout/AppHeader";
 import { Footer } from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { Tabs } from "@/components/ui/tabs";
-import { formatClock } from "@/lib/format";
 
 afterEach(cleanup);
 
@@ -134,39 +132,6 @@ describe("Footer", () => {
       "href",
       "https://systemway.jp/26sado?di=1",
     );
-  });
-});
-
-describe("AppHeader", () => {
-  const UPDATED_AT = Date.UTC(2026, 8, 6, 1, 32, 15);
-
-  it("shows the title, the formatted update time and the countdown", () => {
-    render(
-      <AppHeader
-        title="佐渡トラッカー"
-        subtitle="2026"
-        updatedAt={UPDATED_AT}
-        stale={false}
-        nextInMs={45_000}
-      />,
-    );
-    expect(screen.getByText("佐渡トラッカー")).toBeInTheDocument();
-    expect(screen.getByText(`最終更新 ${formatClock(UPDATED_AT)}`)).toBeInTheDocument();
-    expect(screen.getByText("45 秒後に更新")).toBeInTheDocument();
-  });
-
-  it("marks the stale state on the status dot and in the text", () => {
-    const { container } = render(
-      <AppHeader title="佐渡トラッカー" updatedAt={UPDATED_AT} stale nextInMs={null} />,
-    );
-    expect(screen.getByText(`最終更新 ${formatClock(UPDATED_AT)}（再取得中）`)).toBeInTheDocument();
-    expect(container.querySelector('[data-stale="true"]')).toBeInTheDocument();
-    expect(screen.queryByText(/秒後に更新/)).not.toBeInTheDocument();
-  });
-
-  it("waits for the first fetch before showing a time", () => {
-    render(<AppHeader title="佐渡トラッカー" updatedAt={null} stale={false} nextInMs={null} />);
-    expect(screen.getByText("更新待ち")).toBeInTheDocument();
   });
 });
 

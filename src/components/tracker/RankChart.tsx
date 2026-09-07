@@ -12,7 +12,7 @@ const ReactECharts = dynamic(() => import("echarts-for-react"), {
 });
 
 /** One measured point of the athlete's rank history. */
-export interface RankHistoryEntry {
+interface RankHistoryEntry {
   readonly checkpointId: string;
   readonly label: string;
   readonly ranks: RankSetDto;

@@ -2,15 +2,6 @@ import { fetchObservation } from "./amedas";
 import { fetchForecast } from "./openMeteo";
 import type { ForecastHour, Observation, WeatherData } from "./types";
 
-export {
-  AIKAWA_STATION_NUMBER,
-  fetchObservation,
-  parseObservation,
-  windDirectionCodeToLabel,
-} from "./amedas";
-export { degreesToJapaneseCompass, describeWeatherCode, fetchForecast } from "./openMeteo";
-export type { ForecastHour, Observation, WeatherData } from "./types";
-
 const FORECAST_TTL_MS = 5 * 60 * 1000;
 const OBSERVATION_TTL_MS = 10 * 60 * 1000;
 

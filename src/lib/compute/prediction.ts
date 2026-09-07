@@ -8,7 +8,7 @@ import { athleteStatus } from "./status";
 const NEIGHBOUR_COUNT = 20;
 const MIN_NEIGHBOURS = 5;
 
-export interface PredictionExplanation {
+interface PredictionExplanation {
   readonly neighbourCount: number;
   readonly yearBreakdown: Readonly<Record<number, number>>;
   readonly remainingP25Ms: number;

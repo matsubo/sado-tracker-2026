@@ -79,7 +79,7 @@ export function parseObservation(payload: unknown, timeMs: number): Observation 
  * The digits are taken straight from the local-time string; parsing it into a
  * Date and reading UTC fields would shift the filename by nine hours.
  */
-export function latestTimeToMapKey(latestTime: string): string | null {
+function latestTimeToMapKey(latestTime: string): string | null {
   const digits = latestTime.trim().slice(0, 19).replace(/\D/g, "");
   return digits.length === 14 ? digits : null;
 }

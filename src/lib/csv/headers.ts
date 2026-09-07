@@ -2,7 +2,7 @@ import type { Division, RaceConfig } from "@/config/races";
 import { logOnce } from "@/lib/runtime/logger";
 
 /** A timing column and the index of the `ms` column that follows it. */
-export interface TimingColumn {
+interface TimingColumn {
   readonly checkpointId: string;
   readonly index: number;
   readonly msIndex: number | null;

@@ -5,7 +5,7 @@ import { disciplineRanks, type Rank, rankBy } from "@/lib/compute/ranking";
 import type { RaceSnapshot } from "@/lib/domain/types";
 
 /** One discipline of a past race, with the rank it earned that year. */
-export interface PastDiscipline {
+interface PastDiscipline {
   readonly discipline: Discipline;
   readonly timeMs: number;
   /** Distance raced that year, which is not always the same across years. */

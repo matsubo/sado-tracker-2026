@@ -16,7 +16,7 @@ import {
 } from "./PositionBar";
 
 /** A timing point as the race endpoint publishes it. */
-export interface CourseCheckpoint {
+interface CourseCheckpoint {
   readonly id: string;
   readonly label: string;
   readonly km: number;

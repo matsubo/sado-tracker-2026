@@ -39,24 +39,36 @@ node .next/standalone/server.js
 env = { PORT = "3111", HOSTNAME = "0.0.0.0", RACE_YEAR = "2025", REPLAY_START = "2025-09-07T06:00:00+09:00", REPLAY_SPEED = "420", POLL_INTERVAL_MS = "1000", DATA_DIR = ".data" }
 
 [tasks.test]
-run = "bunx vitest run"
+run = "bun run test"
 
 [tasks.typecheck]
-run = "bunx tsc --noEmit"
+run = "bun run typecheck"
 
 [tasks.lint]
-run = "bunx biome check ."
+run = "bun run lint"
+
+[tasks.knip]
+description = "Report unused files, exports and dependencies"
+run = "bun run knip"
 
 [tasks.build]
-run = "bunx next build"
+run = "bun run build"
 
 [tasks.e2e]
-run = "bunx playwright test"
+run = "bun run e2e"
 
 [tasks.fetch-history]
 description = "Download past race exports into .data/history"
-run = "bunx tsx scripts/fetch-history.ts"
+run = "bun run fetch-history"
+
+[tasks.make-fixtures]
+description = "Anonymize the downloaded exports into tests/fixtures (then convert with iconv, see README)"
+run = "bun run make-fixtures"
+
+[tasks.bench]
+description = "Time one full recomputation against the fixtures"
+run = "bun run bench"
 
 [tasks.accuracy]
 description = "Report prediction backtest accuracy"
-run = "bunx tsx scripts/report-accuracy.ts"
+run = "bun run accuracy"

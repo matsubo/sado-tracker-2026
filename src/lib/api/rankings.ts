@@ -30,7 +30,7 @@ function paceText(discipline: RankingDiscipline, timeMs: number, km: number): st
   return "";
 }
 
-export interface RankingQuery {
+interface RankingQuery {
   readonly division: Division;
   readonly discipline: RankingDiscipline;
   readonly ageGroupId: string | null;

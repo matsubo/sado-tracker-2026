@@ -82,7 +82,7 @@ export function ranksAtCheckpoint(
   return ranksAgainst(athlete, checkpointId, pop, "elapsed", (a) => elapsedAt(a, checkpointId));
 }
 
-export interface DisciplineRankResult {
+interface DisciplineRankResult {
   readonly ranks: RankSet;
   /** True while the discipline is still in progress. */
   readonly provisional: boolean;

@@ -15,7 +15,7 @@ import { currentPageTitle } from "@/lib/pageTitle";
  * sending our own after the title is set files each screen under its own
  * name. The path was always right; only the title was a page behind.
  */
-function PageViews({ gaId }: { readonly gaId: string }) {
+function PageViews() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const lastSent = useRef<string | null>(null);
@@ -60,7 +60,7 @@ gtag('config', '${gaId}', { send_page_view: false });`}
       />
       {/* useSearchParams needs a boundary or the whole tree opts out of static. */}
       <Suspense fallback={null}>
-        <PageViews gaId={gaId} />
+        <PageViews />
       </Suspense>
     </>
   );

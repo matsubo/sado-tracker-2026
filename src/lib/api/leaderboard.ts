@@ -4,7 +4,7 @@ import { matchesAthlete } from "./athleteMatch";
 import type { AthleteSummaryDto } from "./contract";
 import { toAthleteSummary } from "./serialize";
 
-export interface LeaderRowDto {
+interface LeaderRowDto {
   readonly place: number;
   readonly athlete: AthleteSummaryDto;
 }
@@ -30,8 +30,6 @@ export interface LeaderboardDto {
   readonly perPage: number;
   readonly leaders: readonly LeaderRowDto[];
 }
-
-const DIVISIONS: readonly Division[] = ["A", "B", "RA", "RB"];
 
 const LABELS: Record<Division, string> = {
   A: "Aタイプ",
@@ -108,10 +106,6 @@ export function buildLeaderboard(
     perPage,
     leaders,
   };
-}
-
-export function leaderboardDivisions(): readonly Division[] {
-  return DIVISIONS;
 }
 
 /** Everyone entered in a division, in bib order. */

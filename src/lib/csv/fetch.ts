@@ -1,6 +1,6 @@
 import { logger } from "@/lib/runtime/logger";
 
-export class CsvFetchError extends Error {
+class CsvFetchError extends Error {
   constructor(
     message: string,
     readonly url: string,

@@ -38,7 +38,7 @@ const COMPASS_POINTS = [
 ] as const;
 
 /** A weather code rendered for display. `icon` is an emoji glyph. */
-export interface DescribedWeather {
+interface DescribedWeather {
   label: string;
   icon: string;
 }

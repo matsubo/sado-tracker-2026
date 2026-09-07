@@ -194,7 +194,7 @@ export function toMapEntry(computed: ComputedAthlete, isSelf = false): MapEntryD
  * are actually racing; passing null keeps the whole type, which is what a
  * supporter wants when they ask how far off the front their friend is.
  */
-export function neighbourEntries(
+function neighbourEntries(
   snapshot: ComputedSnapshot,
   computed: ComputedAthlete,
   ageGroupId: string | null,

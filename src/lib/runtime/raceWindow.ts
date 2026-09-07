@@ -1,5 +1,3 @@
-const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
-
 /**
  * When the race stops producing results, in epoch milliseconds.
  *
@@ -22,5 +20,3 @@ export function raceEndsAt(
   if (Number.isNaN(midnightJst)) return null;
   return midnightJst + toHour * 60 * 60 * 1000;
 }
-
-export { JST_OFFSET_MS };

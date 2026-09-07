@@ -98,7 +98,7 @@ export interface PredictionDto {
   };
 }
 
-export interface PastDisciplineDto {
+interface PastDisciplineDto {
   readonly discipline: Discipline;
   readonly label: string;
   readonly timeMs: number;

@@ -71,5 +71,4 @@ function TD({ className, align = "right", ...props }: TDProps) {
   );
 }
 
-export type { CellAlign, TableProps, TDProps, THProps };
 export { Table, TBody, TD, TH, THead, TR };

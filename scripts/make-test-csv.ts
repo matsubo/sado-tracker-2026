@@ -274,8 +274,6 @@ function toLine(row: Row): string {
 }
 
 const text = [HEADERS.join(","), ...ROWS.map(toLine)].join("\r\n");
-const encoded = new (await import("node:util")).TextEncoder();
-void encoded;
-// Node has no Shift_JIS encoder, so shell out to iconv via a UTF-8 temp file.
+// Node has no Shift_JIS encoder: convert with `iconv -f UTF-8 -t CP932`, see README.
 writeFileSync("tests/fixtures/sample-2026.utf8.csv", `${text}\r\n`, "utf8");
 process.stdout.write(`${ROWS.length} rows written\n`);

@@ -11,7 +11,7 @@ export const systemClock: Clock = { now: () => Date.now(), replay: false, speed:
 /** A race day runs from the first wave to the last finisher. */
 const DEFAULT_REPLAY_WINDOW_MS = 14 * 60 * 60 * 1000;
 
-export interface ReplayOptions {
+interface ReplayOptions {
   /** Milliseconds of race covered before looping back to the start. */
   readonly windowMs?: number;
   readonly realNow?: number;

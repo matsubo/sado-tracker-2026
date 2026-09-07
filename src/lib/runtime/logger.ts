@@ -19,8 +19,3 @@ export function logOnce(key: string, message: string, fields?: Fields): void {
   seen.add(key);
   emit("warn", message, fields);
 }
-
-/** Test helper: forget which keys have been logged. */
-export function resetLogOnce(): void {
-  seen.clear();
-}

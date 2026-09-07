@@ -6,7 +6,7 @@ import type { AthleteSummaryDto } from "@/lib/api/contract";
 /** Long enough that a fast typist does not fire a request per keystroke. */
 const DEBOUNCE_MS = 200;
 
-export interface SearchState {
+interface SearchState {
   readonly results: readonly AthleteSummaryDto[];
   readonly searching: boolean;
   /** Set only when the search itself failed, not when it found nothing. */

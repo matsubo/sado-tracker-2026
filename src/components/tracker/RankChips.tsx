@@ -1,5 +1,5 @@
 import type { DisciplineDto } from "@/lib/api/contract";
-import { formatBikeSpeed, formatDuration, formatRunPace, formatSwimPace } from "@/lib/format";
+import { formatDuration, formatRunPace, formatSwimPace } from "@/lib/format";
 import { cn } from "@/lib/utils/cn";
 
 const TEXT: Record<string, string> = {
@@ -97,5 +97,3 @@ export function DisciplineLines({
     </dl>
   );
 }
-
-export { formatBikeSpeed, paceText };

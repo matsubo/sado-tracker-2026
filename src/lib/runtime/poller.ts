@@ -35,7 +35,7 @@ const WEATHER_INTERVAL_MS = 300_000;
  * it can run far faster and needs to when a whole race is compressed into a
  * couple of minutes.
  */
-export function pollIntervalMs(env: NodeJS.ProcessEnv = process.env): number {
+export function pollIntervalMs(env: Partial<NodeJS.ProcessEnv> = process.env): number {
   const configured = Number(env.POLL_INTERVAL_MS);
   if (Number.isFinite(configured) && configured >= MIN_POLL_INTERVAL_MS) return configured;
   if (!env.REPLAY_START) return DEFAULT_POLL_INTERVAL_MS;

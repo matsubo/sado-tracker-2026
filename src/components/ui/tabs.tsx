@@ -120,5 +120,3 @@ export function Tabs({
     </div>
   );
 }
-
-export type { TabItem, TabsProps, TabsVariant };
