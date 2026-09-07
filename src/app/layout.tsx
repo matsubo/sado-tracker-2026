@@ -9,6 +9,7 @@ import {
   SITE_SHORT_NAME,
   storageKey,
 } from "@/config/site";
+import { AppProviders } from "@/state/AppProviders";
 import "./globals.css";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? DEFAULT_SITE_URL;
@@ -66,10 +67,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body>
-        <div className="flex min-h-dvh flex-col bg-background text-foreground">
-          <div className="flex-1">{children}</div>
-          <Footer />
-        </div>
+        <AppProviders>
+          <div className="flex min-h-dvh flex-col bg-background text-foreground">
+            <div className="flex-1">{children}</div>
+            <Footer />
+          </div>
+        </AppProviders>
         {GA_ID ? <Analytics gaId={GA_ID} /> : null}
       </body>
     </html>

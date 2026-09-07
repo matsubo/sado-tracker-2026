@@ -2,6 +2,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useBookmarks } from "@/hooks/useBookmarks";
+import { BookmarksProvider } from "@/state/BookmarksProvider";
 
 type GtagCall = [command: string, name: string, params: Record<string, unknown>];
 
@@ -43,7 +44,7 @@ afterEach(() => {
 
 describe("useBookmarks analytics", () => {
   it("reports an added bookmark with the screen it came from", async () => {
-    const { result } = renderHook(() => useBookmarks());
+    const { result } = renderHook(() => useBookmarks(), { wrapper: BookmarksProvider });
     await waitFor(() => expect(result.current.ready).toBe(true));
 
     act(() => result.current.add("1001", "search"));
@@ -53,7 +54,7 @@ describe("useBookmarks analytics", () => {
   });
 
   it("reports a removed bookmark with the screen it came from", async () => {
-    const { result } = renderHook(() => useBookmarks());
+    const { result } = renderHook(() => useBookmarks(), { wrapper: BookmarksProvider });
     await waitFor(() => expect(result.current.ready).toBe(true));
 
     act(() => result.current.add("1001", "search"));
@@ -65,7 +66,7 @@ describe("useBookmarks analytics", () => {
   });
 
   it("falls back to a source name rather than sending none", async () => {
-    const { result } = renderHook(() => useBookmarks());
+    const { result } = renderHook(() => useBookmarks(), { wrapper: BookmarksProvider });
     await waitFor(() => expect(result.current.ready).toBe(true));
 
     act(() => result.current.add("1002"));
@@ -77,7 +78,7 @@ describe("useBookmarks analytics", () => {
   });
 
   it("does not report a bookmark that was already there", async () => {
-    const { result } = renderHook(() => useBookmarks());
+    const { result } = renderHook(() => useBookmarks(), { wrapper: BookmarksProvider });
     await waitFor(() => expect(result.current.ready).toBe(true));
 
     act(() => result.current.add("1001", "search"));
@@ -89,7 +90,7 @@ describe("useBookmarks analytics", () => {
   });
 
   it("does not report a removal of something that was never bookmarked", async () => {
-    const { result } = renderHook(() => useBookmarks());
+    const { result } = renderHook(() => useBookmarks(), { wrapper: BookmarksProvider });
     await waitFor(() => expect(result.current.ready).toBe(true));
 
     act(() => result.current.remove("9999", "card"));
@@ -100,7 +101,7 @@ describe("useBookmarks analytics", () => {
 
   it("works when analytics is switched off", async () => {
     delete (window as unknown as { gtag?: unknown }).gtag;
-    const { result } = renderHook(() => useBookmarks());
+    const { result } = renderHook(() => useBookmarks(), { wrapper: BookmarksProvider });
     await waitFor(() => expect(result.current.ready).toBe(true));
 
     act(() => result.current.add("1001", "search"));

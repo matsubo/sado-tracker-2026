@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useContext } from "react";
 import type { PositionDto } from "@/lib/api/contract";
-import { raceNow } from "@/lib/runtime/raceClock";
-
-const TICK_MS = 10_000;
+import { LiveClockContext } from "@/state/LiveClockProvider";
 
 /**
  * Advance an estimated position between server updates, so the course keeps
@@ -22,21 +20,9 @@ export function projectKm(position: PositionDto, nowMs: number): number {
   return Math.min(position.lastKm + travelled, cap);
 }
 
-/**
- * A slow clock on the race's timeline, for components that animate positions.
- * It stays at zero until a server response has established what time the race
- * is on, and callers treat zero as "use the estimate the server sent". The
- * device clock is never a stand-in: in replay it is a year out, and projecting
- * from it pins the whole field to the next timing point.
- */
-export function useLiveClock(intervalMs = TICK_MS): number {
-  const [now, setNow] = useState(0);
-
-  useEffect(() => {
-    setNow(raceNow());
-    const timer = setInterval(() => setNow(raceNow()), intervalMs);
-    return () => clearInterval(timer);
-  }, [intervalMs]);
-
-  return now;
+/** The shared race-time clock; see LiveClockProvider. Zero until known. */
+export function useLiveClock(): number {
+  const value = useContext(LiveClockContext);
+  if (value === null) throw new Error("useLiveClock must be used within LiveClockProvider");
+  return value;
 }

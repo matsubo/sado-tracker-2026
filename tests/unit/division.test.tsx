@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import type { AnchorHTMLAttributes } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DivisionRankings } from "@/components/tracker/DivisionRankings";
@@ -12,6 +12,7 @@ import type {
   RankingPageDto,
   RankingRowDto,
 } from "@/lib/api/contract";
+import { renderWithProviders } from "../support/providers";
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) => (
@@ -199,7 +200,7 @@ afterEach(() => {
 });
 
 function renderRankings(bib: string | null = null, discipline: string | null = "swim") {
-  return render(
+  return renderWithProviders(
     <DivisionRankings
       division="A"
       initialDiscipline={discipline}
@@ -302,7 +303,7 @@ describe("FieldMap", () => {
     // Bookmarks come from the shareable `?bibs=` link as well as local storage.
     window.history.replaceState(null, "", "/map?bibs=1234");
 
-    const { container } = render(<FieldMap initialDivision="A" />);
+    const { container } = renderWithProviders(<FieldMap initialDivision="A" />);
     await screen.findByText(/両津 美咲/);
 
     expect(container.querySelectorAll("svg circle")).toHaveLength(MAP_BODY.entries.length);

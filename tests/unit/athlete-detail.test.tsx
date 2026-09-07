@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   AthleteDetailDto,
@@ -11,6 +11,8 @@ import type {
   RankSetDto,
   SplitDto,
 } from "@/lib/api/contract";
+
+import { renderWithProviders } from "../support/providers";
 
 vi.mock("@/components/tracker/RankChart", () => ({ RankChart: (): null => null }));
 
@@ -220,7 +222,7 @@ const detail: AthleteDetailDto = {
 
 /** Renders the page and waits for the athlete data to land. */
 async function renderDetail(): Promise<void> {
-  render(<AthleteDetail bib="1234" />);
+  renderWithProviders(<AthleteDetail bib="1234" />);
   await screen.findByRole("heading", { level: 1 });
 }
 
