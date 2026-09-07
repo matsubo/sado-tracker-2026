@@ -15,8 +15,8 @@ const STATUS_LABEL: Record<string, string> = {
   not_started: "スタート前",
   racing: "レース中",
   finished: "フィニッシュ",
-  dnf: "リタイア",
-  dns_suspected: "未計測",
+  dnf: "DNF",
+  dns_suspected: "DNS",
 };
 
 /** Highlight the part of the name the reader has typed. */

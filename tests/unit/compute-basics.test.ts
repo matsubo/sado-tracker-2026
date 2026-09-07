@@ -88,6 +88,56 @@ describe("athleteStatus", () => {
     expect(athleteStatus(a, courseA, now)).toBe("finished");
   });
 
+  it("is dnf wherever DNF sits in the remark, not only at the front", () => {
+    // The organiser writes the leg first as often as not, and sometimes lists
+    // an earlier note before it. 26 of the 160 retirements in 2026 were
+    // recorded in one of these shapes.
+    for (const remark of [
+      "DNF/本部(20:24)",
+      "runDNF",
+      "bikeDNF",
+      "bikeDNF 水津TOV",
+      "bikeDNF（水津10:12）, DNF/水津AS(10:08)",
+      "swimSKIP, DNF/本部(16:23)",
+      "swimDNF, DNF/本部(08:14)",
+      "runSKIP, DNF/本部(08:21)",
+      "TOVrunDNF",
+      "  DNF/本部(19:37)",
+    ]) {
+      const a = athlete({ remark, passes: { swimF: now - 3_600_000 } });
+      expect(athleteStatus(a, courseA, now), remark).toBe("dnf");
+    }
+  });
+
+  it("leaves a remark that never mentions DNF alone", () => {
+    for (const remark of ["PNLT+5分", "swimSKIP", "TOV", "入水チェック手動", ""]) {
+      const a = athlete({ remark, passes: { swimF: now - 3_600_000 } });
+      expect(athleteStatus(a, courseA, now), remark).not.toBe("dnf");
+    }
+  });
+
+  it("is dnf once the race is over and a measured athlete has no finish", () => {
+    // Bib 1290 in 2026: last seen at ラン34km at 20:45, no finish, no remark.
+    // The organiser writes nothing for a cut-off, so the race ending is the
+    // only signal that they will not be crossing the line.
+    const a = athlete({ passes: { swimF: START_A + 30 * MINUTE, run34: START_A + 855 * MINUTE } });
+    const raceOver = START_A + 16 * 60 * MINUTE;
+    expect(athleteStatus(a, courseA, raceOver - MINUTE, raceOver)).toBe("racing");
+    expect(athleteStatus(a, courseA, raceOver, raceOver)).toBe("dnf");
+  });
+
+  it("leaves an athlete who was never measured as dns, not dnf", () => {
+    const a = athlete({ passes: {} });
+    const raceOver = START_A + 16 * 60 * MINUTE;
+    expect(athleteStatus(a, courseA, raceOver, raceOver)).toBe("dns_suspected");
+  });
+
+  it("keeps a finisher finished after the race is over", () => {
+    const a = athlete({ passes: { finish: START_A + 600 * MINUTE } });
+    const raceOver = START_A + 16 * 60 * MINUTE;
+    expect(athleteStatus(a, courseA, raceOver, raceOver)).toBe("finished");
+  });
+
   it("is dnf when the remark says so and there is no finish", () => {
     const a = athlete({ passes: { sumiyoshi: START_A + 250 * MINUTE }, remark: "DNF/本部(20:24)" });
     expect(athleteStatus(a, courseA, now)).toBe("dnf");

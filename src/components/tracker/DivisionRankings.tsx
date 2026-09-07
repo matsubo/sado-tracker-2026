@@ -210,7 +210,7 @@ export function DivisionRankings({
           {data ? (
             <>
               {data.measuredAt} <b className="text-foreground">{data.total}</b> 名中
-              {data.discipline === "total" ? "" : " · 暫定"}
+              {data.discipline === "total" ? "" : " · 通過者のみの順位"}
             </>
           ) : (
             (error ?? (loading || discipline === null ? "読み込み中" : "データがありません"))

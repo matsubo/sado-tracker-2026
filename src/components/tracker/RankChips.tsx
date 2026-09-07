@@ -56,16 +56,20 @@ export function DisciplineLines({
             <dt className={cn("font-bold", !missing && TEXT[row.discipline])}>{row.label}</dt>
             <dd className="font-semibold text-[15px] tabular-nums">
               {missing ? "—" : formatDuration(row.timeMs as number)}
-              {row.provisional && !missing ? (
-                <sup className="ml-0.5 font-bold text-[9px] text-[color:var(--bike)]">暫定</sup>
-              ) : null}
             </dd>
             <dd className="text-[12px] text-muted-foreground leading-snug tabular-nums">
               {missing ? (
                 emptyLabel(row, current)
               ) : (
                 <>
-                  {row.atCheckpointLabel ? `${row.atCheckpointLabel}まで · ` : null}
+                  {/* Naming the point the time reaches, rather than badging it
+                      "provisional", is what stops a part-way time being read
+                      as the whole leg. */}
+                  {row.atCheckpointLabel ? (
+                    <span className="font-semibold text-foreground">
+                      {row.atCheckpointLabel}まで ·{" "}
+                    </span>
+                  ) : null}
                   {row.ranks.division ? (
                     <>
                       総合{" "}
@@ -81,6 +85,9 @@ export function DisciplineLines({
                     </>
                   ) : null}
                   {pace ? ` · ${pace}` : null}
+                  {row.provisional && row.ranks.division ? (
+                    <span className="text-[11px]">（通過者のみ）</span>
+                  ) : null}
                 </>
               )}
             </dd>

@@ -3,7 +3,7 @@
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { RaceStateDto } from "@/lib/api/contract";
-import { formatClock, formatClockShort } from "@/lib/format";
+import { formatClock, formatClockShort, formatRaceDate } from "@/lib/format";
 import { raceNow } from "@/lib/runtime/raceClock";
 import { cn } from "@/lib/utils/cn";
 
@@ -48,7 +48,8 @@ export function LiveStatusBar({
     return () => clearInterval(timer);
   }, []);
 
-  const stale = race?.stale === true || error !== null;
+  const final = race?.finalResults === true;
+  const stale = !final && (race?.stale === true || error !== null);
   const sinceSeconds = Math.max(0, Math.round((now - lastPolledAt) / 1000));
   const secondsLeft = Math.max(0, Math.ceil((intervalMs - (now - lastPolledAt)) / 1000));
 
@@ -62,7 +63,19 @@ export function LiveStatusBar({
           )}
           aria-hidden
         />
-        {race ? (
+        {race === null ? (
+          "レースデータを取得中です"
+        ) : final ? (
+          // The race is over. A ticking clock over a file that cannot change
+          // again invites the reader to wait for an update that never comes.
+          // The race date, not the fetch time: the file is re-read long after
+          // the last athlete crossed, and a today's timestamp beside the word
+          // "measured" reads as a measurement taken today.
+          <>
+            <span className="font-semibold text-[13px] text-foreground">最終結果</span>
+            <span className="ml-1.5">{formatRaceDate(race.raceDate)}</span>
+          </>
+        ) : (
           <>
             <span className="font-semibold text-[13px] text-foreground">
               {formatClockShort(raceTime ?? race.now)}
@@ -75,13 +88,11 @@ export function LiveStatusBar({
               {stale ? "（再取得中）" : null}
             </span>
           </>
-        ) : (
-          "レースデータを取得中です"
         )}
       </p>
 
       <span className="flex shrink-0 items-center gap-2">
-        {onRefresh ? (
+        {final ? null : onRefresh ? (
           <button
             type="button"
             onClick={onRefresh}
@@ -92,7 +103,7 @@ export function LiveStatusBar({
             {auto ? `${secondsLeft}秒` : `${sinceSeconds}秒前`}
           </button>
         ) : null}
-        {onAutoChange ? (
+        {final ? null : onAutoChange ? (
           <label className="flex cursor-pointer items-center gap-1 select-none">
             <input
               type="checkbox"

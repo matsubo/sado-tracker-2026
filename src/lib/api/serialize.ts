@@ -187,13 +187,19 @@ export function toMapEntry(computed: ComputedAthlete, isSelf = false): MapEntryD
  * only by age group left a relay looking at an empty strip containing itself.
  * They fall back to the division, which for a relay is the other teams.
  */
+/**
+ * The handful of athletes either side of this one on the course.
+ *
+ * `ageGroupId` narrows it to the athlete's own age group, which is who they
+ * are actually racing; passing null keeps the whole type, which is what a
+ * supporter wants when they ask how far off the front their friend is.
+ */
 export function neighbourEntries(
   snapshot: ComputedSnapshot,
   computed: ComputedAthlete,
+  ageGroupId: string | null,
   each = 5,
 ): MapEntryDto[] {
-  const ageGroupId = computed.athlete.ageGroup?.id ?? null;
-
   const rivals = [...snapshot.athletes.values()]
     .filter(
       (other) =>
@@ -224,7 +230,13 @@ export function toAthleteDetail(
       ranks: entry.ranks,
     })),
     pastResults: toPastResults(computed),
-    neighbours: neighbourEntries(snapshot, computed),
+    neighbours: {
+      ageGroup:
+        computed.athlete.ageGroup === null
+          ? null
+          : neighbourEntries(snapshot, computed, computed.athlete.ageGroup.id),
+      overall: neighbourEntries(snapshot, computed, null),
+    },
   };
 }
 
@@ -248,6 +260,8 @@ export function toRaceState(snapshot: ComputedSnapshot): RaceStateDto {
     stale: snapshot.stale,
     replay: snapshot.replay,
     pollIntervalMs: snapshot.pollIntervalMs,
+    finalResults: snapshot.finalResults,
+    raceDate: snapshot.config.raceDate,
     counts: snapshot.counts,
     divisions: DIVISIONS.map((id) => ({
       id,

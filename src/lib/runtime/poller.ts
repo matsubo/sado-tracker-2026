@@ -11,6 +11,7 @@ import type { RaceSnapshot } from "@/lib/domain/types";
 import { runBacktest } from "@/lib/history/backtest";
 import { buildNeighbourModel, type NeighbourModel } from "@/lib/history/model";
 import { buildNameIndex, type HistoryYear, type NameIndex } from "@/lib/history/nameIndex";
+import { raceEndsAt } from "@/lib/runtime/raceWindow";
 import { raceYear } from "@/lib/runtime/year";
 import { getWeather } from "@/lib/weather";
 import { type Clock, clockFromEnv } from "./clock";
@@ -196,6 +197,7 @@ async function refresh(runtime: Runtime, force = false): Promise<void> {
         backtest: runtime.backtest,
         pollIntervalMs: pollIntervalMs(),
         clockSpeed: runtime.clock.speed,
+        raceEndedAt: raceEndsAt(config.raceDate),
       });
       setSnapshot(computed);
     }
@@ -211,6 +213,7 @@ async function refresh(runtime: Runtime, force = false): Promise<void> {
       backtest: runtime.backtest,
       pollIntervalMs: pollIntervalMs(),
       clockSpeed: runtime.clock.speed,
+      raceEndedAt: raceEndsAt(config.raceDate),
     });
     setSnapshot(computed);
 

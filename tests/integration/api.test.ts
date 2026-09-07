@@ -90,8 +90,8 @@ describe("athlete serialization", () => {
     const detail = toAthleteDetail(snapshot, snapshot.athletes.get(bib) as never);
     expect(detail.splits.length).toBeGreaterThan(0);
     expect(detail.rankHistory.length).toBe(detail.splits.length);
-    expect(detail.neighbours.some((n) => n.isSelf)).toBe(true);
-    expect(detail.neighbours.length).toBeGreaterThan(1);
+    expect(detail.neighbours.overall.some((n) => n.isSelf)).toBe(true);
+    expect(detail.neighbours.overall.length).toBeGreaterThan(1);
   });
 
   it("rounds displayed speeds instead of leaking float noise", () => {
@@ -516,13 +516,13 @@ describe("course neighbours", () => {
       (c) => c.athlete.ageGroup !== null && c.fieldOrder !== Number.MAX_SAFE_INTEGER,
     );
     const detail = toAthleteDetail(snapshot, withAge as never);
-    expect(detail.neighbours.length).toBeGreaterThan(1);
-    for (const entry of detail.neighbours) {
+    expect(detail.neighbours.ageGroup?.length).toBeGreaterThan(1);
+    for (const entry of detail.neighbours.ageGroup ?? []) {
       expect(entry.ageGroupId).toBe(detail.ageGroupId);
     }
   });
 
-  it("falls back to the division for a relay, which has no age group", () => {
+  it("offers a relay only the whole type, since it has no age group", () => {
     // A relay grouped by age group could only ever see itself.
     const relay = [...snapshot.athletes.values()].find(
       (c) =>
@@ -531,8 +531,9 @@ describe("course neighbours", () => {
     );
     if (!relay) return;
     const detail = toAthleteDetail(snapshot, relay);
-    expect(detail.neighbours.length).toBeGreaterThan(1);
-    expect(detail.neighbours.some((entry) => entry.isSelf)).toBe(true);
+    expect(detail.neighbours.ageGroup).toBeNull();
+    expect(detail.neighbours.overall.length).toBeGreaterThan(1);
+    expect(detail.neighbours.overall.some((entry) => entry.isSelf)).toBe(true);
   });
 });
 
@@ -639,5 +640,65 @@ describe("a leg still being raced", () => {
       .find((d) => !d.provisional && d.timeMs !== null);
     expect(done).toBeDefined();
     expect(done?.measuredKm).toBe(done?.km);
+  });
+});
+
+describe("who is around them on the course", () => {
+  const detailOf = (predicate: (c: never) => boolean) => {
+    const computed = [...snapshot.athletes.values()].find(predicate as never);
+    expect(computed).toBeDefined();
+    return toAthleteDetail(snapshot, computed as never);
+  };
+
+  it("offers the athlete's own age group and the whole type", () => {
+    const detail = detailOf(
+      ((c: { athlete: { ageGroup: unknown }; fieldOrder: number }) =>
+        c.athlete.ageGroup !== null && c.fieldOrder > 20) as never,
+    );
+    expect(detail.neighbours.ageGroup?.length).toBeGreaterThan(1);
+    expect(detail.neighbours.overall.length).toBeGreaterThan(1);
+  });
+
+  it("keeps the age-group view to one age group", () => {
+    const detail = detailOf(
+      ((c: { athlete: { ageGroup: unknown }; fieldOrder: number }) =>
+        c.athlete.ageGroup !== null && c.fieldOrder > 20) as never,
+    );
+    const ids = new Set(detail.neighbours.ageGroup?.map((e) => e.ageGroupId));
+    expect(ids.size).toBe(1);
+    expect([...ids][0]).toBe(detail.ageGroupId);
+  });
+
+  it("puts the athlete in both views", () => {
+    const detail = detailOf(
+      ((c: { athlete: { ageGroup: unknown }; fieldOrder: number }) =>
+        c.athlete.ageGroup !== null && c.fieldOrder > 20) as never,
+    );
+    expect(detail.neighbours.ageGroup?.some((e) => e.isSelf)).toBe(true);
+    expect(detail.neighbours.overall.some((e) => e.isSelf)).toBe(true);
+  });
+
+  it("brackets the athlete with the people just ahead and just behind", () => {
+    const detail = detailOf(
+      ((c: { athlete: { ageGroup: unknown }; fieldOrder: number }) =>
+        c.athlete.ageGroup !== null && c.fieldOrder > 20) as never,
+    );
+    for (const view of [detail.neighbours.overall, detail.neighbours.ageGroup ?? []]) {
+      const orders = view.map((e) => e.fieldOrder);
+      expect([...orders].sort((a, b) => a - b)).toEqual(orders);
+      const at = view.findIndex((e) => e.isSelf);
+      expect(at).toBeGreaterThan(0);
+      expect(at).toBeLessThan(view.length - 1);
+    }
+  });
+
+  it("offers only the whole type to a relay team, which has no age group", () => {
+    const relay = [...snapshot.athletes.values()].find(
+      (c) => c.athlete.ageGroup === null && c.fieldOrder !== Number.MAX_SAFE_INTEGER,
+    );
+    if (!relay) return; // this fixture year may have no measured relay team
+    const detail = toAthleteDetail(snapshot, relay);
+    expect(detail.neighbours.ageGroup).toBeNull();
+    expect(detail.neighbours.overall.length).toBeGreaterThan(0);
   });
 });

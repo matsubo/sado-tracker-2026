@@ -90,6 +90,8 @@ export interface ComputedSnapshot {
   readonly pollIntervalMs: number;
   /** Race seconds per real second; 1 outside replay. */
   readonly clockSpeed: number;
+  /** True once no further results can arrive, so the page is a record. */
+  readonly finalResults: boolean;
   readonly config: RaceConfig;
   /** The parsed records this was computed from, so a recompute needs no refetch. */
   readonly raw: RaceSnapshot;
@@ -199,6 +201,8 @@ export function computeSnapshot(
     backtest?: BacktestTable;
     pollIntervalMs?: number;
     clockSpeed?: number;
+    /** When results stop arriving; after it, anyone unfinished is a DNF. */
+    raceEndedAt?: number | null;
   } = {},
 ): ComputedSnapshot {
   const athletes = new Map<string, ComputedAthlete>();
@@ -224,7 +228,7 @@ export function computeSnapshot(
 
     const divisionAthletes = snapshot.athletes.filter((a) => a.division === division);
     for (const athlete of divisionAthletes) {
-      const status = athleteStatus(athlete, course, nowMs);
+      const status = athleteStatus(athlete, course, nowMs, options.raceEndedAt ?? null);
       const lastCheckpointId = latestCheckpoint(athlete, course);
       const lastCheckpoint = lastCheckpointId
         ? course.checkpoints.find((c) => c.id === lastCheckpointId)
@@ -267,6 +271,10 @@ export function computeSnapshot(
     replay: options.replay === true,
     pollIntervalMs: options.pollIntervalMs ?? 60_000,
     clockSpeed: options.clockSpeed ?? 1,
+    finalResults:
+      options.raceEndedAt !== null && options.raceEndedAt !== undefined
+        ? nowMs >= options.raceEndedAt
+        : false,
     config,
     raw: snapshot,
     athletes,

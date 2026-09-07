@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs } from "@/components/ui/tabs";
@@ -12,6 +13,7 @@ import type { LeaderboardDto } from "@/lib/api/leaderboard";
 import { formatClockShort, formatDuration, formatKm } from "@/lib/format";
 import { cn } from "@/lib/utils/cn";
 import { FilterBox } from "./FilterBox";
+import { FinalResultsNotice } from "./FinalResultsNotice";
 import { PreRaceNotice } from "./PreRaceNotice";
 import { StatusPill } from "./StatusPill";
 
@@ -37,9 +39,33 @@ const MEDAL: Record<number, string> = {
 export function Leaderboard() {
   const { race, fetchedAt, error, lastPolledAt, intervalMs, auto, setAuto, refresh } =
     useRaceState();
-  const [division, setDivision] = useState("A");
-  const [page, setPage] = useState(1);
-  const [query, setQuery] = useState("");
+  // Division, page and filter live in the address bar, so the back button
+  // returns to the page the reader was on and a link carries what they saw.
+  const router = useRouter();
+  const pathname = usePathname() ?? "/";
+  const params = useSearchParams();
+
+  const division = DIVISION_TABS.some((tab) => tab.value === params?.get("div"))
+    ? (params?.get("div") as string)
+    : "A";
+  const page = Math.max(1, Number(params?.get("page") ?? "1") || 1);
+  const query = params?.get("q") ?? "";
+
+  const navigate = useCallback(
+    (next: { div?: string; page?: number; q?: string }) => {
+      const search = new URLSearchParams(params?.toString() ?? "");
+      const set = (key: string, value: string, fallback: string) => {
+        if (value === fallback) search.delete(key);
+        else search.set(key, value);
+      };
+      if (next.div !== undefined) set("div", next.div, "A");
+      if (next.page !== undefined) set("page", String(next.page), "1");
+      if (next.q !== undefined) set("q", next.q, "");
+      const qs = search.toString();
+      router.push(qs === "" ? pathname : `${pathname}?${qs}`, { scroll: false });
+    },
+    [params, pathname, router],
+  );
   const { bibs, has } = useBookmarks();
   const now = useLiveClock();
 
@@ -50,20 +76,17 @@ export function Leaderboard() {
 
   const lastPage = board ? Math.max(1, Math.ceil(board.total / board.perPage)) : 1;
 
-  const changeDivision = (next: string): void => {
-    setDivision(next);
-    setPage(1);
-  };
+  const changeDivision = (next: string): void => navigate({ div: next, page: 1 });
 
   // A narrower list has fewer pages, so page 7 of the field is rarely page 7
   // of the matches. Going back to the first page is the only answer that is
   // never wrong. The filter survives a change of division on purpose: the
   // tabs narrow by division and the box by name, and someone looking for a
   // family name usually wants it in whichever division they switch to.
-  const changeQuery = useCallback((next: string): void => {
-    setQuery(next);
-    setPage(1);
-  }, []);
+  const changeQuery = useCallback(
+    (next: string): void => navigate({ q: next, page: 1 }),
+    [navigate],
+  );
 
   return (
     <main className="mx-auto w-full max-w-[430px] pb-10">
@@ -90,6 +113,7 @@ export function Leaderboard() {
 
       <div className="px-3 pt-2.5 empty:hidden">
         <PreRaceNotice race={race} />
+        <FinalResultsNotice race={race} />
       </div>
 
       <Tabs
@@ -232,7 +256,7 @@ export function Leaderboard() {
         >
           <button
             type="button"
-            onClick={() => setPage((value) => Math.max(1, value - 1))}
+            onClick={() => navigate({ page: Math.max(1, page - 1) })}
             disabled={page <= 1}
             className="rounded px-1 py-0.5 text-primary outline-none disabled:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
           >
@@ -248,7 +272,7 @@ export function Leaderboard() {
           </span>
           <button
             type="button"
-            onClick={() => setPage((value) => Math.min(lastPage, value + 1))}
+            onClick={() => navigate({ page: Math.min(lastPage, page + 1) })}
             disabled={page >= lastPage}
             className="rounded px-1 py-0.5 text-primary outline-none disabled:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
           >

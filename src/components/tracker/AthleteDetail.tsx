@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ShareButtons } from "@/components/layout/ShareButtons";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs } from "@/components/ui/tabs";
 import type { Discipline, Division } from "@/config/races";
 import { useBookmarks } from "@/hooks/useBookmarks";
 import { useLiveClock } from "@/hooks/useLivePosition";
@@ -13,6 +15,7 @@ import type { AthleteDetailDto, RankDto } from "@/lib/api/contract";
 import { formatClock, formatClockShort, formatDuration } from "@/lib/format";
 import { CoursePositionChart } from "./CoursePositionChart";
 import { DisciplineTable } from "./DisciplineTable";
+import { InProgressLeg } from "./InProgressLeg";
 import { PastResults } from "./PastResults";
 import { barCheckpoints, type DisciplineKm, liveKm, PositionBar } from "./PositionBar";
 import { PredictionBox } from "./PredictionBox";
@@ -41,7 +44,7 @@ function statusPill(detail: AthleteDetailDto): { label: string; variant: BadgePr
     case "dnf":
       return { label: "DNF", variant: "destructive" };
     case "dns_suspected":
-      return { label: "未計測", variant: "outline" };
+      return { label: "DNS", variant: "outline" };
     case "not_started":
       return { label: "スタート前", variant: "outline" };
     default:
@@ -50,6 +53,12 @@ function statusPill(detail: AthleteDetailDto): { label: string; variant: BadgePr
 }
 
 /** Section heading with an optional note on the right. */
+/** Whether the course strip compares the athlete with their age group or the type. */
+const NEAR_TABS = [
+  { value: "age", label: "エイジ" },
+  { value: "overall", label: "総合" },
+] as const;
+
 function Heading({ title, note }: { title: string; note?: string }): React.JSX.Element {
   return (
     <h2 className="mt-4 mb-1.5 flex items-baseline justify-between gap-2 font-bold text-[14px] text-muted-foreground">
@@ -122,6 +131,9 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
   } = useLiveResource<AthleteDetailDto>(`/api/athletes/${bib}`, fetchedAt);
   const { has, add, remove, ready } = useBookmarks();
   const nowMs = useLiveClock();
+  // Hooks must run before the early returns below, so the view lives here
+  // rather than beside the data it switches.
+  const [nearView, setNearView] = useState<"age" | "overall">("age");
 
   if (loading) return <DetailSkeleton />;
   // A failed refresh keeps the last good data; only an empty page is an error.
@@ -153,6 +165,16 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
   const finished = detail.status === "finished";
   const estKm = detail.status === "racing" ? liveKm(detail.position, nowMs) : detail.position.estKm;
   const sexLabel = detail.sex === "F" ? "女子" : detail.sex === "M" ? "男子" : "性別";
+  // A relay has no age group, so there is nothing to switch between.
+  // The leg being raced right now, summarised beside the estimated position
+  // rather than in the table of finished legs.
+  const inProgressLeg = detail.disciplines.find((d) => d.provisional && d.timeMs !== null) ?? null;
+  const hasAgeView = detail.neighbours.ageGroup !== null;
+  const neighbourView = hasAgeView && nearView === "age" ? "age" : "overall";
+  const neighbours =
+    neighbourView === "age"
+      ? (detail.neighbours.ageGroup ?? detail.neighbours.overall)
+      : detail.neighbours.overall;
   const aiTriHref = detail._links.aiTri?.href ?? null;
 
   return (
@@ -225,6 +247,7 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
             legKm={totals}
           />
         </div>
+        {inProgressLeg ? <InProgressLeg leg={inProgressLeg} /> : null}
         {detail.prediction === null ? null : (
           <div className="mt-2.5">
             <PredictionBox prediction={detail.prediction} startAt={detail.startAt} />
@@ -254,15 +277,28 @@ export function AthleteDetail({ bib }: AthleteDetailProps): React.JSX.Element {
       </div>
 
       <div className="px-3">
-        <Heading title="種目" note="暫定 = 進行中の区間" />
-        <DisciplineTable rows={detail.disciplines} splits={detail.splits} />
+        <Heading title="種目" note="走り終えた区間のみ" />
+        <DisciplineTable rows={detail.disciplines} />
 
         <Heading
           title="コース上の位置"
-          note={`推定 · ${detail.ageGroupLabel ?? `${detail.division}タイプ`}の前後`}
+          note={
+            neighbourView === "age"
+              ? `推定 · ${detail.ageGroupLabel ?? ""}の前後`
+              : `推定 · ${detail.division}タイプの前後`
+          }
         />
+        {hasAgeView ? (
+          <Tabs
+            items={NEAR_TABS}
+            value={neighbourView}
+            onValueChange={(next) => setNearView(next === "age" ? "age" : "overall")}
+            aria-label="コース上の位置の比較範囲"
+            className="mb-1.5"
+          />
+        ) : null}
         <CoursePositionChart
-          entries={detail.neighbours}
+          entries={neighbours}
           checkpoints={checkpoints}
           totals={totals}
           nowMs={nowMs}

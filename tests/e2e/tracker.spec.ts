@@ -177,6 +177,7 @@ test.describe("leaderboard", () => {
 
   test("says so when nothing matches, and restores the field when cleared", async ({ page }) => {
     await page.goto("/");
+    await expect(page.getByText(/先頭順/)).toBeVisible();
     const box = page.getByLabel("名前かゼッケン番号で一覧を絞り込む");
 
     await box.fill("該当者のいない文字列");
@@ -397,5 +398,48 @@ test.describe("page titles", () => {
     await page.locator('main a[href^="/athletes/"]').first().click();
     await expect(page).toHaveURL(/\/athletes\//);
     await expect.poll(async () => page.title()).toBe(`ゼッケン ${bib} | 佐渡トラッカー 2026`);
+  });
+});
+
+test.describe("the address bar", () => {
+  test("carries the page, so the back button goes back a page", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText(/先頭順/)).toBeVisible();
+    const first = await page.locator('main a[href^="/athletes/"]').first().innerText();
+
+    await page.getByRole("button", { name: "次へ ›" }).click();
+    await expect(page).toHaveURL(/[?&]page=2/);
+    // The rows arrive after the address changes, so wait for them, not the URL.
+    await expect
+      .poll(async () => page.locator('main a[href^="/athletes/"]').first().innerText())
+      .not.toBe(first);
+
+    await page.goBack();
+    await expect(page).not.toHaveURL(/[?&]page=2/);
+    await expect
+      .poll(async () => page.locator('main a[href^="/athletes/"]').first().innerText())
+      .toBe(first);
+  });
+
+  test("carries the division and the filter too", async ({ page }) => {
+    await page.goto("/");
+    // Typing before the list has hydrated sets the DOM value with no handler
+    // attached, so React never sees it.
+    await expect(page.getByText(/先頭順/)).toBeVisible();
+    await page.getByLabel("名前かゼッケン番号で一覧を絞り込む").fill("1");
+    await expect(page).toHaveURL(/[?&]q=1/);
+    await expect(page.getByText(/に一致/)).toBeVisible();
+
+    await page.getByRole("tab", { name: "B", exact: true }).click();
+    await expect(page).toHaveURL(/[?&]div=B/);
+
+    await page.goBack();
+    await expect(page).not.toHaveURL(/[?&]div=B/);
+    await expect(page).toHaveURL(/[?&]q=1/);
+  });
+
+  test("opens on the page a shared link names", async ({ page }) => {
+    await page.goto("/?div=A&page=3");
+    await expect(page.getByText(/3 \/ /)).toBeVisible();
   });
 });

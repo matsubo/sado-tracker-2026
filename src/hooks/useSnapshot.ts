@@ -87,7 +87,9 @@ export function useRaceState(): SnapshotState & { refresh: () => void } {
   }, [poll]);
 
   useEffect(() => {
-    if (!auto) return;
+    // Once the race is over the file cannot change, so polling it is load on
+    // the server for nothing and a countdown the reader should not be watching.
+    if (!auto || race?.finalResults === true) return;
     const timer = setInterval(() => void poll(), intervalMs);
     const onVisible = () => {
       if (document.visibilityState === "visible") void poll();
@@ -97,7 +99,7 @@ export function useRaceState(): SnapshotState & { refresh: () => void } {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [poll, intervalMs, auto]);
+  }, [poll, intervalMs, auto, race?.finalResults]);
 
   return {
     race,

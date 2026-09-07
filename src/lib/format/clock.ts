@@ -57,3 +57,10 @@ export function formatDateTime(epochMs: number): string {
   const { month, day, hour, minute } = partsOf(epochMs);
   return `${month}/${day} ${hour}:${minute}`;
 }
+
+/** "2026年9月6日" from a "YYYY-MM-DD" race date. */
+export function formatRaceDate(raceDate: string): string {
+  const [year, month, day] = raceDate.split("-").map(Number);
+  if (!year || !month || !day) return raceDate;
+  return `${year}年${month}月${day}日`;
+}

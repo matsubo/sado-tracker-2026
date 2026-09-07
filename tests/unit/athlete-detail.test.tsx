@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   AthleteDetailDto,
   DisciplineDto,
+  MapEntryDto,
   PositionDto,
   RaceStateDto,
   RankSetDto,
@@ -78,6 +79,8 @@ const raceState: RaceStateDto = {
   stale: false,
   replay: false,
   pollIntervalMs: 60_000,
+  finalResults: false,
+  raceDate: "2026-09-06",
   counts: { A: {}, B: {}, RA: {}, RB: {} },
   divisions: [
     {
@@ -96,6 +99,29 @@ const raceState: RaceStateDto = {
   ],
   _links: { self: { href: "/api/race" } },
 };
+
+/** The people either side of this athlete on the course. */
+const NEIGHBOURS: MapEntryDto[] = [
+  {
+    bib: "1200",
+    name: "畑野 結衣",
+    ageGroupId: "F45-49",
+    status: "racing",
+    fieldOrder: 4,
+    divisionRank: { rank: 150, of: 412 },
+    position: onBike(143, START_AT + SUMIYOSHI_MS - 600_000, 33.4),
+  },
+  {
+    bib: "1234",
+    name: "両津 美咲",
+    ageGroupId: "F45-49",
+    status: "racing",
+    fieldOrder: 5,
+    divisionRank: { rank: 198, of: 412 },
+    position: onBike(132, START_AT + SUMIYOSHI_MS, 32.1),
+    isSelf: true,
+  },
+];
 
 const detail: AthleteDetailDto = {
   bib: "1234",
@@ -185,27 +211,7 @@ const detail: AthleteDetailDto = {
     { checkpointId: "sumiyoshi", label: "住吉", ranks: ranks(198, 412) },
   ],
   pastResults: [],
-  neighbours: [
-    {
-      bib: "1200",
-      name: "畑野 結衣",
-      ageGroupId: "F45-49",
-      status: "racing",
-      fieldOrder: 4,
-      divisionRank: { rank: 150, of: 412 },
-      position: onBike(143, START_AT + SUMIYOSHI_MS - 600_000, 33.4),
-    },
-    {
-      bib: "1234",
-      name: "両津 美咲",
-      ageGroupId: "F45-49",
-      status: "racing",
-      fieldOrder: 5,
-      divisionRank: { rank: 198, of: 412 },
-      position: onBike(132, START_AT + SUMIYOSHI_MS, 32.1),
-      isSelf: true,
-    },
-  ],
+  neighbours: { ageGroup: NEIGHBOURS, overall: NEIGHBOURS },
   _links: { self: { href: "/api/athletes/1234" }, aiTri: { href: AI_TRI_HREF } },
 };
 
@@ -258,10 +264,19 @@ describe("AthleteDetail", () => {
     expect(screen.getByText(detail.prediction?.explanation.note ?? "")).toBeInTheDocument();
   });
 
-  it("marks a discipline still in progress as 暫定", async () => {
+  it("keeps a leg still being raced out of the table of finished legs", async () => {
     await renderDetail();
     const bike = screen.getByRole("row", { name: /バイク 190km/ });
-    expect(within(bike).getByText("暫定")).toBeInTheDocument();
+    // The full leg distance stays, but nothing in the row claims a time for it.
+    expect(within(bike).getAllByText("—").length).toBeGreaterThan(0);
+    expect(within(bike).queryByText(/2:53:05/)).not.toBeInTheDocument();
+  });
+
+  it("summarises the leg being raced beside the estimated position", async () => {
+    await renderDetail();
+    // The distance covered so far, and the time it took, said together.
+    expect(screen.getByText(/住吉まで/)).toBeInTheDocument();
+    expect(screen.getByText(/通過者のみ/)).toBeInTheDocument();
   });
 
   it("renders an em dash for a discipline with no time yet", async () => {

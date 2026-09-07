@@ -94,7 +94,7 @@ function distanceText(
 ): string {
   if (entry.status === "finished") return "フィニッシュ";
   if (entry.status === "not_started") return "スタート前";
-  if (entry.status === "dns_suspected") return "未計測";
+  if (entry.status === "dns_suspected") return "DNS";
   if (entry.status === "dnf") return "DNF";
   if (entry.position.waiting) {
     const next = nextLabelOf(entry, checkpoints);

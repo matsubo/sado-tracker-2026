@@ -150,8 +150,13 @@ export interface AthleteDetailDto extends AthleteSummaryDto {
     readonly ranks: RankSetDto;
   }[];
   readonly pastResults: readonly PastResultDto[];
-  /** Age-group rivals ahead of and behind this athlete on the course. */
-  readonly neighbours: readonly MapEntryDto[];
+  /** Who is just ahead of and just behind this athlete on the course. */
+  readonly neighbours: {
+    /** Their own age group, which is who they are racing. Null for a relay. */
+    readonly ageGroup: readonly MapEntryDto[] | null;
+    /** Anyone in the type, which answers "how far off the front are they". */
+    readonly overall: readonly MapEntryDto[];
+  };
 }
 
 export interface MapEntryDto {
@@ -177,6 +182,13 @@ export interface RaceStateDto {
   readonly replay: boolean;
   /** How often the server recomputes, so the client never polls slower. */
   readonly pollIntervalMs: number;
+  /**
+   * True once the race is over and the file cannot change again. The page
+   * then stops presenting itself as live: no clock, no countdown, no polling.
+   */
+  readonly finalResults: boolean;
+  /** The day the race was held, "YYYY-MM-DD". */
+  readonly raceDate: string;
   /** Counts of athletes measured at each checkpoint, per division. */
   readonly counts: Readonly<Record<Division, Readonly<Record<string, number>>>>;
   readonly divisions: readonly {
