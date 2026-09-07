@@ -152,6 +152,15 @@ the timing site being up; `GET /api/race` reports the years actually loaded
 in `historyYears`, so an empty list there means the model has nothing to
 predict from.
 
+### Deploying
+
+Production is a Dockerfile build on Coolify. A push to `main` deploys it: the
+repository has a push webhook pointing at Coolify's GitHub webhook endpoint,
+and the application has auto deploy switched on. A build takes about three
+minutes, and the switch-over is rolling, so for a minute or two after it
+finishes two containers answer in turn and a page load may still show the old
+build. CI runs alongside, not in front, so a red run does not stop a deploy.
+
 ## Data
 
 Timing data comes from [systemway.jp](https://systemway.jp/26sado?di=1).
