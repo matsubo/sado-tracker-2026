@@ -18,7 +18,7 @@ import {
 } from "@/config/races";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
 import type { RankingPageDto } from "@/lib/api/contract";
-import type { RankingDiscipline } from "@/lib/api/rankings";
+import { RANKING_DISCIPLINES, type RankingDiscipline, rankingEnd } from "@/lib/compute/tables";
 import { cn } from "@/lib/utils/cn";
 
 const ALL_AGE_GROUPS = "all";
@@ -31,24 +31,17 @@ const DISCIPLINE_TABS: readonly { value: RankingDiscipline; label: string }[] = 
 const isRankingDiscipline = (value: string): value is RankingDiscipline =>
   value === "total" || isDiscipline(value);
 
-/** The checkpoint an athlete must have passed to appear in each table. */
-const END_CHECKPOINT: Readonly<Record<RankingDiscipline, string>> = {
-  swim: "swimF",
-  bike: "runS",
-  run: "finish",
-  total: "finish",
-};
-
 /** Below this, a table reads as broken rather than as an early leaderboard. */
 const MIN_RANKED = 20;
-const LADDER: readonly RankingDiscipline[] = ["total", "run", "bike", "swim"];
+/** Furthest discipline first: the finish, then the run, and so on back. */
+const LADDER: readonly RankingDiscipline[] = [...RANKING_DISCIPLINES].reverse();
 
 /**
  * Mid-race the finisher table holds one or two names, which looks like a bug.
  * Open on the furthest discipline that a real field has completed instead.
  */
 function autoDiscipline(counts: Readonly<Record<string, number>>): RankingDiscipline {
-  return LADDER.find((value) => (counts[END_CHECKPOINT[value]] ?? 0) >= MIN_RANKED) ?? "swim";
+  return LADDER.find((value) => (counts[rankingEnd(value)] ?? 0) >= MIN_RANKED) ?? "swim";
 }
 
 interface DivisionRankingsProps {

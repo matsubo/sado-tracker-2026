@@ -32,6 +32,7 @@ import {
   splitRanks,
 } from "./ranking";
 import type { Status } from "./status";
+import { buildRankingTables, type RankingTables } from "./tables";
 
 interface ComputedDiscipline {
   readonly discipline: Discipline;
@@ -98,6 +99,8 @@ export interface ComputedSnapshot {
   readonly byDivision: Readonly<Record<Division, readonly string[]>>;
   readonly counts: Readonly<Record<Division, Readonly<Record<string, number>>>>;
   readonly populations: Readonly<Record<Division, Populations>>;
+  /** Finished-discipline tables, sorted and ranked once, so a page is a slice. */
+  readonly rankings: Readonly<Record<Division, RankingTables>>;
 }
 
 function computeDisciplines(
@@ -210,6 +213,7 @@ export function computeSnapshot(
   const byDivision: Record<Division, string[]> = { A: [], B: [], RA: [], RB: [] };
   const counts: Record<Division, Record<string, number>> = { A: {}, B: {}, RA: {}, RB: {} };
   const populations: Record<Division, Populations> = {} as Record<Division, Populations>;
+  const rankings: Record<Division, RankingTables> = {} as Record<Division, RankingTables>;
 
   for (const division of DIVISIONS) {
     const course = config.divisions[division];
@@ -221,6 +225,7 @@ export function computeSnapshot(
       options.raceEndedAt ?? null,
     );
     populations[division] = pop;
+    rankings[division] = buildRankingTables(pop);
 
     for (const checkpoint of course.checkpoints) {
       if (checkpoint.id === "start") continue;
@@ -275,5 +280,6 @@ export function computeSnapshot(
     byDivision,
     counts,
     populations,
+    rankings,
   };
 }

@@ -165,19 +165,13 @@ export function toMapEntry(computed: ComputedAthlete, isSelf = false): MapEntryD
 }
 
 /**
- * The athletes immediately ahead of and behind this one, chosen by estimated
- * position so the strip reads as a live picture of the course.
- *
- * Age group is the natural comparison, but relay teams have none: grouping
- * only by age group left a relay looking at an empty strip containing itself.
- * They fall back to the division, which for a relay is the other teams.
- */
-/**
- * The handful of athletes either side of this one on the course.
+ * The handful of athletes either side of this one on the course, read off
+ * the division's field order that the snapshot already holds.
  *
  * `ageGroupId` narrows it to the athlete's own age group, which is who they
  * are actually racing; passing null keeps the whole type, which is what a
- * supporter wants when they ask how far off the front their friend is.
+ * supporter wants when they ask how far off the front their friend is. A
+ * relay has no age group and only ever gets the whole type.
  */
 function neighbourEntries(
   snapshot: ComputedSnapshot,
@@ -185,21 +179,20 @@ function neighbourEntries(
   ageGroupId: string | null,
   each = 5,
 ): MapEntryDto[] {
-  const rivals = [...snapshot.athletes.values()]
-    .filter(
-      (other) =>
-        other.athlete.division === computed.athlete.division &&
-        (ageGroupId === null || other.athlete.ageGroup?.id === ageGroupId) &&
-        other.fieldOrder !== Number.MAX_SAFE_INTEGER,
-    )
-    .sort((a, b) => a.fieldOrder - b.fieldOrder);
+  const self = computed.athlete.bib;
+  const order = snapshot.byDivision[computed.athlete.division];
+  const rivals =
+    ageGroupId === null
+      ? order
+      : order.filter((bib) => snapshot.athletes.get(bib)?.athlete.ageGroup?.id === ageGroupId);
 
-  const index = rivals.findIndex((r) => r.athlete.bib === computed.athlete.bib);
+  const index = rivals.indexOf(self);
   if (index < 0) return [toMapEntry(computed, true)];
 
-  return rivals
-    .slice(Math.max(0, index - each), index + each + 1)
-    .map((r) => toMapEntry(r, r.athlete.bib === computed.athlete.bib));
+  return rivals.slice(Math.max(0, index - each), index + each + 1).flatMap((bib) => {
+    const rival = snapshot.athletes.get(bib);
+    return rival ? [toMapEntry(rival, bib === self)] : [];
+  });
 }
 
 export function toAthleteDetail(

@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { isDivision } from "@/config/races";
-import { buildRankingPage, type RankingDiscipline } from "@/lib/api/rankings";
+import { buildRankingPage } from "@/lib/api/rankings";
 import { badRequest, liveJson, notFound, notReady } from "@/lib/api/respond";
+import { RANKING_DISCIPLINES } from "@/lib/compute/tables";
 import { getSnapshot } from "@/lib/runtime/store";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 const PER_PAGE = 50;
 
 const querySchema = z.object({
-  discipline: z.enum(["swim", "bike", "run", "total"]).default("total"),
+  discipline: z.enum(RANKING_DISCIPLINES).default("total"),
   ageGroup: z.string().trim().max(12).optional(),
   page: z.coerce.number().int().min(1).max(200).optional(),
   bib: z.string().trim().max(12).optional(),
@@ -40,7 +41,7 @@ export async function GET(
 
   const page = buildRankingPage(snapshot, {
     division,
-    discipline: parsed.data.discipline as RankingDiscipline,
+    discipline: parsed.data.discipline,
     ageGroupId: parsed.data.ageGroup ?? null,
     page: parsed.data.page ?? null,
     perPage: PER_PAGE,

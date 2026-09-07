@@ -197,6 +197,38 @@ describe("ranking pages", () => {
     expect(page.targetElsewhere?.message).toContain("通過");
   });
 
+  it("serves a page as a slice of the table the snapshot already holds", () => {
+    const table = snapshot.rankings.A.swim;
+    expect(table.length).toBeGreaterThan(700);
+    const page = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "swim",
+      ageGroupId: null,
+      page: 2,
+      perPage: 50,
+      targetBib: null,
+    });
+    expect(page.rows.map((row) => row.bib)).toEqual(table.slice(50, 100).map((row) => row.bib));
+    expect(page.rows.map((row) => row.rank)).toEqual(table.slice(50, 100).map((row) => row.rank));
+  });
+
+  it("ranks an age group among itself, never skipping past the group's size", () => {
+    const group = buildRankingPage(snapshot, {
+      division: "A",
+      discipline: "swim",
+      ageGroupId: "M50-54",
+      page: 1,
+      perPage: 200,
+      targetBib: null,
+    });
+    expect(group.rows[0]?.rank).toBe(1);
+    group.rows.forEach((row, index) => {
+      expect(row.rank).toBeLessThanOrEqual(index + 1);
+      expect(row.rank).toBeGreaterThanOrEqual(1);
+    });
+    expect(group.rows.at(-1)?.rank).toBeLessThanOrEqual(group.total);
+  });
+
   it("returns an empty table rather than failing when nobody has finished", () => {
     const page = buildRankingPage(snapshot, {
       division: "A",
@@ -534,6 +566,17 @@ describe("course neighbours", () => {
     expect(detail.neighbours.ageGroup).toBeNull();
     expect(detail.neighbours.overall.length).toBeGreaterThan(1);
     expect(detail.neighbours.overall.some((entry) => entry.isSelf)).toBe(true);
+  });
+});
+
+describe("course neighbours follow the field order", () => {
+  it("lists rivals in the same order as the division's field, centred on the athlete", () => {
+    const order = snapshot.byDivision.A;
+    const bib = order[200] as string;
+    const detail = toAthleteDetail(snapshot, snapshot.athletes.get(bib) as never);
+    const bibs = detail.neighbours.overall.map((entry) => entry.bib);
+    expect(bibs).toEqual(order.slice(195, 206));
+    expect(detail.neighbours.overall[5]?.isSelf).toBe(true);
   });
 });
 

@@ -3,7 +3,7 @@ import type { Athlete } from "@/lib/domain/types";
 import { athleteStatus, isScored, type Status } from "./status";
 
 /** What one refresh has decided about an athlete, decided exactly once. */
-export interface Standing {
+interface Standing {
   readonly athlete: Athlete;
   readonly status: Status;
   /** The furthest checkpoint reached, in course order; null before the first. */
