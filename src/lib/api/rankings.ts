@@ -3,7 +3,8 @@ import { disciplineKm } from "@/lib/compute/elapsed";
 import type { ComputedSnapshot } from "@/lib/compute/snapshot";
 import { competitionRanks, type RankingDiscipline } from "@/lib/compute/tables";
 import { formatBikeSpeed, formatRunPace, formatSwimPace } from "@/lib/format";
-import type { RankingPageDto, RankingRowDto } from "./contract";
+import type { Links, RankingPageDto, RankingRowDto } from "./contract";
+import { athleteRefLinks, leaderboardHref, mapHref } from "./serialize";
 
 const MEASURED_AT: Record<RankingDiscipline, string> = {
   swim: "スイム完了",
@@ -80,6 +81,7 @@ export function buildRankingPage(snapshot: ComputedSnapshot, query: RankingQuery
     paceText: paceText(discipline, entry.timeMs, km),
     diffMs: basisTime === null ? null : entry.timeMs - basisTime,
     isTarget: entry.bib === targetBib,
+    _links: athleteRefLinks(entry.bib),
   }));
 
   const targetComputed = targetBib ? snapshot.athletes.get(targetBib) : undefined;
@@ -105,10 +107,30 @@ export function buildRankingPage(snapshot: ComputedSnapshot, query: RankingQuery
     perPage,
     rows,
     targetElsewhere,
-    _links: {
-      self: {
-        href: `/api/divisions/${division}/rankings?discipline=${discipline}&page=${effectivePage}`,
-      },
-    },
+    _links: pageLinks(division, discipline, ageGroupId, effectivePage, measured.length, perPage),
+  };
+}
+
+/** self, first, last, and prev or next where they exist, plus the sibling views. */
+function pageLinks(
+  division: Division,
+  discipline: RankingDiscipline,
+  ageGroupId: string | null,
+  page: number,
+  total: number,
+  perPage: number,
+): Links {
+  const base = `/api/divisions/${division}/rankings?discipline=${discipline}${
+    ageGroupId === null ? "" : `&ageGroup=${encodeURIComponent(ageGroupId)}`
+  }`;
+  const last = Math.max(1, Math.ceil(total / perPage));
+  return {
+    self: { href: `${base}&page=${page}` },
+    first: { href: `${base}&page=1` },
+    last: { href: `${base}&page=${last}` },
+    ...(page > 1 ? { prev: { href: `${base}&page=${page - 1}` } } : {}),
+    ...(page < last ? { next: { href: `${base}&page=${page + 1}` } } : {}),
+    leaderboard: { href: leaderboardHref(division) },
+    map: { href: mapHref(division) },
   };
 }

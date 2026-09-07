@@ -95,6 +95,7 @@ function row(partial: Partial<RankingRowDto> & Pick<RankingRowDto, "rank" | "bib
     paceText: "2:05 /100m",
     diffMs: null,
     isTarget: false,
+    _links: { self: { href: `/api/athletes/${partial.bib}` } },
     ...partial,
   };
 }
@@ -147,6 +148,7 @@ function entry(partial: Partial<MapEntryDto> & Pick<MapEntryDto, "bib" | "name">
     fieldOrder: 0,
     divisionRank: { rank: 198, of: 412 },
     position: position("bike", 132, false),
+    _links: { self: { href: `/api/athletes/${partial.bib}` } },
     ...partial,
   };
 }

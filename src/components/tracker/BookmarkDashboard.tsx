@@ -7,18 +7,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useBookmarkNotifications } from "@/hooks/useBookmarkNotifications";
 import { useBookmarks } from "@/hooks/useBookmarks";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
-import type { AthleteSummaryDto } from "@/lib/api/contract";
+import type { AthleteSummaryDto, AthletesResponseDto } from "@/lib/api/contract";
 import type { WeatherData } from "@/lib/weather/types";
 import { AthleteCard } from "./AthleteCard";
 import { barCheckpoints, legDistances } from "./PositionBar";
 import { PreRaceNotice } from "./PreRaceNotice";
 import { SearchBox } from "./SearchBox";
 import { WeatherPanel } from "./WeatherPanel";
-
-interface AthletesResponse {
-  readonly athletes: readonly AthleteSummaryDto[];
-  readonly missing: readonly string[];
-}
 
 /**
  * The friend dashboard. Everything refreshes in place: a small race endpoint
@@ -41,7 +36,7 @@ export function BookmarkDashboard() {
   const { items } = useBookmarkNotifications();
 
   const athletesUrl = ready && bibs.length > 0 ? `/api/athletes?bibs=${bibs.join(",")}` : null;
-  const { data, loading } = useLiveResource<AthletesResponse>(athletesUrl, fetchedAt);
+  const { data, loading } = useLiveResource<AthletesResponseDto>(athletesUrl, fetchedAt);
   const { data: weather } = useLiveResource<WeatherData>("/api/weather", null);
 
   const athletes = useMemo(() => data?.athletes ?? [], [data]);

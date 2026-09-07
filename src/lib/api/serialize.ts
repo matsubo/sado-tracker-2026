@@ -1,4 +1,5 @@
 import { DISCIPLINE_LABELS, DIVISION_LABELS, DIVISIONS, type Division } from "@/config/races";
+import type { Rank, RankSet } from "@/lib/compute/ranking";
 import type { ComputedAthlete, ComputedSnapshot } from "@/lib/compute/snapshot";
 import { formatBikeSpeed, formatDuration, formatRunPace, formatSwimPace } from "@/lib/format";
 import type {
@@ -11,6 +12,8 @@ import type {
   PositionDto,
   PredictionDto,
   RaceStateDto,
+  RankDto,
+  RankSetDto,
   SplitDto,
 } from "./contract";
 
@@ -24,15 +27,49 @@ export function aiTriHref(name: string): string {
   return `https://ai-triathlon-result.teraren.com/athletes/${encodeURIComponent(normalized)}`;
 }
 
-function athleteLinks(computed: ComputedAthlete): Links {
+/** Where a bib can be followed to: the API resource and the page. */
+export function athleteRefLinks(bib: string): Links {
   return {
-    self: { href: `/api/athletes/${computed.athlete.bib}` },
-    page: { href: `/athletes/${computed.athlete.bib}` },
-    division: { href: `/api/divisions/${computed.athlete.division}/rankings` },
-    map: { href: `/api/map?div=${computed.athlete.division}` },
-    aiTri: { href: aiTriHref(computed.athlete.name) },
+    self: { href: `/api/athletes/${bib}` },
+    page: { href: `/athletes/${bib}` },
   };
 }
+
+export function leaderboardHref(division: Division): string {
+  return `/api/leaderboard?div=${division}`;
+}
+
+export function rankingsHref(division: Division): string {
+  return `/api/divisions/${division}/rankings`;
+}
+
+export function mapHref(division: Division): string {
+  return `/api/map?div=${division}`;
+}
+
+function athleteLinks(computed: ComputedAthlete): Links {
+  const { bib, division, name } = computed.athlete;
+  return {
+    ...athleteRefLinks(bib),
+    division: { href: rankingsHref(division) },
+    map: { href: mapHref(division) },
+    aiTri: { href: aiTriHref(name) },
+  };
+}
+
+function round(value: number, digits: number): number {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
+}
+
+const toRank = (rank: Rank | null): RankDto | null =>
+  rank === null ? null : { rank: rank.rank, of: rank.of };
+
+const toRankSet = (ranks: RankSet): RankSetDto => ({
+  division: toRank(ranks.division),
+  sex: toRank(ranks.sex),
+  ageGroup: toRank(ranks.ageGroup),
+});
 
 function toPosition(computed: ComputedAthlete): PositionDto {
   const p = computed.position;
@@ -54,6 +91,7 @@ function toPosition(computed: ComputedAthlete): PositionDto {
 function toPrediction(computed: ComputedAthlete): PredictionDto | null {
   const p = computed.prediction;
   if (!p) return null;
+  const e = p.explanation;
   return {
     method: p.method,
     atCheckpointLabel: p.atCheckpointLabel,
@@ -62,13 +100,19 @@ function toPrediction(computed: ComputedAthlete): PredictionDto | null {
     rangeLowMs: p.rangeLowMs,
     rangeHighMs: p.rangeHighMs,
     explanation: {
-      ...p.explanation,
+      neighbourCount: e.neighbourCount,
       yearBreakdown: Object.fromEntries(
-        Object.entries(p.explanation.yearBreakdown).map(([year, count]) => [year, count]),
+        Object.entries(e.yearBreakdown).map(([year, count]) => [year, count]),
       ),
-      ownSpeedKmh: p.explanation.ownSpeedKmh === null ? null : round(p.explanation.ownSpeedKmh, 1),
-      neighbourSpeedKmh:
-        p.explanation.neighbourSpeedKmh === null ? null : round(p.explanation.neighbourSpeedKmh, 1),
+      remainingP25Ms: e.remainingP25Ms,
+      remainingMedianMs: e.remainingMedianMs,
+      remainingP75Ms: e.remainingP75Ms,
+      ownSpeedKmh: e.ownSpeedKmh === null ? null : round(e.ownSpeedKmh, 1),
+      neighbourSpeedKmh: e.neighbourSpeedKmh === null ? null : round(e.neighbourSpeedKmh, 1),
+      extrapolationMs: e.extrapolationMs,
+      backtestMedianErrorMs: e.backtestMedianErrorMs,
+      backtestWithin25MinPct: e.backtestWithin25MinPct,
+      note: e.note,
     },
   };
 }
@@ -82,14 +126,9 @@ function toDisciplines(computed: ComputedAthlete): DisciplineDto[] {
     provisional: d.provisional,
     measuredKm: d.measuredKm,
     atCheckpointLabel: d.atCheckpointLabel,
-    ranks: d.ranks,
+    ranks: toRankSet(d.ranks),
     speedKmh: d.speedKmh === null ? null : round(d.speedKmh, 1),
   }));
-}
-
-function round(value: number, digits: number): number {
-  const factor = 10 ** digits;
-  return Math.round(value * factor) / factor;
 }
 
 export function toAthleteSummary(computed: ComputedAthlete): AthleteSummaryDto {
@@ -106,7 +145,7 @@ export function toAthleteSummary(computed: ComputedAthlete): AthleteSummaryDto {
     lastCheckpointLabel: computed.lastCheckpointLabel,
     lastPassedAt: computed.lastPassedAt,
     elapsedMs: computed.elapsedMs,
-    totalRanks: computed.totalRanks,
+    totalRanks: toRankSet(computed.totalRanks),
     disciplines: toDisciplines(computed),
     position: toPosition(computed),
     prediction: toPrediction(computed),
@@ -118,9 +157,19 @@ export function toAthleteSummary(computed: ComputedAthlete): AthleteSummaryDto {
 
 function toSplits(computed: ComputedAthlete): SplitDto[] {
   return computed.splits.map((s) => ({
-    ...s,
+    checkpointId: s.checkpointId,
+    label: s.label,
+    discipline: s.discipline,
+    km: s.km,
+    kmInferred: s.kmInferred,
+    passedAt: s.passedAt,
+    elapsedMs: s.elapsedMs,
+    segmentMs: s.segmentMs,
     segmentKm: s.segmentKm === null ? null : round(s.segmentKm, 2),
     segmentSpeedKmh: s.segmentSpeedKmh === null ? null : round(s.segmentSpeedKmh, 1),
+    segmentRank: toRank(s.segmentRank),
+    segmentRanks: toRankSet(s.segmentRanks),
+    cumulativeRanks: toRankSet(s.cumulativeRanks),
   }));
 }
 
@@ -136,8 +185,8 @@ function toPastResults(computed: ComputedAthlete): PastResultDto[] {
     division: r.division,
     totalText: r.totalText ?? formatDuration(r.totalMs),
     totalMs: r.totalMs,
-    divisionRank: r.divisionRank,
-    ageRank: r.ageRank,
+    divisionRank: { rank: r.divisionRank.rank, of: r.divisionRank.of },
+    ageRank: toRank(r.ageRank),
     ageGroupId: r.ageGroupId,
     disciplines: r.disciplines.map((d) => ({
       discipline: d.discipline,
@@ -145,8 +194,8 @@ function toPastResults(computed: ComputedAthlete): PastResultDto[] {
       timeMs: d.timeMs,
       km: d.km,
       paceText: paceOf(d.discipline, d.timeMs, d.km),
-      divisionRank: d.divisionRank,
-      ageRank: d.ageRank,
+      divisionRank: toRank(d.divisionRank),
+      ageRank: toRank(d.ageRank),
     })),
   }));
 }
@@ -158,9 +207,10 @@ export function toMapEntry(computed: ComputedAthlete, isSelf = false): MapEntryD
     ageGroupId: computed.athlete.ageGroup?.id ?? null,
     status: computed.status,
     fieldOrder: computed.fieldOrder,
-    divisionRank: computed.totalRanks.division,
+    divisionRank: toRank(computed.totalRanks.division),
     position: toPosition(computed),
     ...(isSelf ? { isSelf: true } : {}),
+    _links: athleteRefLinks(computed.athlete.bib),
   };
 }
 
@@ -205,7 +255,7 @@ export function toAthleteDetail(
     rankHistory: computed.rankHistory.map((entry) => ({
       checkpointId: entry.checkpointId,
       label: entry.label,
-      ranks: entry.ranks,
+      ranks: toRankSet(entry.ranks),
     })),
     pastResults: toPastResults(computed),
     neighbours: {
@@ -240,7 +290,9 @@ export function toRaceState(snapshot: ComputedSnapshot): RaceStateDto {
     pollIntervalMs: snapshot.pollIntervalMs,
     finalResults: snapshot.finalResults,
     raceDate: snapshot.config.raceDate,
-    counts: snapshot.counts,
+    counts: Object.fromEntries(
+      DIVISIONS.map((id) => [id, { ...snapshot.counts[id] }]),
+    ) as RaceStateDto["counts"],
     divisions: DIVISIONS.map((id) => ({
       id,
       label: DIVISION_LABELS[id],

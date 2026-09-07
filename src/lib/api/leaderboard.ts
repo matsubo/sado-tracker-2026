@@ -1,35 +1,10 @@
 import { DIVISION_LABELS, type Division, normalizeName } from "@/config/races";
 import type { ComputedSnapshot } from "@/lib/compute/snapshot";
 import { matchesAthlete } from "./athleteMatch";
-import type { AthleteSummaryDto } from "./contract";
-import { toAthleteSummary } from "./serialize";
+import type { LeaderboardDto } from "./contract";
+import { mapHref, rankingsHref, toAthleteSummary } from "./serialize";
 
-interface LeaderRowDto {
-  readonly place: number;
-  readonly athlete: AthleteSummaryDto;
-}
-
-export interface LeaderboardDto {
-  readonly division: Division;
-  readonly label: string;
-  /** How the rows are ordered: by progress once anyone is measured, else by bib. */
-  readonly order: "field" | "bib";
-  /** Everyone entered in the division. */
-  readonly entrants: number;
-  /** Athletes currently counted: racing, finished or retired. */
-  readonly racing: number;
-  readonly finished: number;
-  /**
-   * How many rows the reader is paging through: the whole field, or the
-   * matches when a filter is set.
-   */
-  readonly total: number;
-  /** The filter in force, normalised; empty when the whole field is shown. */
-  readonly query: string;
-  readonly page: number;
-  readonly perPage: number;
-  readonly leaders: readonly LeaderRowDto[];
-}
+type LeaderRowDto = LeaderboardDto["leaders"][number];
 
 /**
  * Who is at the front of each division right now. Ordering is field order,
@@ -98,6 +73,15 @@ export function buildLeaderboard(
     page,
     perPage,
     leaders,
+    _links: {
+      self: {
+        href: `/api/leaderboard?div=${division}&page=${page}${
+          needle === "" ? "" : `&q=${encodeURIComponent(needle)}`
+        }`,
+      },
+      rankings: { href: rankingsHref(division) },
+      map: { href: mapHref(division) },
+    },
   };
 }
 

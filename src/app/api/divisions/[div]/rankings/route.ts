@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isDivision } from "@/config/races";
+import type { Links } from "@/lib/api/contract";
 import { buildRankingPage } from "@/lib/api/rankings";
 import { badRequest, liveJson, notFound, notReady } from "@/lib/api/respond";
 import { RANKING_DISCIPLINES } from "@/lib/compute/tables";
@@ -16,12 +17,11 @@ const querySchema = z.object({
   bib: z.string().trim().max(12).optional(),
 });
 
-function linkHeader(base: string, page: number, total: number, perPage: number): string {
-  const last = Math.max(1, Math.ceil(total / perPage));
-  const parts = [`<${base}&page=1>; rel="first"`, `<${base}&page=${last}>; rel="last"`];
-  if (page > 1) parts.push(`<${base}&page=${page - 1}>; rel="prev"`);
-  if (page < last) parts.push(`<${base}&page=${page + 1}>; rel="next"`);
-  return parts.join(", ");
+/** RFC 5988 pagination header, from the same links the body carries. */
+function linkHeader(links: Links): string {
+  return (["first", "last", "prev", "next"] as const)
+    .flatMap((rel) => (links[rel] ? [`<${links[rel].href}>; rel="${rel}"`] : []))
+    .join(", ");
 }
 
 export async function GET(
@@ -48,8 +48,5 @@ export async function GET(
     targetBib: parsed.data.bib ?? null,
   });
 
-  const base = `/api/divisions/${division}/rankings?discipline=${page.discipline}`;
-  return liveJson(page, {
-    headers: { link: linkHeader(base, page.page, page.total, PER_PAGE) },
-  });
+  return liveJson(page, { headers: { link: linkHeader(page._links) } });
 }

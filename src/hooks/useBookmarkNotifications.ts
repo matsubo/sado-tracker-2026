@@ -1,15 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import type { AthleteSummaryDto } from "@/lib/api/contract";
+import type { AthletesResponseDto } from "@/lib/api/contract";
 import { useBookmarks } from "./useBookmarks";
 import { useNotifications } from "./useNotifications";
 import { useLiveResource, useRaceState } from "./useSnapshot";
-
-interface AthletesResponse {
-  readonly athletes: readonly AthleteSummaryDto[];
-  readonly missing: readonly string[];
-}
 
 /**
  * Checkpoint notifications for the bookmarked athletes, independent of which
@@ -21,7 +16,7 @@ export function useBookmarkNotifications() {
   const { bibs, ready } = useBookmarks();
 
   const url = ready && bibs.length > 0 ? `/api/athletes?bibs=${bibs.join(",")}` : null;
-  const { data } = useLiveResource<AthletesResponse>(url, fetchedAt);
+  const { data } = useLiveResource<AthletesResponseDto>(url, fetchedAt);
 
   const athletes = useMemo(() => data?.athletes ?? [], [data]);
   const { items, unreadCount, markAllSeen } = useNotifications(athletes);

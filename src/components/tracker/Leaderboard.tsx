@@ -10,7 +10,7 @@ import { DIVISIONS, type Division, isDivision } from "@/config/races";
 import { useBookmarks } from "@/hooks/useBookmarks";
 import { projectKm, useLiveClock } from "@/hooks/useLivePosition";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
-import type { LeaderboardDto } from "@/lib/api/leaderboard";
+import type { LeaderboardDto } from "@/lib/api/contract";
 import { formatClockShort, formatDuration, formatKm } from "@/lib/format";
 import { cn } from "@/lib/utils/cn";
 import { FilterBox } from "./FilterBox";

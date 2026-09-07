@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { DIVISIONS } from "@/config/races";
-import { badRequest, liveJson, notFound, notReady } from "@/lib/api/respond";
-import { toMapEntry } from "@/lib/api/serialize";
+import { buildMapResponse } from "@/lib/api/map";
+import { badRequest, liveJson, notReady } from "@/lib/api/respond";
 import { getSnapshot } from "@/lib/runtime/store";
 
 export const dynamic = "force-dynamic";
@@ -22,28 +22,10 @@ export function GET(request: Request): Response {
   if (!parsed.success) return badRequest("表示条件が正しくありません。");
 
   const { div, ageGroup, bibs } = parsed.data;
-  const order = snapshot.byDivision[div];
-  if (!order) return notFound(`タイプ ${div} はありません。`);
+  const friends = (bibs ?? "")
+    .split(",")
+    .map((bib) => bib.trim())
+    .filter(Boolean);
 
-  const friends = new Set(
-    (bibs ?? "")
-      .split(",")
-      .map((bib) => bib.trim())
-      .filter(Boolean),
-  );
-
-  const entries = order
-    .map((bib) => snapshot.athletes.get(bib))
-    .filter((computed) => computed !== undefined)
-    .filter((computed) => !ageGroup || computed.athlete.ageGroup?.id === ageGroup)
-    .map((computed) => toMapEntry(computed, friends.has(computed.athlete.bib)));
-
-  return liveJson({
-    division: div,
-    ageGroupId: ageGroup ?? null,
-    fetchedAt: snapshot.fetchedAt,
-    count: entries.length,
-    entries,
-    _links: { self: { href: `/api/map?div=${div}` } },
-  });
+  return liveJson(buildMapResponse(snapshot, div, ageGroup ?? null, friends));
 }

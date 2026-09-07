@@ -20,7 +20,7 @@ import {
 import { useBookmarks } from "@/hooks/useBookmarks";
 import { projectKm, useLiveClock } from "@/hooks/useLivePosition";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
-import type { CheckpointDto, MapEntryDto } from "@/lib/api/contract";
+import type { CheckpointDto, MapEntryDto, MapResponseDto } from "@/lib/api/contract";
 import { cn } from "@/lib/utils/cn";
 
 type Leg = Discipline;
@@ -37,14 +37,6 @@ interface Placed {
   readonly leg: Leg;
   /** Measured at a timing point, as opposed to projected forward from one. */
   readonly filled: boolean;
-}
-
-interface MapPayload {
-  readonly division: Division;
-  readonly count: number;
-  /** Server time the snapshot was taken; not the browser's clock in replay. */
-  readonly fetchedAt: number;
-  readonly entries: readonly MapEntryDto[];
 }
 
 /**
@@ -237,7 +229,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
 
   const friends = bibs.map(encodeURIComponent).join(",");
   const url = ready ? `/api/map?div=${division}${friends ? `&bibs=${friends}` : ""}` : null;
-  const { data, error, loading } = useLiveResource<MapPayload>(url, fetchedAt);
+  const { data, error, loading } = useLiveResource<MapResponseDto>(url, fetchedAt);
 
   const checkpoints: readonly CheckpointDto[] =
     race?.divisions.find((entry) => entry.id === division)?.checkpoints ?? [];

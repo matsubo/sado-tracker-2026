@@ -28,12 +28,5 @@ export function GET(request: Request): Response {
     parsed.data.page,
     parsed.data.q,
   );
-  return liveJson({
-    ...board,
-    _links: {
-      self: { href: `/api/leaderboard?div=${board.division}` },
-      division: { href: `/api/divisions/${board.division}/rankings` },
-      map: { href: `/api/map?div=${board.division}` },
-    },
-  });
+  return liveJson(board);
 }

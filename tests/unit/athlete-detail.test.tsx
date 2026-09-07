@@ -110,6 +110,7 @@ const NEIGHBOURS: MapEntryDto[] = [
     fieldOrder: 4,
     divisionRank: { rank: 150, of: 412 },
     position: onBike(143, START_AT + SUMIYOSHI_MS - 600_000, 33.4),
+    _links: { self: { href: "/api/athletes/1200" } },
   },
   {
     bib: "1234",
@@ -120,6 +121,7 @@ const NEIGHBOURS: MapEntryDto[] = [
     divisionRank: { rank: 198, of: 412 },
     position: onBike(132, START_AT + SUMIYOSHI_MS, 32.1),
     isSelf: true,
+    _links: { self: { href: "/api/athletes/1234" } },
   },
 ];
 

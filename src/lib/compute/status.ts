@@ -1,7 +1,9 @@
 import type { DivisionCourse } from "@/config/races";
 import type { Athlete } from "@/lib/domain/types";
 
-export type Status = "finished" | "dnf" | "not_started" | "dns_suspected" | "racing";
+export const STATUSES = ["finished", "dnf", "not_started", "dns_suspected", "racing"] as const;
+
+export type Status = (typeof STATUSES)[number];
 
 const SWIM_EVIDENCE = ["swimL", "swimF", "bikeS"] as const;
 
