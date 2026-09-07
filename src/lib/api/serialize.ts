@@ -307,6 +307,7 @@ export function toRaceState(snapshot: ComputedSnapshot): RaceStateDto {
     _links: {
       self: { href: "/api/race" },
       athletes: { href: "/api/athletes" },
+      events: { href: "/api/events" },
       map: { href: "/api/map" },
       weather: { href: "/api/weather" },
     },

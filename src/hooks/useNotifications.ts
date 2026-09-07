@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SITE_NAME, storageKey } from "@/config/site";
-import type { AthleteSummaryDto } from "@/lib/api/contract";
+import type { PassEventDto } from "@/lib/api/contract";
 
 const STORAGE_KEY = storageKey("seen");
 
@@ -33,11 +33,12 @@ function readSeen(): Set<string> {
 }
 
 /**
- * Turn the friends' checkpoint history into a notification list. Unread is
- * decided by a set of keys already shown, not by a timestamp, so a checkpoint
- * that the timing site publishes late is still announced.
+ * Turn the friends' checkpoint passes into a notification list. Every pass
+ * is its own item, and unread is decided by a set of keys already shown, not
+ * by a timestamp, so a checkpoint the timing site publishes late is still
+ * announced even though an athlete has since passed a later one.
  */
-export function useNotifications(athletes: readonly AthleteSummaryDto[]): {
+export function useNotifications(events: readonly PassEventDto[]): {
   items: NotificationItem[];
   unreadCount: number;
   markAllSeen: () => void;
@@ -51,26 +52,24 @@ export function useNotifications(athletes: readonly AthleteSummaryDto[]): {
     setReady(true);
   }, []);
 
-  const items = useMemo(() => {
-    const list: NotificationItem[] = [];
-    for (const athlete of athletes) {
-      if (athlete.lastPassedAt === null || athlete.lastCheckpointLabel === null) continue;
-      const key = `${athlete.bib}:${athlete.lastCheckpointLabel}`;
-      list.push({
-        key,
-        bib: athlete.bib,
-        name: athlete.name,
-        checkpointLabel: athlete.lastCheckpointLabel,
-        discipline: athlete.position.discipline,
-        passedAt: athlete.lastPassedAt,
-        elapsedMs: athlete.elapsedMs ?? 0,
-        divisionRank: athlete.totalRanks.division,
-        ageRank: athlete.totalRanks.ageGroup,
-        unread: ready && !seen.has(key),
-      });
-    }
-    return list.sort((a, b) => b.passedAt - a.passedAt);
-  }, [athletes, seen, ready]);
+  const items = useMemo(
+    () =>
+      events
+        .map((event) => ({
+          key: event.key,
+          bib: event.bib,
+          name: event.name,
+          checkpointLabel: event.checkpointLabel,
+          discipline: event.discipline,
+          passedAt: event.passedAt,
+          elapsedMs: event.elapsedMs,
+          divisionRank: event.divisionRank,
+          ageRank: event.ageRank,
+          unread: ready && !seen.has(event.key),
+        }))
+        .sort((a, b) => b.passedAt - a.passedAt),
+    [events, seen, ready],
+  );
 
   const unreadCount = items.filter((item) => item.unread).length;
 

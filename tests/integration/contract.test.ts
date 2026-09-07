@@ -4,11 +4,13 @@ import { lookupAthletes, searchAthletes } from "@/lib/api/athletes";
 import {
   AthleteDetailSchema,
   AthletesResponseSchema,
+  EventsResponseSchema,
   LeaderboardSchema,
   MapResponseSchema,
   RaceStateSchema,
   RankingPageSchema,
 } from "@/lib/api/contract";
+import { buildEventsResponse } from "@/lib/api/events";
 import { buildLeaderboard } from "@/lib/api/leaderboard";
 import { buildMapResponse } from "@/lib/api/map";
 import { buildRankingPage } from "@/lib/api/rankings";
@@ -92,6 +94,30 @@ describe("wire contract", () => {
     });
     expect(() => RankingPageSchema.parse(page)).not.toThrow();
     expect(() => MapResponseSchema.parse(buildMapResponse(snapshot, "A", null, []))).not.toThrow();
+  });
+});
+
+describe("checkpoint events", () => {
+  it("lists every checkpoint the bookmarked athletes have passed, newest first", () => {
+    const bib = [...snapshot.athletes.values()].find((c) => c.splits.length >= 3)?.athlete
+      .bib as string;
+    const body = EventsResponseSchema.parse(buildEventsResponse(snapshot, [bib]));
+    const own = body.events.filter((event) => event.bib === bib);
+    // Not just the latest one: a checkpoint the timing site publishes late is
+    // an earlier point on the course, and it has to reach the reader too.
+    expect(own.length).toBe(snapshot.athletes.get(bib)?.splits.length);
+    for (let i = 1; i < body.events.length; i += 1) {
+      expect((body.events[i - 1] as { passedAt: number }).passedAt).toBeGreaterThanOrEqual(
+        (body.events[i] as { passedAt: number }).passedAt,
+      );
+    }
+    expect(own[0]?.key).toBe(`${bib}:${own[0]?.checkpointId}`);
+    expect(own[0]?._links.self.href).toBe(`/api/athletes/${bib}`);
+    expect(body._links.self.href).toBe(`/api/events?bibs=${encodeURIComponent(bib)}`);
+  });
+
+  it("is advertised from the race state", () => {
+    expect(toRaceState(snapshot)._links.events?.href).toBe("/api/events");
   });
 });
 

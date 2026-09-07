@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { AthletesResponseDto } from "@/lib/api/contract";
+import type { EventsResponseDto } from "@/lib/api/contract";
 import { useBookmarks } from "./useBookmarks";
 import { useNotifications } from "./useNotifications";
 import { useLiveResource, useRaceState } from "./useSnapshot";
@@ -15,11 +15,12 @@ export function useBookmarkNotifications() {
   const { fetchedAt } = useRaceState();
   const { bibs, ready } = useBookmarks();
 
-  const url = ready && bibs.length > 0 ? `/api/athletes?bibs=${bibs.join(",")}` : null;
-  const { data } = useLiveResource<AthletesResponseDto>(url, fetchedAt);
+  const url =
+    ready && bibs.length > 0 ? `/api/events?bibs=${encodeURIComponent(bibs.join(","))}` : null;
+  const { data } = useLiveResource<EventsResponseDto>(url, fetchedAt);
 
-  const athletes = useMemo(() => data?.athletes ?? [], [data]);
-  const { items, unreadCount, markAllSeen } = useNotifications(athletes);
+  const events = useMemo(() => data?.events ?? [], [data]);
+  const { items, unreadCount, markAllSeen } = useNotifications(events);
 
   return { items, unreadCount, markAllSeen, bookmarkCount: bibs.length };
 }

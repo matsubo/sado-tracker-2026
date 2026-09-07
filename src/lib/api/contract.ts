@@ -376,6 +376,41 @@ export const AthletesResponseSchema = z
   .readonly();
 export type AthletesResponseDto = z.infer<typeof AthletesResponseSchema>;
 
+/** One checkpoint pass by a bookmarked athlete, for the notification list. */
+const PassEventSchema = z
+  .strictObject({
+    /** Stable per bib and checkpoint, so the client can remember what it showed. */
+    key: z.string(),
+    bib: z.string(),
+    name: z.string(),
+    checkpointId: z.string(),
+    checkpointLabel: z.string(),
+    discipline: z.string(),
+    passedAt: z.number(),
+    elapsedMs: z.number(),
+    divisionRank: RankSchema.nullable(),
+    ageRank: RankSchema.nullable(),
+    segmentMs: z.number().nullable(),
+    segmentSpeedKmh: z.number().nullable(),
+    _links: LinksSchema,
+  })
+  .readonly();
+export type PassEventDto = z.infer<typeof PassEventSchema>;
+
+/**
+ * Every checkpoint the asked-for athletes have passed, newest first. The
+ * client decides which are unread by key, so a checkpoint the timing site
+ * publishes late still surfaces rather than being missed by a timestamp.
+ */
+export const EventsResponseSchema = z
+  .strictObject({
+    count: z.number().int().nonnegative(),
+    events: z.array(PassEventSchema).readonly(),
+    _links: LinksSchema,
+  })
+  .readonly();
+export type EventsResponseDto = z.infer<typeof EventsResponseSchema>;
+
 export const MapResponseSchema = z
   .strictObject({
     division: DivisionSchema,
