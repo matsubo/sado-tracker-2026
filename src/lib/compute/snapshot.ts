@@ -12,7 +12,7 @@ import type { NeighbourModel } from "@/lib/history/model";
 import type { NameIndex, PastResult } from "@/lib/history/nameIndex";
 import { findPastResults } from "@/lib/history/nameIndex";
 import { disciplineKm, elapsedAt, splitBetween } from "./elapsed";
-import { buildPopulations, latestCheckpoint, type Populations } from "./population";
+import { buildPopulations, type Populations } from "./population";
 import { estimatePosition, fieldOrder, type PositionEstimate } from "./position";
 import {
   type BacktestTable,
@@ -31,7 +31,7 @@ import {
   splitRank,
   splitRanks,
 } from "./ranking";
-import { athleteStatus, type Status } from "./status";
+import type { Status } from "./status";
 
 interface ComputedDiscipline {
   readonly discipline: Discipline;
@@ -213,7 +213,13 @@ export function computeSnapshot(
 
   for (const division of DIVISIONS) {
     const course = config.divisions[division];
-    const pop = buildPopulations(snapshot.athletes, division, course, nowMs);
+    const pop = buildPopulations(
+      snapshot.athletes,
+      division,
+      course,
+      nowMs,
+      options.raceEndedAt ?? null,
+    );
     populations[division] = pop;
 
     for (const checkpoint of course.checkpoints) {
@@ -221,14 +227,11 @@ export function computeSnapshot(
       counts[division][checkpoint.id] = pop.atCheckpoint(checkpoint.id).length;
     }
 
-    const order = fieldOrder(pop.all, course, nowMs);
+    const order = fieldOrder(pop, course);
     const orderIndex = new Map(order.map((bib, index) => [bib, index]));
     byDivision[division] = order;
 
-    const divisionAthletes = snapshot.athletes.filter((a) => a.division === division);
-    for (const athlete of divisionAthletes) {
-      const status = athleteStatus(athlete, course, nowMs, options.raceEndedAt ?? null);
-      const lastCheckpointId = latestCheckpoint(athlete, course);
+    for (const { athlete, status, latest: lastCheckpointId } of pop.standings) {
       const lastCheckpoint = lastCheckpointId
         ? course.checkpoints.find((c) => c.id === lastCheckpointId)
         : undefined;
@@ -245,15 +248,7 @@ export function computeSnapshot(
           : { division: null, sex: null, ageGroup: null },
         disciplines: computeDisciplines(athlete, course, pop),
         position: estimatePosition(athlete, course, pop, nowMs, model.medianSpeedKmh[division]),
-        prediction: predictFinish(
-          athlete,
-          course,
-          pop,
-          model,
-          nowMs,
-          options.backtest,
-          candidateCache,
-        ),
+        prediction: predictFinish(athlete, course, pop, model, options.backtest, candidateCache),
         splits: computeSplits(athlete, course, pop),
         rankHistory: cumulativeRanks(athlete, pop, course),
         pastResults: findPastResults(nameIndex, athlete.nameKey),

@@ -67,7 +67,7 @@ export function runBacktest(
           ),
         };
 
-        const prediction = predictFinish(partial, course, pop, model, at + 1000);
+        const prediction = predictFinish(partial, course, pop, model);
         if (prediction?.method !== "neighbours") continue;
 
         const key = `${division}:${checkpoint.id}`;

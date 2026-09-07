@@ -45,7 +45,7 @@ function methodsAt(checkpointId: string): Record<string, number> {
   for (const athlete of pop.atCheckpoint(checkpointId).slice(0, 60)) {
     const state = asOf(athlete, checkpointId);
     if (!state) continue;
-    const prediction = predictFinish(state.partial, course2025, pop, model, state.at + 1000);
+    const prediction = predictFinish(state.partial, course2025, pop, model);
     const method = prediction?.method ?? "none";
     counts[method] = (counts[method] ?? 0) + 1;
   }
@@ -67,7 +67,7 @@ describe("the 2026 model still predicts a finish", () => {
       for (const athlete of sample) {
         const state = asOf(athlete, checkpoint.id);
         if (!state) continue;
-        if (predictFinish(state.partial, course2025, pop, model, state.at + 1000)) predicted += 1;
+        if (predictFinish(state.partial, course2025, pop, model)) predicted += 1;
       }
       expect(predicted, `no prediction at ${checkpoint.id}`).toBe(sample.length);
     }

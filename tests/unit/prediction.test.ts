@@ -96,27 +96,27 @@ describe("predictFinish", () => {
   const pop = buildPopulations([midBike], "A", courseA, now);
 
   it("uses nearest neighbours once a checkpoint has been passed", () => {
-    const prediction = predictFinish(midBike, courseA, pop, model, now);
+    const prediction = predictFinish(midBike, courseA, pop, model);
     expect(prediction?.method).toBe("neighbours");
     expect(prediction?.atCheckpoint).toBe("sumiyoshi");
     expect(prediction?.explanation.neighbourCount).toBe(20);
   });
 
   it("brackets the prediction with the neighbour quartiles", () => {
-    const prediction = predictFinish(midBike, courseA, pop, model, now);
+    const prediction = predictFinish(midBike, courseA, pop, model);
     expect(prediction?.rangeLowMs).toBeLessThanOrEqual(prediction?.totalMs as number);
     expect(prediction?.rangeHighMs).toBeGreaterThanOrEqual(prediction?.totalMs as number);
   });
 
   it("predicts a plausible A finish time", () => {
-    const prediction = predictFinish(midBike, courseA, pop, model, now);
+    const prediction = predictFinish(midBike, courseA, pop, model);
     const hours = (prediction?.totalMs as number) / HOUR;
     expect(hours).toBeGreaterThan(8);
     expect(hours).toBeLessThan(17);
   });
 
   it("reports the year mix and both speeds so the reader can judge it", () => {
-    const explanation = predictFinish(midBike, courseA, pop, model, now)?.explanation;
+    const explanation = predictFinish(midBike, courseA, pop, model)?.explanation;
     expect(Object.keys(explanation?.yearBreakdown ?? {}).length).toBeGreaterThan(1);
     expect(explanation?.ownSpeedKmh).toBeGreaterThan(10);
     expect(explanation?.neighbourSpeedKmh).toBeGreaterThan(10);
@@ -136,8 +136,8 @@ describe("predictFinish", () => {
       sumiyoshi: START + 5 * HOUR + 30 * MIN,
     });
     const p = buildPopulations([fast, slow], "A", courseA, now + 2 * HOUR);
-    const fastPrediction = predictFinish(fast, courseA, p, model, now + 2 * HOUR);
-    const slowPrediction = predictFinish(slow, courseA, p, model, now + 2 * HOUR);
+    const fastPrediction = predictFinish(fast, courseA, p, model);
+    const slowPrediction = predictFinish(slow, courseA, p, model);
     expect(fastPrediction?.totalMs).toBeLessThan(slowPrediction?.totalMs as number);
   });
 
@@ -153,7 +153,7 @@ describe("predictFinish", () => {
       { division: "B", startAt: bStart, preRace: { waterEntry: bStart - MIN } },
     );
     const bPop = buildPopulations([b], "B", courseB, bStart + 2 * HOUR);
-    const prediction = predictFinish(b, courseB, bPop, model, bStart + 2 * HOUR);
+    const prediction = predictFinish(b, courseB, bPop, model);
     expect(prediction?.method).toBe("neighbours");
     const hours = (prediction?.totalMs as number) / HOUR;
     expect(hours).toBeGreaterThan(4);
@@ -163,15 +163,15 @@ describe("predictFinish", () => {
   it("returns nothing before the first checkpoint", () => {
     const fresh = athlete("9", {});
     const p = buildPopulations([fresh], "A", courseA, START + 10 * MIN);
-    expect(predictFinish(fresh, courseA, p, model, START + 10 * MIN)).toBeNull();
+    expect(predictFinish(fresh, courseA, p, model)).toBeNull();
   });
 
   it("returns nothing for a finisher or a no-show", () => {
     const done = athlete("10", { runS: START + 8 * HOUR, finish: START + 13 * HOUR });
     const absent = athlete("11", {}, { preRace: {} });
     const p = buildPopulations([done, absent], "A", courseA, START + 14 * HOUR);
-    expect(predictFinish(done, courseA, p, model, START + 14 * HOUR)).toBeNull();
-    expect(predictFinish(absent, courseA, p, model, START + 14 * HOUR)).toBeNull();
+    expect(predictFinish(done, courseA, p, model)).toBeNull();
+    expect(predictFinish(absent, courseA, p, model)).toBeNull();
   });
 });
 

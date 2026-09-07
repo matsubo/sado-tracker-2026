@@ -10,8 +10,7 @@ import {
   splitBetween,
 } from "./elapsed";
 import { paceMinPerKm } from "./pace";
-import { checkpointIndex, latestCheckpoint, type Populations } from "./population";
-import { athleteStatus } from "./status";
+import { checkpointIndex, type Populations } from "./population";
 
 const NEIGHBOUR_COUNT = 20;
 const MIN_NEIGHBOURS = 5;
@@ -291,15 +290,13 @@ export function predictFinish(
   course: DivisionCourse,
   pop: Populations,
   model: NeighbourModel,
-  nowMs: number,
   backtest?: BacktestTable,
   cache?: CandidateCache,
 ): Prediction | null {
-  const status = athleteStatus(athlete, course, nowMs);
-  if (status === "not_started" || status === "dns_suspected") return null;
-  if (status === "finished") return null;
+  // Only someone still out on the course has a finish to predict.
+  if (pop.statusOf(athlete) !== "racing") return null;
 
-  const latest = latestCheckpoint(athlete, course);
+  const latest = pop.latestOf(athlete);
   if (latest === null) return null;
 
   const label = course.checkpoints.find((c) => c.id === latest)?.label ?? latest;

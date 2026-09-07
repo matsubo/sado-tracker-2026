@@ -1,11 +1,29 @@
 import type { Division, DivisionCourse } from "@/config/races";
 import type { Athlete } from "@/lib/domain/types";
-import { athleteStatus, isScored } from "./status";
+import { athleteStatus, isScored, type Status } from "./status";
+
+/** What one refresh has decided about an athlete, decided exactly once. */
+export interface Standing {
+  readonly athlete: Athlete;
+  readonly status: Status;
+  /** The furthest checkpoint reached, in course order; null before the first. */
+  readonly latest: string | null;
+}
 
 export interface Populations {
   readonly division: Division;
+  /** Everyone entered in this division, in bib order, whatever their status. */
+  readonly standings: readonly Standing[];
   /** Scored athletes of this division, in bib order. */
   readonly all: readonly Athlete[];
+  /**
+   * The status decided for this athlete when the populations were built. Every
+   * compute step reads this rather than deciding again, so the race end and
+   * the clock are applied once and the same way everywhere.
+   */
+  statusOf(athlete: Athlete): Status;
+  /** The furthest checkpoint the athlete has reached, decided the same way. */
+  latestOf(athlete: Athlete): string | null;
   /** Athletes who have reached a checkpoint. */
   atCheckpoint(checkpointId: string): readonly Athlete[];
   /** Athletes who have reached a checkpoint and share a sex. */
@@ -47,17 +65,31 @@ export function checkpointIndex(course: DivisionCourse, checkpointId: string): n
 
 /**
  * Group one division's athletes by checkpoint so every rank can be taken
- * against the exact set of athletes who have been measured there.
+ * against the exact set of athletes who have been measured there, and decide
+ * each athlete's status once, with the race end in hand.
  */
 export function buildPopulations(
   athletes: readonly Athlete[],
   division: Division,
   course: DivisionCourse,
   nowMs: number,
+  raceEndedAt: number | null = null,
 ): Populations {
-  const scored = athletes.filter(
-    (a) => a.division === division && isScored(athleteStatus(a, course, nowMs)),
-  );
+  const decide = (athlete: Athlete): Standing => ({
+    athlete,
+    status: athleteStatus(athlete, course, nowMs, raceEndedAt),
+    latest: latestCheckpoint(athlete, course),
+  });
+
+  const standings = athletes.filter((a) => a.division === division).map(decide);
+  const scored = standings.filter((s) => isScored(s.status)).map((s) => s.athlete);
+
+  // Keyed by identity, not bib: a backtest asks about a copy of an athlete
+  // with later checkpoints hidden, and that copy must be judged on what it
+  // carries. An unknown object is decided on the spot with the same inputs,
+  // so the answer stays consistent with everyone else's.
+  const decided = new WeakMap<Athlete, Standing>(standings.map((s) => [s.athlete, s]));
+  const standingOf = (athlete: Athlete): Standing => decided.get(athlete) ?? decide(athlete);
 
   const byCheckpoint = new Map<string, Athlete[]>();
   for (const checkpoint of course.checkpoints) {
@@ -74,7 +106,10 @@ export function buildPopulations(
 
   return {
     division,
+    standings,
     all: scored,
+    statusOf: (athlete) => standingOf(athlete).status,
+    latestOf: (athlete) => standingOf(athlete).latest,
     atCheckpoint: (id) => byCheckpoint.get(id) ?? [],
     atCheckpointBySex: (id, sex) => {
       const key = `${id}:${sex}`;

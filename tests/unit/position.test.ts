@@ -162,24 +162,30 @@ describe("fieldOrder", () => {
   const noShow = athlete("4", {}, { preRace: {} });
 
   it("puts the athlete furthest along the course first, regardless of elapsed time", () => {
-    const order = fieldOrder([slowBike, onRun, fastBike], courseA, now);
+    const order = fieldOrder(
+      buildPopulations([slowBike, onRun, fastBike], "A", courseA, now),
+      courseA,
+    );
     expect(order[0]).toBe("1");
   });
 
   it("breaks a tie at the same checkpoint by elapsed time", () => {
-    const order = fieldOrder([slowBike, fastBike], courseA, now);
+    const order = fieldOrder(buildPopulations([slowBike, fastBike], "A", courseA, now), courseA);
     expect(order).toEqual(["3", "2"]);
   });
 
   it("leaves out suspected no-shows", () => {
-    const order = fieldOrder([fastBike, noShow], courseA, now);
+    const order = fieldOrder(buildPopulations([fastBike, noShow], "A", courseA, now), courseA);
     expect(order).toEqual(["3"]);
   });
 
   it("puts finishers at the top, fastest first", () => {
     const slowFinish = athlete("5", { runS: START + 5 * HOUR, finish: START + 13 * HOUR });
     const fastFinish = athlete("6", { runS: START + 5 * HOUR, finish: START + 12 * HOUR });
-    const order = fieldOrder([onRun, slowFinish, fastFinish], courseA, now + 10 * HOUR);
+    const order = fieldOrder(
+      buildPopulations([onRun, slowFinish, fastFinish], "A", courseA, now + 10 * HOUR),
+      courseA,
+    );
     expect(order.slice(0, 2)).toEqual(["6", "5"]);
   });
 });

@@ -3,8 +3,7 @@ import type { Athlete } from "@/lib/domain/types";
 import { median } from "@/lib/math/stats";
 import { disciplineKm, splitBetween } from "./elapsed";
 import { speedKmh } from "./pace";
-import { checkpointIndex, latestCheckpoint, type Populations } from "./population";
-import { athleteStatus, isScored } from "./status";
+import { checkpointIndex, type Populations } from "./population";
 
 /** Stop just short of the next timing point: the athlete has not reached it. */
 const CHECKPOINT_MARGIN_KM = 0.1;
@@ -81,8 +80,8 @@ interface Anchor {
  * of the leg it closes would park the athlete at the far end of a leg they
  * have already finished.
  */
-function findAnchor(athlete: Athlete, course: DivisionCourse): Anchor {
-  const latest = latestCheckpoint(athlete, course);
+function findAnchor(athlete: Athlete, course: DivisionCourse, pop: Populations): Anchor {
+  const latest = pop.latestOf(athlete);
   if (latest === null) {
     return { discipline: "swim", checkpoint: null, km: 0, at: athlete.startAt };
   }
@@ -106,7 +105,8 @@ function findAnchor(athlete: Athlete, course: DivisionCourse): Anchor {
  * Estimate where an athlete is on the course. The estimate advances from the
  * last recorded checkpoint at the athlete's own recent speed, falling back to
  * the field median, and is capped at the next timing point because passing it
- * would have produced a record.
+ * would have produced a record. An athlete who has retired stays where they
+ * were last measured.
  */
 export function estimatePosition(
   athlete: Athlete,
@@ -115,8 +115,8 @@ export function estimatePosition(
   nowMs: number,
   historyMedianSpeedKmh?: Partial<Record<Discipline, number>>,
 ): PositionEstimate {
-  const status = athleteStatus(athlete, course, nowMs);
-  const anchor = findAnchor(athlete, course);
+  const status = pop.statusOf(athlete);
+  const anchor = findAnchor(athlete, course, pop);
 
   if (status === "finished") {
     return {
@@ -144,10 +144,11 @@ export function estimatePosition(
   const next = legCheckpoints.find((c) => c.km > anchorKm);
   const capKm = next?.km ?? disciplineKm(discipline, course);
 
+  const parked = status === "dnf" || status === "not_started" || inTransition;
   let speed: number | null = null;
   let source: PositionEstimate["source"] = "none";
 
-  if (!inTransition && anchor.checkpoint && anchor.checkpoint.id !== "runS") {
+  if (!parked && anchor.checkpoint && anchor.checkpoint.id !== "runS") {
     const index = checkpointIndex(course, anchor.checkpoint.id);
     const previous = course.checkpoints[index - 1];
     if (previous && previous.discipline === anchor.checkpoint.discipline) {
@@ -161,7 +162,7 @@ export function estimatePosition(
     }
   }
 
-  if (speed === null && next && anchor.checkpoint) {
+  if (!parked && speed === null && next && anchor.checkpoint) {
     const fieldSpeed = fieldMedianSpeed(pop, anchor.checkpoint.id, next.id, next.km - anchorKm);
     if (fieldSpeed !== null) {
       speed = fieldSpeed;
@@ -169,7 +170,7 @@ export function estimatePosition(
     }
   }
 
-  if (speed === null) {
+  if (!parked && speed === null) {
     const historical = historyMedianSpeedKmh?.[discipline];
     if (historical !== undefined && historical > 0) {
       speed = historical;
@@ -178,9 +179,7 @@ export function estimatePosition(
   }
 
   const estKm =
-    status === "not_started" || inTransition || speed === null
-      ? anchorKm
-      : projectKm(anchorKm, speed, nowMs - anchor.at, capKm);
+    parked || speed === null ? anchorKm : projectKm(anchorKm, speed, nowMs - anchor.at, capKm);
 
   return {
     discipline,
@@ -203,16 +202,10 @@ export function estimatePosition(
  * only comparable within one checkpoint. Athletes further along the course
  * lead; among those at the same checkpoint, the faster one leads.
  */
-export function fieldOrder(
-  athletes: readonly Athlete[],
-  course: DivisionCourse,
-  nowMs: number,
-): string[] {
-  const scored = athletes.filter((a) => isScored(athleteStatus(a, course, nowMs)));
-
-  return scored
+export function fieldOrder(pop: Populations, course: DivisionCourse): string[] {
+  return pop.all
     .map((athlete) => {
-      const latest = latestCheckpoint(athlete, course);
+      const latest = pop.latestOf(athlete);
       const index = latest === null ? -1 : checkpointIndex(course, latest);
       const at = latest === null ? athlete.startAt : (athlete.passes[latest] as number);
       return { bib: athlete.bib, index, elapsed: at - athlete.startAt };
