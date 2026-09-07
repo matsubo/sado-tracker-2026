@@ -2,11 +2,10 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const push = vi.fn();
-const replace = vi.fn();
-
+// No router here on purpose: a query change is a shallow update, written with
+// the history API the App Router syncs with, never a navigation that fetches
+// the page again from the server.
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push, replace }),
   usePathname: () => "/divisions/A",
   useSearchParams: () => new URLSearchParams(window.location.search),
 }));
@@ -14,8 +13,6 @@ vi.mock("next/navigation", () => ({
 const { useQueryState } = await import("@/hooks/useQueryState");
 
 beforeEach(() => {
-  push.mockReset();
-  replace.mockReset();
   window.history.replaceState(null, "", "/divisions/A?discipline=swim&page=3");
 });
 
@@ -32,23 +29,31 @@ describe("useQueryState", () => {
   });
 
   it("replaces the address for a narrower view of the same screen", () => {
+    const before = window.history.length;
     const { result } = renderHook(() => useQueryState());
     act(() => result.current.update({ ageGroup: "M40-44", page: null }));
-    expect(replace).toHaveBeenCalledWith("/divisions/A?discipline=swim&ageGroup=M40-44", {
-      scroll: false,
-    });
-    expect(push).not.toHaveBeenCalled();
+    expect(window.location.search).toBe("?discipline=swim&ageGroup=M40-44");
+    expect(window.history.length).toBe(before);
   });
 
   it("pushes a history entry for a move the back button should undo", () => {
+    const before = window.history.length;
     const { result } = renderHook(() => useQueryState());
     act(() => result.current.update({ page: "4" }, "push"));
-    expect(push).toHaveBeenCalledWith("/divisions/A?discipline=swim&page=4", { scroll: false });
+    expect(window.location.search).toBe("?discipline=swim&page=4");
+    expect(window.history.length).toBe(before + 1);
   });
 
   it("drops every key that becomes null, down to a bare path", () => {
     const { result } = renderHook(() => useQueryState());
     act(() => result.current.update({ discipline: null, page: null }));
-    expect(replace).toHaveBeenCalledWith("/divisions/A", { scroll: false });
+    expect(window.location.pathname + window.location.search).toBe("/divisions/A");
+  });
+
+  it("leaves history alone when the address would not change", () => {
+    const before = window.history.length;
+    const { result } = renderHook(() => useQueryState());
+    act(() => result.current.update({ discipline: "swim" }, "push"));
+    expect(window.history.length).toBe(before);
   });
 });

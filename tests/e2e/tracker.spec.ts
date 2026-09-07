@@ -1,15 +1,21 @@
 import { expect, test } from "@playwright/test";
 
-/** A bib that is racing at the replayed moment; resolved once per run. */
+/**
+ * A bib that is still racing at the replayed moment; resolved once per run.
+ * The field is ordered by the last checkpoint reached, so the first athlete
+ * on the bike is often a fast rider who then retired: status has to be
+ * checked, not just the discipline, or the page under test has no prediction.
+ */
 async function racingBib(request: {
   get: (url: string) => Promise<{ json: () => Promise<unknown> }>;
 }) {
   const response = await request.get("/api/map?div=A");
   const body = (await response.json()) as {
-    entries: { bib: string; position: { discipline: string } }[];
+    entries: { bib: string; status: string; position: { discipline: string } }[];
   };
-  const onBike = body.entries.find((entry) => entry.position.discipline === "bike");
-  return onBike?.bib ?? (body.entries[0]?.bib as string);
+  const racing = body.entries.filter((entry) => entry.status === "racing");
+  const onBike = racing.find((entry) => entry.position.discipline === "bike");
+  return onBike?.bib ?? (racing[0]?.bib as string);
 }
 
 test.describe("friend dashboard", () => {

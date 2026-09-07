@@ -11,7 +11,6 @@ import { installStorage } from "../support/storage";
 vi.mock("next/navigation", () => ({
   usePathname: () => "/bookmarks",
   useSearchParams: () => new URLSearchParams(),
-  useRouter: () => ({ push: () => {}, replace: () => {} }),
 }));
 
 const { PageHeader } = await import("@/components/layout/PageHeader");

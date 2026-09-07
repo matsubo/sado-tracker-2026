@@ -15,10 +15,6 @@ import type {
 import { renderWithProviders } from "../support/providers";
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: (url: string) => window.history.pushState(null, "", url),
-    replace: (url: string) => window.history.replaceState(null, "", url),
-  }),
   usePathname: () => window.location.pathname,
   useSearchParams: () => new URLSearchParams(window.location.search),
 }));
