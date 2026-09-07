@@ -6,14 +6,12 @@ import type { CheckpointDto, MapEntryDto } from "@/lib/api/contract";
 import {
   type Anchor,
   type AxisLabel,
-  COURSE_SEGMENTS,
-  courseFraction,
-  type DisciplineKm,
   edgesOf,
   fitLabels,
   LABEL_FONT,
   LABEL_GAP,
-} from "./PositionBar";
+} from "@/lib/chart/courseAxis";
+import { COURSE_SEGMENTS, courseFraction, type DisciplineKm } from "./PositionBar";
 
 const VIEW_W = 420;
 const PLOT_LEFT = 100;

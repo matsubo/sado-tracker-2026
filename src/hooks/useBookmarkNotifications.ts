@@ -3,7 +3,15 @@
 import { useMemo } from "react";
 import type { EventsResponseDto } from "@/lib/api/contract";
 import { useBookmarks } from "./useBookmarks";
-import { useNotifications } from "./useNotifications";
+import { type NotificationItem, useNotifications } from "./useNotifications";
+
+export interface BookmarkNotifications {
+  readonly items: readonly NotificationItem[];
+  readonly unreadCount: number;
+  readonly markAllSeen: () => void;
+  readonly bookmarkCount: number;
+}
+
 import { useLiveResource, useRaceState } from "./useSnapshot";
 
 /**
@@ -11,7 +19,7 @@ import { useLiveResource, useRaceState } from "./useSnapshot";
  * page is open. The request is shared with anything else asking for the same
  * athletes, so putting the bell in the header costs no extra traffic.
  */
-export function useBookmarkNotifications() {
+export function useBookmarkNotifications(): BookmarkNotifications {
   const { fetchedAt } = useRaceState();
   const { bibs, ready } = useBookmarks();
 

@@ -7,7 +7,6 @@ import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
 import {
   type AgeGroup,
-  COURSE_SHARES,
   compareAgeGroups,
   DISCIPLINE_LABELS,
   DISCIPLINES,
@@ -19,53 +18,38 @@ import {
 } from "@/config/races";
 import { useBookmarks } from "@/hooks/useBookmarks";
 import { projectKm, useLiveClock } from "@/hooks/useLivePosition";
+import { useQueryState } from "@/hooks/useQueryState";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
 import type { CheckpointDto, MapEntryDto, MapResponseDto } from "@/lib/api/contract";
+import {
+  type Anchor,
+  type Axis,
+  buildAxis,
+  buildTicks,
+  fitLabels,
+  kmTicks,
+  scaleKm,
+  type Tick,
+  toLeg,
+} from "@/lib/chart/courseAxis";
 import { cn } from "@/lib/utils/cn";
 
-type Leg = Discipline;
 type View = "division" | "age" | "friends";
-type Band = { readonly x0: number; readonly x1: number; readonly km: number };
-type Axis = Readonly<Record<Leg, Band>>;
-type Tick = { readonly id: string; readonly label: string; readonly x: number; readonly leg: Leg };
 
 interface Placed {
   readonly entry: MapEntryDto;
   readonly x: number;
   readonly y: number;
   readonly km: number;
-  readonly leg: Leg;
+  readonly leg: Discipline;
   /** Measured at a timing point, as opposed to projected forward from one. */
   readonly filled: boolean;
 }
 
-/**
- * Each leg gets a FIXED share of the axis width rather than a share of the
- * real distance: at true scale the 4 km swim would be 1% of the axis and the
- * 190 km bike would swallow the rest. Kilometres are scaled within a leg, so a
- * dot's position is only comparable to others on the same leg, which is what
- * a supporter reads it for.
- */
-const LEGS = DISCIPLINES;
-const LEG: Readonly<Record<Leg, { share: number; color: string; bg: string; label: string }>> = {
-  swim: {
-    share: COURSE_SHARES.swim,
-    color: "var(--swim)",
-    bg: "var(--swim-bg)",
-    label: DISCIPLINE_LABELS.swim,
-  },
-  bike: {
-    share: COURSE_SHARES.bike,
-    color: "var(--bike)",
-    bg: "var(--bike-bg)",
-    label: DISCIPLINE_LABELS.bike,
-  },
-  run: {
-    share: COURSE_SHARES.run,
-    color: "var(--run)",
-    bg: "var(--run-bg)",
-    label: DISCIPLINE_LABELS.run,
-  },
+const LEG: Readonly<Record<Discipline, { color: string; bg: string }>> = {
+  swim: { color: "var(--swim)", bg: "var(--swim-bg)" },
+  bike: { color: "var(--bike)", bg: "var(--bike-bg)" },
+  run: { color: "var(--run)", bg: "var(--run-bg)" },
 };
 
 const DIVISION_TABS = DIVISIONS.map((value) => ({ value, label: value }));
@@ -75,22 +59,20 @@ const VIEW_TABS = [
   { value: "friends", label: "ブックマークのみ" },
 ] as const;
 const LEGEND = [
-  { label: "スイム中", size: "size-1.5", color: LEG.swim.color },
-  { label: "バイク中", size: "size-1.5", color: LEG.bike.color },
-  { label: "ラン中", size: "size-1.5", color: LEG.run.color },
+  ...DISCIPLINES.map((leg) => ({
+    label: `${DISCIPLINE_LABELS[leg]}中`,
+    size: "size-1.5",
+    color: LEG[leg].color,
+  })),
   { label: "ブックマーク", size: "size-2 bg-brand-cyan-400", color: undefined },
 ];
 
 const VIEW_W = 360;
-const DENSE = { x0: 40, x1: 356, y0: 26, y1: 234, height: 260, dot: 1.6 };
-const NAMED = { x0: 84, x1: 352, top: 24, rowH: 16, foot: 22, dot: 4 };
+/** One named row per athlete: the label column, then the course. */
+const PLOT = { x0: 84, x1: 352, top: 24, rowH: 16, foot: 22, dot: 4 };
 const FRIEND_DOT = 5;
-const LABEL_SIZE = 8.5;
-const Y_TICKS = [1, 250, 500, 750];
 /** Share of the field that makes a waiting cluster worth calling out. */
 const CLUMP_SHARE = 0.1;
-/** Candidate spacings for the run km scale, coarsest chosen that fits. */
-const KM_STEPS = [5, 10, 20, 25, 50];
 const MIN_KM_GAP = 40;
 
 const EMPTY_MESSAGE: Readonly<Record<View, string>> = {
@@ -99,48 +81,12 @@ const EMPTY_MESSAGE: Readonly<Record<View, string>> = {
   friends: "選手をブックマークすると、ここに並びます。",
 };
 
-/** Transition points sit on the bike leg; everything else maps to its own leg. */
-const toLeg = (discipline: string): Leg =>
-  discipline === "swim" || discipline === "run" ? discipline : "bike";
-
-/** Three fixed-width bands, each scaled to the length of its own leg. */
-function buildAxis(checkpoints: readonly CheckpointDto[], x0: number, x1: number): Axis {
-  const width = x1 - x0;
-  const km = (leg: Leg): number =>
-    checkpoints.reduce((max, c) => (toLeg(c.discipline) === leg ? Math.max(max, c.km) : max), 0);
-  const swim = x0 + width * LEG.swim.share;
-  const bike = swim + width * LEG.bike.share;
-  return {
-    swim: { x0, x1: swim, km: km("swim") },
-    bike: { x0: swim, x1: bike, km: km("bike") },
-    run: { x0: bike, x1, km: km("run") },
-  };
-}
-
-/** Kilometres within a leg to a course-wide x coordinate. */
-function scaleKm(axis: Axis, leg: Leg, km: number): number {
-  const band = axis[leg];
-  const ratio = band.km > 0 ? Math.min(Math.max(km / band.km, 0), 1) : 0;
-  return band.x0 + (band.x1 - band.x0) * ratio;
-}
-
 /** Rows run top to bottom: the leader first, then one row per athlete. */
-const rowY = (index: number, count: number, named: boolean): number =>
-  named
-    ? NAMED.top + 10 + index * NAMED.rowH
-    : DENSE.y0 + ((DENSE.y1 - DENSE.y0) * index) / Math.max(1, count - 1);
+const rowY = (index: number): number => PLOT.top + 10 + index * PLOT.rowH;
 
-/** Every checkpoint as an x position, with points on the same pixel merged. */
-function buildTicks(checkpoints: readonly CheckpointDto[], axis: Axis): Tick[] {
-  const raw: Tick[] = [
-    { id: "start", label: "START", x: axis.swim.x0, leg: "swim" },
-    ...checkpoints.map((c) => {
-      const leg = toLeg(c.discipline);
-      return { id: c.id, label: c.label, x: scaleKm(axis, leg, c.km), leg };
-    }),
-  ];
-  return raw.filter((t, i) => raw.findIndex((o) => Math.round(o.x) === Math.round(t.x)) === i);
-}
+/** Keep the outermost labels inside the viewBox instead of centring them. */
+const anchorAt = (x: number): Anchor =>
+  x <= PLOT.x0 + 20 ? "start" : x >= PLOT.x1 - 20 ? "end" : "middle";
 
 /**
  * Only the points that frame a leg carry a label: the start, each leg's end,
@@ -151,53 +97,6 @@ function buildTicks(checkpoints: readonly CheckpointDto[], axis: Axis): Tick[] {
 const isLabelled = (tick: Tick, axis: Axis): boolean =>
   tick.id === "start" || tick.leg === "bike" || tick.x >= axis[tick.leg].x1 - 0.5;
 
-/** Round kilometre marks under the run band, spaced far enough to read. */
-function kmTicks(band: Band): { km: number; x: number }[] {
-  const width = band.x1 - band.x0;
-  const step = KM_STEPS.find((value) => (width * value) / band.km >= MIN_KM_GAP);
-  if (step === undefined || band.km <= 0) return [];
-  const marks: { km: number; x: number }[] = [];
-  for (let km = step; km < band.km; km += step) {
-    marks.push({ km, x: band.x0 + (width * km) / band.km });
-  }
-  return marks;
-}
-
-/** Keep the outermost labels inside the viewBox instead of centring them. */
-const anchorAt = (x: number, x0: number, x1: number): "start" | "middle" | "end" =>
-  x <= x0 + 20 ? "start" : x >= x1 - 20 ? "end" : "middle";
-
-/** Rough advance width: CJK glyphs are square, Latin ones about 58%. */
-const textWidth = (text: string): number =>
-  [...text].reduce(
-    (sum, ch) => sum + (ch.charCodeAt(0) > 0x2e7f ? LABEL_SIZE : LABEL_SIZE * 0.58),
-    0,
-  );
-
-/**
- * Drop a label that would touch its left-hand neighbour. On the B course
- * 住吉 sits 18 km into a 108 km bike leg, close enough to スイムF to collide,
- * and the boundary labels matter more than the intermediate one.
- */
-function placeLabels(ticks: readonly Tick[], x0: number, x1: number): Tick[] {
-  const kept: Tick[] = [];
-  let edge = Number.NEGATIVE_INFINITY;
-  for (const [index, tick] of ticks.entries()) {
-    const width = textWidth(tick.label);
-    const anchor = anchorAt(tick.x, x0, x1);
-    const left =
-      anchor === "start" ? tick.x : anchor === "end" ? tick.x - width : tick.x - width / 2;
-    if (left >= edge + 2) {
-      kept.push(tick);
-      edge = left + width;
-    } else if (index === ticks.length - 1) {
-      kept.splice(-1, 1, tick);
-      edge = left + width;
-    }
-  }
-  return kept;
-}
-
 const isView = (value: string): value is View => VIEW_TABS.some((tab) => tab.value === value);
 
 /**
@@ -205,6 +104,10 @@ const isView = (value: string): value is View => VIEW_TABS.some((tab) => tab.val
  * field order on the y axis with the leader at the top. Dots advance between
  * server updates because the estimate is recomputed in the browser, and a dot
  * is hollow while its position is projected rather than measured.
+ *
+ * Every row is named. The division view runs to hundreds of rows and the
+ * page becomes very long, which is the point: a dot with no name tells a
+ * supporter nothing about who is where.
  */
 export function FieldMap({ initialDivision }: { readonly initialDivision: Division }) {
   const [division, setDivision] = useState<Division>(initialDivision);
@@ -226,6 +129,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
   } = useRaceState();
   const { bibs, ready } = useBookmarks();
   const now = useLiveClock();
+  const { update } = useQueryState();
 
   const friends = bibs.map(encodeURIComponent).join(",");
   const url = ready ? `/api/map?div=${division}${friends ? `&bibs=${friends}` : ""}` : null;
@@ -251,10 +155,6 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
   const activeAge =
     ageOptions.find((option) => option.value === ageGroup)?.value ?? ageOptions[0]?.value ?? null;
 
-  // Every view names its rows. The division view runs to hundreds of rows and
-  // the page becomes very long, which is the point: a dot with no name tells
-  // a supporter nothing about who is where.
-  const named = true;
   const entries = useMemo(() => {
     const all = data?.entries ?? [];
     if (view === "friends") return all.filter((e) => e.isSelf === true);
@@ -262,21 +162,20 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
     return all;
   }, [data, view, activeAge]);
 
-  const x0 = named ? NAMED.x0 : DENSE.x0;
-  const x1 = named ? NAMED.x1 : DENSE.x1;
-  const height = named ? NAMED.top + entries.length * NAMED.rowH + NAMED.foot : DENSE.height;
-  const axis = useMemo(() => buildAxis(checkpoints, x0, x1), [checkpoints, x0, x1]);
+  const height = PLOT.top + entries.length * PLOT.rowH + PLOT.foot;
+  const axis = useMemo(() => buildAxis(checkpoints, PLOT.x0, PLOT.x1), [checkpoints]);
   const ticks = useMemo(() => buildTicks(checkpoints, axis), [checkpoints, axis]);
   const labels = useMemo(
     () =>
-      placeLabels(
-        ticks.filter((tick) => isLabelled(tick, axis)),
-        x0,
-        x1,
+      fitLabels(
+        ticks
+          .filter((tick) => isLabelled(tick, axis))
+          .map((tick) => ({ key: tick.id, text: tick.label, x: tick.x, anchor: anchorAt(tick.x) })),
+        { keepLast: true },
       ),
-    [ticks, axis, x0, x1],
+    [ticks, axis],
   );
-  const kmScale = useMemo(() => kmTicks(axis.run), [axis]);
+  const kmScale = useMemo(() => kmTicks(axis.run, MIN_KM_GAP), [axis]);
 
   const placed: readonly Placed[] = useMemo(
     () =>
@@ -287,7 +186,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
         return {
           entry,
           x: scaleKm(axis, leg, km),
-          y: rowY(index, entries.length, named),
+          y: rowY(index),
           km,
           leg,
           filled: position.waiting || position.inTransition || position.speedKmh <= 0,
@@ -295,13 +194,6 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
       }),
     [entries, axis, now],
   );
-
-  const yTicks = useMemo(() => {
-    const count = entries.length;
-    const spacing = (DENSE.y1 - DENSE.y0) / Math.max(1, count - 1);
-    const inner = Y_TICKS.filter((v) => v < count && (count - v) * spacing > 8);
-    return [...inner, count].filter((value) => value > 0);
-  }, [entries.length]);
 
   /**
    * The server caps an estimate at the next timing point, so a long gap
@@ -325,6 +217,15 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
   const tip = placed.find((p) => p.entry.bib === selected) ?? null;
   const tipRank = tip?.entry.divisionRank ?? null;
   const toggle = (bib: string): void => setSelected((current) => (current === bib ? null : bib));
+
+  const changeDivision = (value: string): void => {
+    if (!isDivision(value)) return;
+    setDivision(value);
+    setSelected(null);
+    // The address carries the division so the view can be shared; the
+    // default reads cleanest as no query at all.
+    update({ div: value === "A" ? null : value });
+  };
 
   /** Roving tabindex: the dot layer is one tab stop, arrows walk the field. */
   const onDotKey = (event: KeyboardEvent<SVGGElement>, index: number, bib: string): void => {
@@ -364,10 +265,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
         className="mx-3"
         items={DIVISION_TABS}
         value={division}
-        onValueChange={(value) => {
-          if (isDivision(value)) setDivision(value);
-          setSelected(null);
-        }}
+        onValueChange={changeDivision}
       />
       <Tabs
         aria-label="表示"
@@ -416,7 +314,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
           <div className="relative">
             <svg viewBox={`0 0 ${VIEW_W} ${height}`} className="block h-auto w-full">
               <title>{`${division}タイプの推定位置マップ`}</title>
-              {LEGS.map((leg) => (
+              {DISCIPLINES.map((leg) => (
                 <rect
                   key={leg}
                   x={axis[leg].x0}
@@ -434,55 +332,44 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
               </g>
               <g fill="var(--muted-foreground)" fontSize={8.5}>
                 {labels.map((label) => (
-                  <text key={label.id} x={label.x} y={10} textAnchor={anchorAt(label.x, x0, x1)}>
-                    {label.label}
+                  <text key={label.key} x={label.x} y={10} textAnchor={label.anchor}>
+                    {label.text}
                   </text>
                 ))}
               </g>
               <g fill="var(--muted-foreground)" fontSize={8}>
                 {kmScale.map((mark) => (
-                  <text
-                    key={mark.km}
-                    x={mark.x}
-                    y={height - 6}
-                    textAnchor={anchorAt(mark.x, x0, x1)}
-                  >
+                  <text key={mark.km} x={mark.x} y={height - 6} textAnchor={anchorAt(mark.x)}>
                     {mark.km}km
                   </text>
                 ))}
               </g>
 
-              <g fill="var(--muted-foreground)" fontSize={named ? 9.5 : 8.5} textAnchor="end">
-                {named
-                  ? placed.map((p, index) => (
-                      // A name is the obvious thing to tap, so it goes
-                      // straight to the athlete rather than to a tooltip.
-                      <a
-                        key={p.entry.bib}
-                        href={`/athletes/${p.entry.bib}`}
-                        aria-label={`${p.entry.name} の詳細`}
-                        className="cursor-pointer outline-none focus-visible:underline"
-                      >
-                        <text
-                          x={x0 - 8}
-                          y={p.y + 3}
-                          fill={p.entry.isSelf === true ? "var(--foreground)" : undefined}
-                          className="hover:underline"
-                        >
-                          {index + 1} {p.entry.name}
-                        </text>
-                      </a>
-                    ))
-                  : yTicks.map((value, index) => (
-                      <text key={value} x={x0 - 6} y={rowY(value - 1, entries.length, false) + 3}>
-                        {index === 0 ? `${value}位` : value}
-                      </text>
-                    ))}
+              <g fill="var(--muted-foreground)" fontSize={9.5} textAnchor="end">
+                {placed.map((p, index) => (
+                  // A name is the obvious thing to tap, so it goes straight
+                  // to the athlete rather than to a tooltip.
+                  <a
+                    key={p.entry.bib}
+                    href={`/athletes/${p.entry.bib}`}
+                    aria-label={`${p.entry.name} の詳細`}
+                    className="cursor-pointer outline-none focus-visible:underline"
+                  >
+                    <text
+                      x={PLOT.x0 - 8}
+                      y={p.y + 3}
+                      fill={p.entry.isSelf === true ? "var(--foreground)" : undefined}
+                      className="hover:underline"
+                    >
+                      {index + 1} {p.entry.name}
+                    </text>
+                  </a>
+                ))}
               </g>
 
               {placed.map((p, index) => {
                 const friend = p.entry.isSelf === true;
-                const radius = friend ? FRIEND_DOT : named ? NAMED.dot : DENSE.dot;
+                const radius = friend ? FRIEND_DOT : PLOT.dot;
                 const color = friend ? "currentColor" : LEG[p.leg].color;
                 return (
                   // biome-ignore lint/a11y/useSemanticElements: a <button> cannot be an SVG child
@@ -494,7 +381,7 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
                     }}
                     role="button"
                     tabIndex={index === activeIndex ? 0 : -1}
-                    aria-label={`${p.entry.name} ${LEG[p.leg].label} ${p.km.toFixed(1)}km`}
+                    aria-label={`${p.entry.name} ${DISCIPLINE_LABELS[p.leg]} ${p.km.toFixed(1)}km`}
                     className={cn("cursor-pointer", friend && "text-brand-cyan-400")}
                     onClick={() => {
                       setFocusIndex(index);
@@ -508,28 +395,9 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
                       r={radius}
                       fill={p.filled ? color : "var(--card)"}
                       stroke={color}
-                      strokeWidth={radius >= 3 ? 1.4 : 0.9}
+                      strokeWidth={1.4}
                       strokeDasharray={p.filled ? undefined : "2 2"}
                     />
-                    {friend && !named ? (
-                      <a
-                        href={`/athletes/${p.entry.bib}`}
-                        aria-label={`${p.entry.name} の詳細`}
-                        className="cursor-pointer outline-none focus-visible:underline"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <text
-                          x={p.x + 8}
-                          y={p.y + 3}
-                          fontSize={9}
-                          fill="var(--foreground)"
-                          className="hover:underline"
-                        >
-                          {p.entry.name}
-                          {p.entry.divisionRank ? ` ${p.entry.divisionRank.rank}位` : ""}
-                        </text>
-                      </a>
-                    ) : null}
                   </g>
                 );
               })}
@@ -552,7 +420,8 @@ export function FieldMap({ initialDivision }: { readonly initialDivision: Divisi
                 </Link>
                 <p className="text-[11px] text-muted-foreground tabular-nums">
                   {tipRank ? `総合 ${tipRank.rank}/${tipRank.of} · ` : ""}
-                  {placed.indexOf(tip) + 1} 番目 · {LEG[tip.leg].label} {tip.km.toFixed(1)} km
+                  {placed.indexOf(tip) + 1} 番目 · {DISCIPLINE_LABELS[tip.leg]} {tip.km.toFixed(1)}{" "}
+                  km
                 </p>
               </div>
             ) : null}

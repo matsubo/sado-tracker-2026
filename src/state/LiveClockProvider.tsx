@@ -21,10 +21,10 @@ export function LiveClockProvider({ children }: { readonly children: ReactNode }
   const fetchedAt = useContext(RaceContext)?.fetchedAt ?? null;
 
   useEffect(() => {
-    setNow(raceNow());
+    // A fresh race response resets the offset; read it at once, not next tick.
+    setNow(fetchedAt === null ? 0 : raceNow());
     const timer = setInterval(() => setNow(raceNow()), TICK_MS);
     return () => clearInterval(timer);
-    // A fresh race response resets the offset; read it at once, not next tick.
   }, [fetchedAt]);
 
   return <LiveClockContext.Provider value={now}>{children}</LiveClockContext.Provider>;

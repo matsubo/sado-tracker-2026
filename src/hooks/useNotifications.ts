@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { SITE_NAME, storageKey } from "@/config/site";
+import { storageKey } from "@/config/site";
 import type { PassEventDto } from "@/lib/api/contract";
 
 const STORAGE_KEY = storageKey("seen");
@@ -85,12 +85,6 @@ export function useNotifications(events: readonly PassEventDto[]): {
       return next;
     });
   }, [items]);
-
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    const base = SITE_NAME;
-    document.title = unreadCount > 0 ? `(${unreadCount}) ${base}` : base;
-  }, [unreadCount]);
 
   return { items, unreadCount, markAllSeen, ready };
 }

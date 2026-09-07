@@ -16,6 +16,7 @@ import {
   isDiscipline,
   normalizeAgeGroup,
 } from "@/config/races";
+import { useQueryState } from "@/hooks/useQueryState";
 import { useLiveResource, useRaceState } from "@/hooks/useSnapshot";
 import type { RankingPageDto } from "@/lib/api/contract";
 import { RANKING_DISCIPLINES, type RankingDiscipline, rankingEnd } from "@/lib/compute/tables";
@@ -56,18 +57,6 @@ interface DivisionRankingsProps {
 interface KnownGroups {
   readonly division: Division;
   readonly ids: readonly string[];
-}
-
-/** Writes the current view into the address bar without adding a history entry. */
-function syncUrl(discipline: string | null, ageGroup: string, page: number): void {
-  const next = new URL(window.location.href);
-  if (discipline === null) next.searchParams.delete("discipline");
-  else next.searchParams.set("discipline", discipline);
-  if (ageGroup === ALL_AGE_GROUPS) next.searchParams.delete("ageGroup");
-  else next.searchParams.set("ageGroup", ageGroup);
-  if (page <= 1) next.searchParams.delete("page");
-  else next.searchParams.set("page", String(page));
-  window.history.replaceState(null, "", next.toString());
 }
 
 /** Query string carried across the division tabs, page number excluded. */
@@ -127,9 +116,17 @@ export function DivisionRankings({
 
   const { data, error, loading } = useLiveResource<RankingPageDto>(url, fetchedAt);
 
+  // The view is written into the address without a history entry, so a
+  // shared link opens on the same table. An automatic opening discipline is
+  // deliberately not written: it must not become sticky.
+  const { update } = useQueryState();
   useEffect(() => {
-    syncUrl(explicit ? discipline : null, ageGroup, page);
-  }, [explicit, discipline, ageGroup, page]);
+    update({
+      discipline: explicit ? discipline : null,
+      ageGroup: ageGroup === ALL_AGE_GROUPS ? null : ageGroup,
+      page: page <= 1 ? null : String(page),
+    });
+  }, [explicit, discipline, ageGroup, page, update]);
 
   useEffect(() => {
     if (!data) return;

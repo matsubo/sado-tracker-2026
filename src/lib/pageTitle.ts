@@ -8,6 +8,11 @@ export function pageTitle(name: string | null | undefined): string {
   return trimmed === "" ? SITE_NAME : `${trimmed} | ${SITE_NAME}`;
 }
 
+/** "(3) ブックマーク | ..." while three passes are unread; the name stays. */
+export function withUnread(title: string, unreadCount: number): string {
+  return unreadCount > 0 ? `(${unreadCount}) ${title}` : title;
+}
+
 /**
  * What the screen on show calls itself.
  *

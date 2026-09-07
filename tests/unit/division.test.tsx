@@ -14,6 +14,15 @@ import type {
 } from "@/lib/api/contract";
 import { renderWithProviders } from "../support/providers";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: (url: string) => window.history.pushState(null, "", url),
+    replace: (url: string) => window.history.replaceState(null, "", url),
+  }),
+  usePathname: () => window.location.pathname,
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}));
+
 vi.mock("next/link", () => ({
   default: ({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) => (
     <a href={href} {...rest}>
@@ -308,5 +317,18 @@ describe("FieldMap", () => {
 
     expect(container.querySelectorAll("svg circle")).toHaveLength(MAP_BODY.entries.length);
     expect(fetchedUrls().some((url) => url.includes("/api/map?div=A&bibs=1234"))).toBe(true);
+  });
+
+  it("writes the chosen division into the address so the view can be shared", async () => {
+    window.history.replaceState(null, "", "/map");
+    renderWithProviders(<FieldMap initialDivision="A" />);
+    await screen.findByText(/両津 美咲/);
+
+    fireEvent.click(screen.getByRole("tab", { name: "B" }));
+    expect(window.location.search).toBe("?div=B");
+
+    // The default division reads cleanest as no query at all.
+    fireEvent.click(screen.getByRole("tab", { name: "A" }));
+    expect(window.location.search).toBe("");
   });
 });

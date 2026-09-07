@@ -4,8 +4,9 @@ import Link from "next/link";
 import { type ReactNode, useEffect } from "react";
 import { GlobalHeader } from "@/components/layout/GlobalNav";
 import { LiveStatusBar } from "@/components/tracker/LiveStatusBar";
+import { useBookmarkNotifications } from "@/hooks/useBookmarkNotifications";
 import type { RaceStateDto } from "@/lib/api/contract";
-import { pageTitle, setPageName } from "@/lib/pageTitle";
+import { pageTitle, setPageName, withUnread } from "@/lib/pageTitle";
 
 interface PageHeaderProps {
   readonly title: string;
@@ -55,16 +56,18 @@ export function PageHeader({
   onAutoChange,
   onRefresh,
 }: PageHeaderProps) {
+  const notifications = useBookmarkNotifications();
+  const name = documentTitle ?? title;
+
   // Next updates the description on a client-side navigation but leaves the
   // title on whatever the root layout set, so every screen reported itself as
-  // the front page. Analytics reads document.title when it sends a page view,
-  // and this effect runs before the layout's, so the name is right by then.
-  const name = documentTitle ?? title;
-  // Recorded during render so the page-view effect, which runs afterwards,
-  // never reports the screen the reader just left.
-  setPageName(name);
+  // the front page. The page name is recorded here, in an effect that runs
+  // before the analytics effect in the layout, so a page view never reports
+  // the screen the reader just left. The unread count goes in front of the
+  // name; it is the one place the title is written.
   useEffect(() => {
-    const wanted = pageTitle(name);
+    setPageName(name);
+    const wanted = withUnread(pageTitle(name), notifications.unreadCount);
     document.title = wanted;
 
     // The framework re-applies the root layout's title after this effect on
@@ -78,11 +81,11 @@ export function PageHeader({
     });
     observer.observe(titleTag, { childList: true, characterData: true, subtree: true });
     return () => observer.disconnect();
-  }, [name]);
+  }, [name, notifications.unreadCount]);
 
   return (
     <header>
-      <GlobalHeader year={race?.year} />
+      <GlobalHeader year={race?.year} notifications={notifications} />
 
       <div className="mx-auto flex w-full max-w-[430px] items-end justify-between gap-2 px-4 pt-0.5 pb-1.5">
         <div className="min-w-0">

@@ -7,7 +7,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { NAV_LINKS, OFFICIAL_URL } from "@/components/layout/navLinks";
 import { NotificationPanel } from "@/components/tracker/NotificationPanel";
 import { EDITION_YEAR, SITE_SHORT_NAME } from "@/config/site";
-import { useBookmarkNotifications } from "@/hooks/useBookmarkNotifications";
+import type { BookmarkNotifications } from "@/hooks/useBookmarkNotifications";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -15,7 +15,13 @@ import { cn } from "@/lib/utils/cn";
  * fixed bar along the bottom: the bar covered the end of every page and had
  * to be scrolled past, which is worse than one tap to open a list.
  */
-export function GlobalHeader({ year }: { readonly year?: number }) {
+export function GlobalHeader({
+  year,
+  notifications,
+}: {
+  readonly year?: number;
+  readonly notifications: BookmarkNotifications;
+}) {
   const pathname = usePathname() ?? "/";
   const [open, setOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
@@ -23,7 +29,7 @@ export function GlobalHeader({ year }: { readonly year?: number }) {
   const bellId = useId();
   const container = useRef<HTMLDivElement>(null);
   const current = NAV_LINKS.find((link) => link.match(pathname));
-  const { items, unreadCount, markAllSeen, bookmarkCount } = useBookmarkNotifications();
+  const { items, unreadCount, markAllSeen, bookmarkCount } = notifications;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: navigating away is the trigger, not an input
   useEffect(() => {

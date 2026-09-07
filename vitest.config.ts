@@ -7,8 +7,10 @@ export default defineConfig({
   resolve: { alias: { "@": resolve(import.meta.dirname, "./src") } },
   test: {
     environment: "node",
-    // Some suites replay a whole race against real timing data.
+    // Some suites replay a whole race against real timing data, and build
+    // it once in a hook before their tests run.
     testTimeout: 30_000,
+    hookTimeout: 30_000,
     include: ["tests/unit/**/*.test.{ts,tsx}", "tests/integration/**/*.test.{ts,tsx}"],
     coverage: { provider: "v8", include: ["src/lib/**", "src/config/**"], reporter: ["text", "lcov"] },
   },
