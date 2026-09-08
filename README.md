@@ -77,6 +77,63 @@ Distances are configured per year and per division. The 2025 B swim was
 shortened to 1.35 km, so for the B division the swim enters the prediction as
 a within-year percentile rather than an absolute pace.
 
+## How we know it works
+
+Correctness is measured, not asserted. This is the evidence behind the numbers
+on screen, as of v1.0.0.
+
+**Checked against the timing site.** Every finisher's `FINISH − START` must
+reproduce the published 総合記録: 3,820 of 3,820 rows from 2023 to 2025 match
+to the second (`tests/integration/reference.test.ts`). The parser is run over
+every real export from 2022 to 2026, and each year has to yield the expected
+divisions and a unique bib per athlete.
+
+**Tested on every push.** 467 unit and integration tests in 43 files cover the
+parser, the year configs, ranking, positions, prediction, formatting, the API
+contract and the components. Twelve Playwright journeys drive the built app in
+replay mode against an anonymised copy of the 2025 race: adding a friend,
+notifications, refreshing in place, the athlete page with ranks, splits and a
+prediction, paging through standings, the map, and search. CI also runs Biome,
+`tsc --strict`, knip for dead code, and the production build.
+
+**Coverage, with a ratchet.** Measured over all of `src/` except the Next.js
+route shells (v8 provider):
+
+| | Covered |
+|---|---|
+| Statements | 83.97 % (2,421 / 2,883) |
+| Branches | 71.01 % (1,541 / 2,170) |
+| Functions | 81.80 % (589 / 720) |
+| Lines | 86.78 % (2,122 / 2,445) |
+
+CI fails below 82 / 68 / 80 / 85. The thresholds only move up.
+
+**Predictions, measured after the fact.** Beyond the backtest above, the 2026
+race was scored once it had finished: each prediction was recomputed with the
+later checkpoints hidden, exactly as it was shown live, and compared with the
+athlete's actual finish.
+
+| Checkpoint | n | Median error (signed) | Median abs error | Within 25 min | Actual inside p25–p75 |
+|---|---|---|---|---|---|
+| A 住吉 (bike 100 km) | 812 | +5 min | 27 min | 47 % | 39 % |
+| A ランS (run start) | 813 | +8 min | 26 min | 49 % | 36 % |
+| A ラン20km | 813 | −6 min | 10 min | 89 % | 36 % |
+| A ラン39km | 811 | 0 min | 0 min | 100 % | 46 % |
+| B 住吉 (bike 18 km) | 665 | +28 min | 33 min | 39 % | 36 % |
+| B ランS (run start) | 665 | +9 min | 17 min | 69 % | 45 % |
+| B ラン10km | 665 | +2 min | 5 min | 100 % | 44 % |
+| B ラン19km | 665 | 0 min | 0 min | 100 % | 42 % |
+
+A positive error means the prediction was late. The bike-stage figures match
+the backtest; the B 住吉 bias comes from the 2026 swim being shortened to
+1.0 km, which sent athletes onto the bike fresher than any past finisher.
+The quartile range is slightly too narrow: it should hold half of the actual
+finishes and holds about four in ten.
+
+**In production.** The tracker served about 1,000 supporters on race day,
+6 September 2026, from a single container, and every deployment since has
+been checked against the live page.
+
 ## Running it
 
 Tool versions come from `mise.toml` (Node 24, Bun 1.4).
