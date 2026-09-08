@@ -56,6 +56,9 @@ const EVENTS: EventsResponseDto = {
 beforeEach(() => {
   installStorage();
   window.localStorage.setItem(storageKey("bookmarks"), JSON.stringify(["1234"]));
+  // Already following this athlete, so the pass below is news. A bookmark
+  // added just now would bring their race so far in already read.
+  window.localStorage.setItem(storageKey("caughtUp"), JSON.stringify(["1234"]));
   window.history.replaceState(null, "", "/bookmarks");
   vi.stubGlobal(
     "fetch",

@@ -53,6 +53,26 @@ test.describe("friend dashboard", () => {
     await expect(page).not.toHaveURL(/bibs=/);
   });
 
+  test("does not call what a newly bookmarked athlete has already run new", async ({
+    page,
+    request,
+  }) => {
+    const bib = await racingBib(request);
+
+    // The passes an athlete made before anyone was following them arrive in
+    // one answer. They belong in the list; they are not news.
+    const events = page.waitForResponse(
+      (response) => response.url().includes("/api/events") && response.ok(),
+    );
+    await page.goto(`/bookmarks?bibs=${bib}`);
+    await events;
+
+    await expect(page.getByText(`#${bib}`)).toBeVisible();
+    await expect(page.getByRole("img", { name: "新着" })).toHaveCount(0);
+    // The bell is named with the unread count when there is one.
+    await expect(page.getByRole("button", { name: "通知", exact: true })).toBeVisible();
+  });
+
   test("opens the notification panel from the header on any page", async ({ page, request }) => {
     const bib = await racingBib(request);
 

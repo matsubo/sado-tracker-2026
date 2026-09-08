@@ -11,6 +11,7 @@ import {
   RankingPageSchema,
 } from "@/lib/api/contract";
 import { buildEventsResponse } from "@/lib/api/events";
+import { bibsFromEventsHref } from "@/lib/api/eventsLink";
 import { buildLeaderboard } from "@/lib/api/leaderboard";
 import { buildMapResponse } from "@/lib/api/map";
 import { buildRankingPage } from "@/lib/api/rankings";
@@ -114,6 +115,19 @@ describe("checkpoint events", () => {
     expect(own[0]?.key).toBe(`${bib}:${own[0]?.checkpointId}`);
     expect(own[0]?._links.self.href).toBe(`/api/athletes/${bib}`);
     expect(body._links.self.href).toBe(`/api/events?bibs=${encodeURIComponent(bib)}`);
+  });
+
+  it("says which athletes it answers for, in a form a client can read back", () => {
+    const bibs = [...snapshot.athletes.values()].slice(0, 2).map((c) => c.athlete.bib);
+    const body = EventsResponseSchema.parse(buildEventsResponse(snapshot, bibs));
+    // The client decides whose history it has already caught up on from this
+    // link, so the response has to name them and the parser has to agree.
+    expect(bibsFromEventsHref(body._links.self.href)).toEqual(bibs);
+  });
+
+  it("answers for nobody when no athlete was asked for", () => {
+    const body = buildEventsResponse(snapshot, []);
+    expect(bibsFromEventsHref(body._links.self.href)).toEqual([]);
   });
 
   it("is advertised from the race state", () => {
