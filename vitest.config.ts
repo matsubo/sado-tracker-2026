@@ -23,7 +23,7 @@ export default defineConfig({
       reporter: ["text-summary", "lcov"],
       // A ratchet: the numbers the suite reaches today, so a change that
       // drops below them fails CI. Raise them as tests are added.
-      thresholds: { statements: 82, branches: 68, functions: 80, lines: 85 },
+      thresholds: { statements: 84, branches: 71, functions: 82, lines: 86 },
     },
   },
 });
