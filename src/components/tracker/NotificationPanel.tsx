@@ -20,7 +20,8 @@ interface Props {
 /**
  * Checkpoint passes for the bookmarked athletes, newest first. Unread is
  * tracked in this browser by checkpoint, not by time, so a pass that the
- * timing site publishes late still shows up as new.
+ * timing site publishes late still shows up as new. What an athlete had
+ * already done when they were bookmarked is listed, but read.
  */
 export function NotificationPanel({ items, friendCount, onMarkAllSeen }: Props) {
   return (
@@ -108,7 +109,8 @@ export function NotificationPanel({ items, friendCount, onMarkAllSeen }: Props) 
       )}
 
       <p className="bg-muted px-3.5 py-2.5 text-[11.5px] text-muted-foreground">
-        既読はこのブラウザで管理します。計測サイトの反映が遅れて届いた通過も、未表示なら未読として出します。
+        既読はこのブラウザで管理します。ブックマークした時点までの通過は既読で並び、そのあとの通過が未読になります。
+        計測サイトの反映が遅れて届いた通過も、未表示なら未読として出します。
       </p>
     </section>
   );

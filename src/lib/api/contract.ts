@@ -403,6 +403,8 @@ export type PassEventDto = z.infer<typeof PassEventSchema>;
  * Every checkpoint the asked-for athletes have passed, newest first. The
  * client decides which are unread by key, so a checkpoint the timing site
  * publishes late still surfaces rather than being missed by a timestamp.
+ * The self link names who was asked for, which is how a client tells an
+ * athlete with no passes yet from one this answer was written before.
  */
 export const EventsResponseSchema = z
   .strictObject({

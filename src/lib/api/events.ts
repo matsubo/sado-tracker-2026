@@ -1,6 +1,7 @@
 import { derivePassEvents, eventKey } from "@/lib/compute/events";
 import type { ComputedSnapshot } from "@/lib/compute/snapshot";
 import type { EventsResponseDto } from "./contract";
+import { eventsHref } from "./eventsLink";
 import { athleteRefLinks } from "./serialize";
 
 const MAX_BIBS = 50;
@@ -27,16 +28,11 @@ export function buildEventsResponse(
     segmentSpeedKmh: event.segmentSpeedKmh,
     _links: athleteRefLinks(event.bib),
   }));
+  // The self link names exactly who was asked for, which is how a client
+  // tells "this athlete has no passes yet" from "this answer predates them".
   return {
     count: events.length,
     events,
-    _links: {
-      self: {
-        href:
-          wanted.length === 0
-            ? "/api/events"
-            : `/api/events?bibs=${encodeURIComponent(wanted.join(","))}`,
-      },
-    },
+    _links: { self: { href: eventsHref(wanted) } },
   };
 }
