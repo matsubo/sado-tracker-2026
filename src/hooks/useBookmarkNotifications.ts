@@ -34,8 +34,11 @@ export function useBookmarkNotifications(): BookmarkNotifications {
   const nobody = ready && bibs.length === 0;
   const covered = useMemo(() => {
     if (nobody) return [];
-    if (!data) return null;
-    return bibsFromEventsHref(data._links.self.href);
+    // Nothing on the wire is checked against the schema, and this runs on
+    // every page: an answer of an unexpected shape has to leave the bell
+    // knowing nothing, not take the app down as it renders.
+    const href = data?._links?.self?.href;
+    return typeof href === "string" ? bibsFromEventsHref(href) : null;
   }, [nobody, data]);
 
   const { items, unreadCount, markAllSeen } = useNotifications(events, covered);

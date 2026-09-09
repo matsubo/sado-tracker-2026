@@ -94,6 +94,24 @@ describe("the bookmark bell", () => {
     expect(result.current.bell.unreadCount).toBe(0);
   });
 
+  it("survives an answer that is not the one it asked for", async () => {
+    window.localStorage.setItem(storageKey("bookmarks"), JSON.stringify(["1234"]));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        // A proxy error page, a truncated body: a 200 that is not the answer.
+        const body = String(input).includes("/api/events") ? {} : RACE;
+        return new Response(JSON.stringify(body));
+      }),
+    );
+
+    const { result } = renderBell();
+
+    await waitFor(() => expect(result.current.bell.bookmarkCount).toBe(1));
+    expect(result.current.bell.items).toHaveLength(0);
+    expect(result.current.bell.unreadCount).toBe(0);
+  });
+
   it("stays quiet when a second athlete is bookmarked mid-race", async () => {
     window.localStorage.setItem(storageKey("bookmarks"), JSON.stringify(["1234"]));
     window.localStorage.setItem(storageKey("caughtUp"), JSON.stringify(["1234"]));
