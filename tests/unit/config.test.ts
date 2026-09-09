@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { getRaceConfig, normalizeAgeGroup, normalizeDivision, normalizeName } from "@/config/races";
 
+describe("course size", () => {
+  it("keeps every division under the number of passes an answer makes room for", () => {
+    // buildEventsResponse sizes its answer at 20 passes per athlete so that a
+    // whole race fits. A course with more timing points than that would have
+    // its oldest passes cut, and the notification list would call them new.
+    for (const year of [2022, 2023, 2024, 2025, 2026]) {
+      for (const division of Object.values(getRaceConfig(year).divisions)) {
+        expect(division.checkpoints.length).toBeLessThanOrEqual(20);
+      }
+    }
+  });
+});
+
 describe("normalizeDivision", () => {
   const c2026 = getRaceConfig(2026);
   const c2023 = getRaceConfig(2023);

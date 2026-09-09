@@ -6,13 +6,28 @@ import { athleteRefLinks } from "./serialize";
 
 const MAX_BIBS = 50;
 
-/** Checkpoint passes for a list of bibs, newest first, capped. */
+/**
+ * More timing points than any course has, so the answer below holds an
+ * athlete's whole race; see config/races/courses.ts, and the test that keeps
+ * the two in step.
+ */
+const MAX_PASSES_PER_ATHLETE = 20;
+
+/**
+ * Every checkpoint the given athletes have passed, newest first.
+ *
+ * Complete for each athlete asked for, never the newest hundred across them
+ * all: the client folds an athlete's race so far into what it has read the
+ * first time an answer accounts for them, so a pass left out here would come
+ * back as news the moment the list is short enough to let it in. What that
+ * costs is bounded by how many athletes one browser can follow.
+ */
 export function buildEventsResponse(
   snapshot: ComputedSnapshot,
   bibs: readonly string[],
-  limit = 100,
 ): EventsResponseDto {
   const wanted = bibs.slice(0, MAX_BIBS);
+  const limit = wanted.length * MAX_PASSES_PER_ATHLETE;
   const events = derivePassEvents(snapshot, wanted, limit).map((event) => ({
     key: eventKey(event),
     bib: event.bib,

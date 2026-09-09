@@ -117,6 +117,33 @@ describe("checkpoint events", () => {
     expect(body._links.self.href).toBe(`/api/events?bibs=${encodeURIComponent(bib)}`);
   });
 
+  it("answers with every pass of every athlete asked for, not a window across them", () => {
+    // The client folds an athlete's race so far into what it has read the
+    // first time an answer accounts for them. A pass left out of that answer
+    // would come back as news the moment the list is short enough to let it
+    // in, which is the flood the fold exists to stop.
+    const followed: { bib: string; passes: number }[] = [];
+    let total = 0;
+    for (const computed of snapshot.athletes.values()) {
+      if (computed.splits.length === 0 || followed.length >= 50) continue;
+      followed.push({ bib: computed.athlete.bib, passes: computed.splits.length });
+      total += computed.splits.length;
+      if (total > 100) break;
+    }
+    expect(total).toBeGreaterThan(100);
+
+    const body = EventsResponseSchema.parse(
+      buildEventsResponse(
+        snapshot,
+        followed.map((entry) => entry.bib),
+      ),
+    );
+    expect(body.events).toHaveLength(total);
+    for (const entry of followed) {
+      expect(body.events.filter((event) => event.bib === entry.bib)).toHaveLength(entry.passes);
+    }
+  });
+
   it("says which athletes it answers for, in a form a client can read back", () => {
     const bibs = [...snapshot.athletes.values()].slice(0, 2).map((c) => c.athlete.bib);
     const body = EventsResponseSchema.parse(buildEventsResponse(snapshot, bibs));
