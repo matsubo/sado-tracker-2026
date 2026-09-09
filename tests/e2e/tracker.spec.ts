@@ -429,22 +429,22 @@ test.describe("page titles", () => {
 
 test.describe("the address bar", () => {
   test("carries the page, so the back button goes back a page", async ({ page }) => {
+    // Who leads, not what their row says: the replay runs at 30x, so the
+    // times and the predicted finish on a row move while the test reads it.
+    const leader = () => page.locator('main a[href^="/athletes/"]').first().getAttribute("href");
+
     await page.goto("/");
     await expect(page.getByText(/先頭順/)).toBeVisible();
-    const first = await page.locator('main a[href^="/athletes/"]').first().innerText();
+    const first = await leader();
 
     await page.getByRole("button", { name: "次へ ›" }).click();
     await expect(page).toHaveURL(/[?&]page=2/);
     // The rows arrive after the address changes, so wait for them, not the URL.
-    await expect
-      .poll(async () => page.locator('main a[href^="/athletes/"]').first().innerText())
-      .not.toBe(first);
+    await expect.poll(leader).not.toBe(first);
 
     await page.goBack();
     await expect(page).not.toHaveURL(/[?&]page=2/);
-    await expect
-      .poll(async () => page.locator('main a[href^="/athletes/"]').first().innerText())
-      .toBe(first);
+    await expect.poll(leader).toBe(first);
   });
 
   test("carries the division and the filter too", async ({ page }) => {
