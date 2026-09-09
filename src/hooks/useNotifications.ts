@@ -34,6 +34,16 @@ function readKeys(key: string): Set<string> {
   }
 }
 
+/**
+ * What this view has read, plus what anything else has written since it
+ * loaded. The bell in the header and the page below it each hold their own
+ * copy, so writing one of them back on its own would put back what the other
+ * had just cleared.
+ */
+function merged(seen: ReadonlySet<string>): Set<string> {
+  return new Set([...readKeys(SEEN_KEY), ...seen]);
+}
+
 function writeKeys(key: string, keys: ReadonlySet<string>): void {
   try {
     window.localStorage.setItem(key, JSON.stringify([...keys]));
@@ -90,7 +100,7 @@ export function useNotifications(
 
     if (fresh.length > 0) {
       const bibs = new Set(fresh);
-      const nextSeen = new Set(seen);
+      const nextSeen = merged(seen);
       for (const event of events) if (bibs.has(event.bib)) nextSeen.add(event.key);
       writeKeys(SEEN_KEY, nextSeen);
       setSeen(nextSeen);
@@ -122,7 +132,7 @@ export function useNotifications(
 
   const markAllSeen = useCallback(() => {
     setSeen((current) => {
-      const next = new Set(current);
+      const next = merged(current);
       for (const item of items) next.add(item.key);
       writeKeys(SEEN_KEY, next);
       return next;

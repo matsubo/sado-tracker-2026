@@ -122,6 +122,34 @@ describe("useNotifications", () => {
     expect(result.current.unreadCount).toBe(0);
   });
 
+  it("remembers the history it took on, so a reload does not call it new", () => {
+    const first = renderNotifications({ events: [SUMIYOSHI, BIKE_START], covered: ["1234"] });
+    expect(first.result.current.unreadCount).toBe(0);
+
+    const second = renderNotifications({ events: [SUMIYOSHI, BIKE_START], covered: ["1234"] });
+    expect(second.result.current.unreadCount).toBe(0);
+  });
+
+  it("does not forget what another view of the same list marked read", () => {
+    // The bell in the header and the page below it each drive this hook, and
+    // only the bell marks things read. Writing a whole set would let the page
+    // put back what the bell had just cleared.
+    const bell = renderNotifications({ events: [], covered: ["1234"] });
+    const page = renderNotifications({ events: [], covered: ["1234"] });
+    bell.rerender({ events: [SUMIYOSHI], covered: ["1234"] });
+    page.rerender({ events: [SUMIYOSHI], covered: ["1234"] });
+    act(() => bell.result.current.markAllSeen());
+
+    // A second athlete is bookmarked, and the page takes on their history.
+    page.rerender({ events: [SUMIYOSHI, OTHER_SUMIYOSHI], covered: ["1234", "5678"] });
+
+    const reloaded = renderNotifications({
+      events: [SUMIYOSHI, OTHER_SUMIYOSHI],
+      covered: ["1234", "5678"],
+    });
+    expect(reloaded.result.current.unreadCount).toBe(0);
+  });
+
   it("remembers what was read across a reload of the hook", () => {
     const first = renderNotifications({ events: [], covered: ["1234"] });
     first.rerender({ events: [SUMIYOSHI], covered: ["1234"] });
