@@ -53,10 +53,13 @@ jobs:
       # Joins as an ephemeral tag:ci node. The tailnet policy lets tag:ci reach
       # only tcp:6443 on t1/t2/t3, so the tailnet's DNS (AdGuard on n4) is out of
       # reach: keep the runner's own resolver with --accept-dns=false.
+      # The trust credential matches this repo's immutable OIDC subject
+      # (repo:matsubo@98103/sado-tracker-2026@1357947247:ref:refs/heads/main),
+      # which GitHub enforces for repositories created after 2026-07-15.
       - uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4.2.0
         with:
-          oauth-client-id: TNSPGzaJJp11CNTRL-kpa7PvPU7H11CNTRL
-          audience: api.tailscale.com/TNSPGzaJJp11CNTRL-kpa7PvPU7H11CNTRL
+          oauth-client-id: TNSPGzaJJp11CNTRL-kCECY5r7F621CNTRL
+          audience: api.tailscale.com/TNSPGzaJJp11CNTRL-kCECY5r7F621CNTRL
           tags: tag:ci
           args: --accept-dns=false
 
