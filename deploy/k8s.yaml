@@ -1,0 +1,98 @@
+# Applied by .github/workflows/deploy.yml on every push to main, with IMAGE
+# replaced by ghcr.io/matsubo/sado-tracker-2026:<commit sha>. The namespace,
+# the deployer's RBAC and the sado-tracker-2026-env Secret (REFRESH_TOKEN) are
+# cluster-side and live in matsubo/network-setting (k8s/sado-tracker-2026.yaml).
+#
+# /app/data only caches the past races (history/<year>.csv). A pod that starts
+# without them downloads them from the timing site (loadHistory in
+# src/lib/runtime/poller.ts), and the live race is held in memory and fetched
+# at boot, so each pod gets a throwaway emptyDir instead of a volume.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sado-tracker-2026
+  namespace: sado-tracker-2026
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: sado-tracker-2026 }
+  template:
+    metadata:
+      labels: { app: sado-tracker-2026 }
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: { app: sado-tracker-2026 }
+      # nextjs:nodejs in the image; fsGroup makes the emptyDir theirs.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: sado-tracker-2026
+          image: IMAGE
+          ports:
+            - { name: http, containerPort: 3000 }
+          env:
+            - { name: RACE_YEAR, value: "2026" }
+            - { name: FETCH_FROM_HOUR, value: "6" }
+            - { name: NEXT_PUBLIC_GA_ID, value: G-2J16EMZ73S }
+            - name: REFRESH_TOKEN
+              valueFrom:
+                secretKeyRef: { name: sado-tracker-2026-env, key: REFRESH_TOKEN }
+          volumeMounts:
+            - { name: data, mountPath: /app/data }
+          # /api/race answers 503 until the poller has loaded (or downloaded)
+          # the past races and fetched the live one, then 200 for good: the
+          # last good snapshot is kept when a later fetch fails.
+          startupProbe:
+            httpGet: { path: /api/race, port: http }
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: { path: /api/race, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet: { path: /api/race, port: http }
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            requests: { cpu: 50m, memory: 256Mi }
+            limits: { memory: 768Mi }
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sado-tracker-2026
+  namespace: sado-tracker-2026
+spec:
+  selector: { app: sado-tracker-2026 }
+  ports:
+    - { name: http, port: 80, targetPort: http }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sado-tracker-2026
+  namespace: sado-tracker-2026
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: sado-tracker-2026.teraren.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sado-tracker-2026
+                port: { name: http }

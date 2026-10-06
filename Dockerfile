@@ -10,6 +10,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* values are inlined into the bundles and prerendered pages at
+# build time, so the analytics ID has to be known here, not at run time.
+ARG NEXT_PUBLIC_GA_ID
 RUN bun run build
 
 FROM node:24-alpine AS runner
