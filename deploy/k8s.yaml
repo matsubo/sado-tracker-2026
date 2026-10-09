@@ -14,6 +14,13 @@ metadata:
   namespace: sado-tracker-2026
 spec:
   replicas: 2
+  # A rollout starts a new pod and waits for /api/race to answer before it
+  # stops an old one, so both replicas keep serving throughout.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels: { app: sado-tracker-2026 }
   template:
@@ -62,12 +69,30 @@ spec:
             httpGet: { path: /api/race, port: http }
             periodSeconds: 30
             timeoutSeconds: 5
+          # Next.js stops accepting as soon as it gets SIGTERM, but traefik
+          # keeps routing to the pod until it sees the endpoint removed; without
+          # this wait every rolling restart would drop a few requests.
+          lifecycle:
+            preStop:
+              sleep: { seconds: 10 }
           resources:
             requests: { cpu: 50m, memory: 256Mi }
             limits: { memory: 768Mi }
       volumes:
         - name: data
           emptyDir: {}
+---
+# A drain (kubectl drain, kured) evicts at most one pod at a time and waits for
+# its replacement to become ready before taking the next one.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sado-tracker-2026
+  namespace: sado-tracker-2026
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels: { app: sado-tracker-2026 }
 ---
 apiVersion: v1
 kind: Service
