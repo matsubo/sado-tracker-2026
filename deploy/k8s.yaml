@@ -75,9 +75,11 @@ spec:
           lifecycle:
             preStop:
               sleep: { seconds: 10 }
+          # Working set 2026-10-07..12 (77h, excluding the 10-09/10 migration):
+          # p95 266 MiB, max 268 MiB; CPU p95 13m, max 47m.
           resources:
-            requests: { cpu: 50m, memory: 256Mi }
-            limits: { memory: 768Mi }
+            requests: { cpu: 20m, memory: 304Mi }
+            limits: { memory: 464Mi }
       volumes:
         - name: data
           emptyDir: {}
