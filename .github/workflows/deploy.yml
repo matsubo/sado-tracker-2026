@@ -58,7 +58,7 @@ jobs:
       # TS_AUTHKEY, an auth key (tag:ci, reusable, ephemeral, pre-approved)
       # signed with a trusted Tailnet Lock key. It expires 2027-01-26; renewal:
       # matsubo/network-setting tailscale/README.md.
-      - uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4.2.0
+      - uses: tailscale/github-action@99a8333667fff04fdd6cffb46dfd409f8329a7bf # v4.3.0
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
           statedir: /tmp/tailscale-state/
