@@ -16,7 +16,6 @@ concurrency:
 permissions:
   contents: read
   packages: write # push ghcr.io/matsubo/sado-tracker-2026
-  id-token: write # Tailscale OIDC trust credential (no stored Tailscale secret)
 
 env:
   IMAGE: ghcr.io/matsubo/sado-tracker-2026
@@ -51,16 +50,18 @@ jobs:
           cache-to: type=gha,mode=max
 
       # Joins as an ephemeral tag:ci node. The tailnet policy lets tag:ci reach
-      # only tcp:6443 on t1/t2/t3, so the tailnet's DNS (AdGuard on n4) is out of
-      # reach: keep the runner's own resolver with --accept-dns=false.
-      # The trust credential matches this repo's immutable OIDC subject
-      # (repo:matsubo@98103/sado-tracker-2026@1357947247:ref:refs/heads/main),
-      # which GitHub enforces for repositories created after 2026-07-15.
+      # only the Tailscale Service svc:k3s-api (100.86.55.136:6443, the server in
+      # KUBECONFIG), so the tailnet's DNS (AdGuard on n4) is out of reach: keep
+      # the runner's own resolver with --accept-dns=false.
+      # Tailnet Lock (since 2026-10-26): a node made through the OIDC trust
+      # credential is unsigned and reaches nothing, so the job joins with
+      # TS_AUTHKEY, an auth key (tag:ci, reusable, ephemeral, pre-approved)
+      # signed with a trusted Tailnet Lock key. It expires 2027-01-26; renewal:
+      # matsubo/network-setting tailscale/README.md.
       - uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4.2.0
         with:
-          oauth-client-id: TNSPGzaJJp11CNTRL-kCECY5r7F621CNTRL
-          audience: api.tailscale.com/TNSPGzaJJp11CNTRL-kCECY5r7F621CNTRL
-          tags: tag:ci
+          authkey: ${{ secrets.TS_AUTHKEY }}
+          statedir: /tmp/tailscale-state/
           args: --accept-dns=false
 
       # kubectl comes with the ubuntu-latest runner image.
